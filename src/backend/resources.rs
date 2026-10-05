@@ -618,6 +618,40 @@ pub struct CreateApiKeyBody {
     pub constraints: Option<Map<String, Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_token_lifetime_seconds: Option<i64>,
+    /// Migrate an EXISTING key by its hash instead of minting a fresh secret
+    /// (import-spec Blocker 2). Mutually exclusive with a minted secret, and the
+    /// server never accepts a plaintext secret here — only the hash. Omitted
+    /// (`None`) for an ordinary mint.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub import: Option<ImportApiKey>,
+}
+
+/// The `import` object on [`CreateApiKeyBody`] — a pre-existing key moved into
+/// Atlas by its hash. Mirrors the BAPI `POST /v1/api_keys` `import` shape; every
+/// field is optional and omitted when `None`.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct ImportApiKey {
+    /// The key's stored hash. With `hash_algorithm: "sha256"` this is a hex or
+    /// base64url digest of the secret (stored as base64url, the form Atlas's own
+    /// `hashToken` produces); with `"sha256_hex"` it is the lowercase-hex SHA-256
+    /// of the full secret, stored and compared as hex.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret_hash: Option<String>,
+    /// `"sha256"` or `"sha256_hex"` — how `secret_hash` is interpreted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hash_algorithm: Option<String>,
+    /// The key's public prefix (e.g. `ak_live_…`), preserved for display/lookup.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prefix: Option<String>,
+    /// Epoch-ms timestamps carried over from the source system; `None` omits each.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_used_at: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revoked_at: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
 }
 
 /// `PATCH /v1/api_keys/:id` body. Each field is a double `Option`: outer `None`

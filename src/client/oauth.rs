@@ -224,6 +224,51 @@ pub async fn poll_device_token(
     }
 }
 
+/// Exchange a refresh token for a fresh token set (RFC 6749 §6,
+/// `grant_type=refresh_token`). A public-client form POST — no secret, the
+/// `client_id` identifies the caller. The response is a [`TokenResponse`]; a
+/// rotating server returns a NEW `refresh_token` on it, so persist what comes
+/// back and discard the presented one. A dead/rotated token is an
+/// [`OAuthError::Server`] (`invalid_grant`).
+pub async fn refresh_token_grant(
+    transport: &Arc<dyn HttpTransport>,
+    token_endpoint: &str,
+    client_id: &str,
+    refresh_token: &str,
+) -> Result<TokenResponse, OAuthError> {
+    let form = form_encode(&[
+        ("grant_type", "refresh_token"),
+        ("refresh_token", refresh_token),
+        ("client_id", client_id),
+    ]);
+    post_token(transport, token_endpoint, form).await
+}
+
+/// Revoke an access or refresh token (RFC 7009). POSTs the form to the
+/// revocation endpoint (`POST /oauth2/revoke`). Per §2.2 the server answers 200
+/// with an empty body whether or not the token existed — never leaking token
+/// validity — so ANY 2xx is success; only a non-2xx becomes an
+/// [`OAuthError`]. `token_type_hint` (`"access_token"` / `"refresh_token"`) only
+/// orders the server's lookup and may be `None`.
+pub async fn revoke_token(
+    transport: &Arc<dyn HttpTransport>,
+    revoke_endpoint: &str,
+    client_id: &str,
+    token: &str,
+    token_type_hint: Option<&str>,
+) -> Result<(), OAuthError> {
+    let mut pairs = vec![("token", token), ("client_id", client_id)];
+    if let Some(hint) = token_type_hint {
+        pairs.push(("token_type_hint", hint));
+    }
+    let resp = send_form(transport, revoke_endpoint, form_encode(&pairs)).await?;
+    if (200..300).contains(&resp.status) {
+        Ok(())
+    } else {
+        Err(oauth_error_from(resp.status, &resp.body))
+    }
+}
+
 // ── shared helpers ──────────────────────────────────────────────────────────
 
 /// POST a form body to a token endpoint and parse a [`TokenResponse`], mapping a
