@@ -1,6 +1,6 @@
 [package]
 name = "atlasauth"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
@@ -12,11 +12,31 @@ keywords = ["atlas", "auth", "jwt", "jwks", "verification"]
 categories = ["authentication", "web-programming"]
 
 [features]
-# The convenience constructors (`AtlasBackend::new`, `ApiKeyVerifier::new`) that
-# wire a reqwest-backed HTTP transport. Disable it to compile with no HTTP
-# dependency and supply your own `JwksSource` / `HttpPost` instead.
+# The convenience constructors (`AtlasBackend::new`, `ApiKeyVerifier::new`,
+# `BackendClient::new`, and the client-feature flows) that wire a reqwest-backed
+# HTTP transport. Disable it to compile with no HTTP dependency and supply your
+# own `JwksSource` / `HttpPost` / `HttpTransport` instead.
 default = ["reqwest-transport"]
 reqwest-transport = ["dep:reqwest"]
+
+# P0-2: the typed management client for the secret-key Backend API, the typed
+# webhook verifier, and the cursor-pagination helper. Mirrors
+# `@atlasauth/backend`'s resource surface and webhook signature scheme.
+backend = ["dep:hmac", "dep:sha2", "dep:base64", "dep:tokio"]
+
+# P0-1: the native (first-party) client SDK — PKCE S256 + device-authorization
+# OAuth flows, the RFC 8693 OAuth→session exchange, a lazy single-flight session
+# manager, a `SecureStore` abstraction, and the `/v1/client/me/**` self-service
+# surface over a session bearer.
+client = ["dep:sha2", "dep:base64", "dep:rand", "dep:url", "dep:tokio"]
+
+# Platform `SecureStore` backends, off by default. Each gates the keyring-backed
+# store on its matching target so the crate still builds on any one platform (and
+# `--all-features` on a single host only compiles the host's backend). They are
+# only useful alongside `client`.
+keychain = ["dep:keyring"]  # macOS Keychain
+dpapi = ["dep:keyring"]     # Windows Credential Manager (DPAPI)
+libsecret = ["dep:keyring"] # Linux Secret Service / libsecret
 
 [dependencies]
 jsonwebtoken = "9"
@@ -24,9 +44,34 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"], optional = true }
+# `backend` (webhook HMAC) + `client` (PKCE S256). SHA-256 via a pure-Rust crate
+# so the crate honours `#![forbid(unsafe_code)]`.
+hmac = { version = "0.12", optional = true }
+sha2 = { version = "0.10", optional = true }
+base64 = { version = "0.22", optional = true }
+rand = { version = "0.8", optional = true }
+url = { version = "2", optional = true }
+# Async timing (backend retry backoff) + an async mutex (client single-flight
+# refresh). Runtime-agnostic feature set; a consumer brings their own executor.
+tokio = { version = "1", default-features = false, features = ["time", "sync"], optional = true }
+
+# Platform secure-store backends. Declared per-target so a non-matching OS crate
+# never enters the dependency graph — `--all-features` on macOS pulls only the
+# Apple backend, so the build stays green on a single host.
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["apple-native"], optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["windows-native"], optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["sync-secret-service"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 rsa = "0.9"
 rand = "0.8"
 base64 = "0.22"
+# Used by the backend tests to produce a known-good webhook signature.
+hmac = "0.12"
+sha2 = "0.10"

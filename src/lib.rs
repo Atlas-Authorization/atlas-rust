@@ -47,6 +47,22 @@ mod verify;
 #[cfg(feature = "reqwest-transport")]
 mod transport;
 
+// The richer transport trait the management client and native-client flows
+// share. Compiled only when one of those features is on.
+#[cfg(any(feature = "backend", feature = "client"))]
+pub mod http;
+
+/// P0-2 — the typed Backend-API management client, the typed webhook verifier,
+/// and the cursor-pagination helper. See the `backend` feature.
+#[cfg(feature = "backend")]
+pub mod backend;
+
+/// P0-1 — the native (first-party) client SDK: PKCE + device OAuth flows, the
+/// OAuth→session exchange, the session manager, `SecureStore`, and the
+/// `/v1/client/me/**` self-service surface. See the `client` feature.
+#[cfg(feature = "client")]
+pub mod client;
+
 pub use apikey::{
     ApiKeyVerification, ApiKeyVerifier, ApiKeyVerifierBuilder, HttpPost, HttpResponse,
     DEFAULT_BASE_URL, DEFAULT_NEGATIVE_TTL_MS, DEFAULT_POSITIVE_TTL_MS,
@@ -62,3 +78,6 @@ pub use verify::{AtlasBackend, AtlasBackendBuilder, AtlasBackendOptions, CLOCK_S
 
 #[cfg(feature = "reqwest-transport")]
 pub use transport::ReqwestTransport;
+
+#[cfg(any(feature = "backend", feature = "client"))]
+pub use http::{HttpMethod, HttpRequest, HttpTransport};
