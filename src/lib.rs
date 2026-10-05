@@ -63,6 +63,17 @@ pub mod backend;
 #[cfg(feature = "client")]
 pub mod client;
 
+/// Framework-native [Axum](https://docs.rs/axum) integration — the [`AtlasClaims`]
+/// extractor, the [`AtlasLayer`] tower middleware, and the [`require_auth`]
+/// helper — built on the crate's existing [`AtlasBackend`] verifier. See the
+/// `axum` feature.
+///
+/// [`AtlasClaims`]: axum::AtlasClaims
+/// [`AtlasLayer`]: axum::AtlasLayer
+/// [`require_auth`]: axum::require_auth
+#[cfg(feature = "axum")]
+pub mod axum;
+
 pub use apikey::{
     ApiKeyVerification, ApiKeyVerifier, ApiKeyVerifierBuilder, HttpPost, HttpResponse,
     DEFAULT_BASE_URL, DEFAULT_NEGATIVE_TTL_MS, DEFAULT_POSITIVE_TTL_MS,

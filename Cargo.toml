@@ -1,6 +1,6 @@
 [package]
 name = "atlasauth"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
@@ -30,6 +30,14 @@ backend = ["dep:hmac", "dep:sha2", "dep:base64", "dep:tokio"]
 # surface over a session bearer.
 client = ["dep:sha2", "dep:base64", "dep:rand", "dep:url", "dep:tokio"]
 
+# Framework-native Axum integration: the `AtlasClaims` extractor, the
+# `AtlasLayer` tower middleware, and the `require_auth` helper. Off by default
+# and additive — it only wraps the existing verifier, pulling in `axum`/`tower`
+# and nothing on the default build. The `http`/`tower-service`/`tower-layer`
+# types it needs arrive transitively through `axum` (re-exported as
+# `axum::http`) and `tower`.
+axum = ["dep:axum", "dep:tower"]
+
 # Platform `SecureStore` backends, off by default. Each gates the keyring-backed
 # store on its matching target so the crate still builds on any one platform (and
 # `--all-features` on a single host only compiles the host's backend). They are
@@ -54,6 +62,13 @@ url = { version = "2", optional = true }
 # Async timing (backend retry backoff) + an async mutex (client single-flight
 # refresh). Runtime-agnostic feature set; a consumer brings their own executor.
 tokio = { version = "1", default-features = false, features = ["time", "sync"], optional = true }
+# Framework-native Axum integration (`axum` feature). `tower` supplies the
+# `Layer`/`Service` traits the `AtlasLayer` middleware implements; `axum` brings
+# the extractor/response machinery (and re-exports the `http` types, so no direct
+# `http` dependency is needed). Both are optional and absent from the default
+# build.
+axum = { version = "0.8", default-features = false, features = ["matched-path", "tokio"], optional = true }
+tower = { version = "0.5", default-features = false, optional = true }
 
 # Platform secure-store backends. Declared per-target so a non-matching OS crate
 # never enters the dependency graph — `--all-features` on macOS pulls only the
@@ -75,3 +90,8 @@ base64 = "0.22"
 # Used by the backend tests to produce a known-good webhook signature.
 hmac = "0.12"
 sha2 = "0.10"
+# `tests/axum.rs` drives the router with `tower::ServiceExt::oneshot` (no
+# network). The `util` feature carries `ServiceExt`; it merges with the optional
+# `tower` dep the `axum` feature activates, so it is present only when the axum
+# tests are compiled.
+tower = { version = "0.5", features = ["util"] }
