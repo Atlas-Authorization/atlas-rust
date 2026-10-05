@@ -611,6 +611,84 @@ pub struct CreateApiKeyBody {
     pub claims: Option<Map<String, Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<i64>,
+    /// §P1-8 delegated-token policy carried onto the minted key.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scopes: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub constraints: Option<Map<String, Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_token_lifetime_seconds: Option<i64>,
+}
+
+/// `PATCH /v1/api_keys/:id` body. Each field is a double `Option`: outer `None`
+/// omits the key, `Some(None)` sends JSON `null` to clear it (the server clears
+/// `expires_at`/`max_token_lifetime_seconds` on null). `scopes`/`constraints`
+/// are the §P1-8 delegated-token policy.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct UpdateApiKeyBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<Option<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claims: Option<Map<String, Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<Option<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scopes: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub constraints: Option<Map<String, Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_token_lifetime_seconds: Option<Option<i64>>,
+}
+
+/// `POST /v1/api_keys/token` body — present an `ak_` secret to mint a
+/// short-lived, JWKS-signed access JWT. `audience` is a string or array.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct MintApiKeyTokenBody {
+    pub secret: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ttl_seconds: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audience: Option<Value>,
+}
+
+/// The minted delegated access token. Offline-verifiable against the instance
+/// JWKS at `issuer`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ApiKeyToken {
+    #[serde(default)]
+    pub token: String,
+    #[serde(default)]
+    pub token_type: Option<String>,
+    #[serde(default)]
+    pub jti: Option<String>,
+    #[serde(default)]
+    pub key_id: Option<String>,
+    #[serde(default)]
+    pub subject_type: Option<String>,
+    #[serde(default)]
+    pub subject_id: Option<String>,
+    #[serde(default)]
+    pub scopes: Vec<String>,
+    #[serde(default)]
+    pub constraints: Map<String, Value>,
+    #[serde(default)]
+    pub expires_in: Option<i64>,
+    #[serde(default)]
+    pub expires_at: Option<i64>,
+    #[serde(default)]
+    pub issuer: Option<String>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One row of the `GET /v1/api_keys/revoked` feed: a revoked key id + when.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RevokedApiKey {
+    pub id: String,
+    #[serde(default)]
+    pub revoked_at: Option<i64>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
 }
 
 /// The `/v1/api_keys` namespace. (The online *verify* with positive/negative
@@ -648,6 +726,37 @@ impl ApiKeys<'_> {
     pub async fn get(&self, id: &str) -> Result<ApiKey, BackendError> {
         let path = format!("/v1/api_keys/{}", seg(id));
         self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    }
+    /// `PATCH /v1/api_keys/:id` — update name, claims, expiry, and the §P1-8
+    /// delegated-token policy (scopes/constraints/max_token_lifetime_seconds).
+    pub async fn patch(&self, id: &str, body: &UpdateApiKeyBody) -> Result<ApiKey, BackendError> {
+        let path = format!("/v1/api_keys/{}", seg(id));
+        self.client.request(HttpMethod::Patch, &path, &[], body_of(body)?, None).await
+    }
+    /// Alias for [`Self::patch`], matching the `update` verb on other resources.
+    pub async fn update(&self, id: &str, body: &UpdateApiKeyBody) -> Result<ApiKey, BackendError> {
+        self.patch(id, body).await
+    }
+    /// `POST /v1/api_keys/token` — mint a short-lived, JWKS-signed access JWT
+    /// from a presented `ak_` secret (the delegated-token mint).
+    pub async fn mint_token(&self, body: &MintApiKeyTokenBody) -> Result<ApiKeyToken, BackendError> {
+        self.client.request(HttpMethod::Post, "/v1/api_keys/token", &[], body_of(body)?, None).await
+    }
+    /// `GET /v1/api_keys/revoked` — the revocation feed, keyset-paginated.
+    /// `since` is an ISO-8601 instant, epoch-millis, or a prior page's cursor.
+    pub async fn revoked(
+        &self,
+        since: Option<&str>,
+        limit: Option<u32>,
+    ) -> Result<CursorPage<RevokedApiKey>, BackendError> {
+        let mut q: Vec<(&str, String)> = Vec::new();
+        if let Some(s) = since {
+            q.push(("since", s.to_string()));
+        }
+        if let Some(l) = limit {
+            q.push(("limit", l.to_string()));
+        }
+        self.client.request(HttpMethod::Get, "/v1/api_keys/revoked", &q, None, None).await
     }
     pub async fn delete(&self, id: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/api_keys/{}", seg(id));

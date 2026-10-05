@@ -18,6 +18,7 @@
 
 mod client;
 mod error;
+mod machines;
 mod pagination;
 mod platform;
 mod resources;
@@ -29,14 +30,19 @@ pub use client::{
 };
 pub use error::{AtlasApiError, AtlasErrorItem, BackendError};
 pub use pagination::{collect, CursorPage, CursorParams};
+pub use machines::{
+    CreateEnrolmentTokenBody, CreateMachineBody, EnrolMachineBody, EnrolledMachine, EnrolmentToken,
+    M2mVerification, Machine, MachineChallenge, MachineFilter, MachineOrgMembership, MachineToken,
+    MachineWithSecret, Machines,
+};
 pub use resources::{
-    AllGrantsRevocation, ApiKey, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,
+    AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,
     BillingSubscription, CreateApiKeyBody, CreateBillingPlanBody, CreateOrganizationBody,
     CreateUserBody, CustomDomain, DeletedObject, Domains, Grant, GrantRevocation, Grants,
-    Invitation, Invitations, ListPage, Metadata, MintedSession, OrgDomain, OrgDomains,
-    OrgInvitations, OrgMemberships, Organization, OrganizationInvitation, OrganizationMembership,
-    OrganizationPolicy, Organizations, Session, Sessions, UpdateOrganizationBody, UpdateUserBody,
-    User, Users,
+    Invitation, Invitations, ListPage, Metadata, MintApiKeyTokenBody, MintedSession, OrgDomain,
+    OrgDomains, OrgInvitations, OrgMemberships, Organization, OrganizationInvitation,
+    OrganizationMembership, OrganizationPolicy, Organizations, RevokedApiKey, Session, Sessions,
+    UpdateApiKeyBody, UpdateOrganizationBody, UpdateUserBody, User, Users,
 };
 pub use platform::{
     AuditActor, AuditEvent, AuditEventFilter, AuditEvents, AuditTarget, CreateEntitlementOverrideBody,

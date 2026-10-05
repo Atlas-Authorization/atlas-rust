@@ -47,13 +47,45 @@ impl RefreshRefusal {
         }
     }
 
-    /// Whether the session is permanently gone (re-run OAuth) rather than this
-    /// being a transient condition.
+    /// Whether this refusal can NEVER be recovered by another refresh (the
+    /// session is gone — re-run OAuth), versus one that *might* clear on a retry
+    /// with the current stored token.
+    ///
+    /// The mapping:
+    ///
+    /// | refusal                  | terminal | why |
+    /// |--------------------------|----------|-----|
+    /// | [`SessionRevoked`]       | **yes**  | explicitly killed (sign-out / admin); no token revives it |
+    /// | [`SessionExpired`]       | **yes**  | the absolute session lifetime elapsed; refresh cannot extend it |
+    /// | [`SessionIdleExpired`]   | **yes**  | the idle window lapsed and the session was closed; re-auth required |
+    /// | [`RefreshReuseDetected`] | **no**   | may be a benign single-flight RACE, not theft (see below) |
+    ///
+    /// The one non-terminal case is [`RefreshReuseDetected`]. The refresh token
+    /// ROTATES on every use, so two near-simultaneous refreshes of the same
+    /// session race: the winner rotates the token, and the loser then presents
+    /// the now-superseded value and trips reuse detection — even though the
+    /// session is perfectly alive and a VALID rotated token already exists. A
+    /// caller that re-reads the latest persisted refresh token and refreshes once
+    /// more therefore MIGHT succeed. (If it was genuine token theft the whole
+    /// chain is dead and the retry fails too — surfacing a terminal
+    /// [`SessionRevoked`]/[`SessionExpired`] next — so treating it as recoverable
+    /// costs one extra attempt and never masks a real compromise.) The session
+    /// manager uses exactly this: it clears the stored session on a terminal
+    /// refusal but KEEPS it on a reuse-detected one.
+    ///
+    /// [`SessionRevoked`]: RefreshRefusal::SessionRevoked
+    /// [`SessionExpired`]: RefreshRefusal::SessionExpired
+    /// [`SessionIdleExpired`]: RefreshRefusal::SessionIdleExpired
+    /// [`RefreshReuseDetected`]: RefreshRefusal::RefreshReuseDetected
     pub fn is_terminal(&self) -> bool {
-        // All four mean the current session cannot be refreshed; a native app
-        // treats every one as "sign in again". Exposed as a method so callers
-        // can branch without matching every variant.
-        true
+        match self {
+            RefreshRefusal::SessionRevoked
+            | RefreshRefusal::SessionExpired
+            | RefreshRefusal::SessionIdleExpired => true,
+            // A reuse signal can be a single-flight race, not theft — recoverable
+            // by refreshing again with the current stored token.
+            RefreshRefusal::RefreshReuseDetected => false,
+        }
     }
 }
 
@@ -63,6 +95,10 @@ pub enum SessionError {
     /// The refresh was refused with one of the four typed codes.
     #[error("atlas session refused: {}", .0.code())]
     Refused(RefreshRefusal),
+    /// The manager holds no session (signed out) — raised by
+    /// [`NativeSessionManager::get_token_checked`](crate::client::NativeSessionManager::get_token_checked).
+    #[error("atlas session: not signed in")]
+    NoSession,
     /// A non-2xx that was not one of the typed refusal codes.
     #[error("atlas session: unexpected HTTP {status}")]
     Unexpected { status: u16 },

@@ -20,25 +20,46 @@ mod error;
 mod native_session;
 mod oauth;
 mod pkce;
+mod revocation;
 mod self_service;
 mod store;
+
+#[cfg(feature = "machine")]
+mod machine;
 
 pub use error::{DevicePollError, OAuthError, RefreshRefusal, SessionError};
 pub use native_session::{
     exchange_for_session, refresh_native_session, NativeSession, NativeSessionListener,
-    NativeSessionManager, REFRESH_LEAD_MS,
+    NativeSessionManager, RefusalListener, REFRESH_LEAD_MS,
 };
 pub use oauth::{
     parse_callback, poll_device_token, request_device_code, AuthorizationRequest, CallbackParams,
     DeviceAuthorization, TokenResponse,
 };
 pub use pkce::Pkce;
-pub use self_service::{BearerSource, ClientApiError, SelfServiceClient, StaticBearer};
-pub use store::{MemorySecureStore, SecureStore, SecureStoreError};
+pub use revocation::{
+    token_key_id, ApiKeyToken, ApiKeyTokenClient, ApiKeyTokenError, DenyList, MintOptions,
+    PollResult, RevokedKeyPoller, TokenAuth,
+};
+pub use self_service::{
+    ApiTokenRecord, BearerSource, ClientApiError, ClientSession, List, MfaFactor, OAuthGrant,
+    OrganizationMembership, Passkey, SelfServiceClient, StaticBearer, TrustedDevice, UserProfile,
+};
+pub use store::{CallbackSecureStore, MemorySecureStore, SecureStore, SecureStoreError};
+
+#[cfg(feature = "encrypted-file")]
+pub use store::EncryptedFileStore;
+
+#[cfg(feature = "machine")]
+pub use machine::{
+    Challenge, Enrollment, MachineClient, MachineError, MachineKeypair, MachineToken,
+    MachineTokenManager, MACHINE_REFRESH_LEAD_MS,
+};
 
 #[cfg(any(
-    all(feature = "keychain", target_os = "macos"),
+    all(feature = "keychain", any(target_os = "macos", target_os = "ios")),
     all(feature = "dpapi", target_os = "windows"),
-    all(feature = "libsecret", target_os = "linux")
+    all(feature = "libsecret", target_os = "linux"),
+    all(feature = "linux-keyutils", target_os = "linux")
 ))]
 pub use store::KeyringSecureStore;
