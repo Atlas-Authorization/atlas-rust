@@ -156,6 +156,20 @@ impl BackendClient {
         body: Option<Value>,
         idempotency_key: Option<&str>,
     ) -> Result<T, BackendError> {
+        let text = self.send_text(method, path, query, body, idempotency_key).await?;
+        parse_body(&text)
+    }
+
+    /// The same authenticated, retried request as [`Self::request`], returning
+    /// the raw 2xx body text instead of deserializing it.
+    pub(crate) async fn send_text(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Value>,
+        idempotency_key: Option<&str>,
+    ) -> Result<String, BackendError> {
         let url = format!("{}{}{}", self.base(), path, serialize_query(query));
         let serialized = match &body {
             Some(v) => Some(serde_json::to_string(v).map_err(|e| BackendError::Malformed(e.to_string()))?),
@@ -186,7 +200,7 @@ impl BackendClient {
                 }
                 Ok(resp) => {
                     if (200..300).contains(&resp.status) {
-                        return parse_body(&resp.body);
+                        return Ok(resp.body);
                     }
                     // 5xx and 429 are transient: retry while budget remains.
                     if (resp.status >= 500 || resp.status == 429) && attempt < self.max_retries {
@@ -198,6 +212,56 @@ impl BackendClient {
                 }
             }
         }
+    }
+
+    /// Public escape hatch: call ANY BAPI endpoint the crate does not type yet.
+    ///
+    /// Applies the same auth (`Authorization: Bearer sk_…`), JSON encoding,
+    /// 5xx/429 retry policy, and typed [`BackendError`] as every resource method,
+    /// then deserializes the 2xx body into a caller-chosen `T`. `path` is the
+    /// absolute API path (e.g. `/v1/some_new_thing`); `query` pairs are
+    /// percent-encoded for you.
+    ///
+    /// ```no_run
+    /// # async fn demo(atlas: &atlasauth::backend::BackendClient) -> Result<(), atlasauth::backend::BackendError> {
+    /// use atlasauth::HttpMethod;
+    /// let v: serde_json::Value = atlas
+    ///     .request_raw(HttpMethod::Get, "/v1/some_new_thing", &[("limit", "5".into())], None)
+    ///     .await?;
+    /// # let _ = v; Ok(()) }
+    /// ```
+    pub async fn request_raw<T: DeserializeOwned>(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Value>,
+    ) -> Result<T, BackendError> {
+        self.request(method, path, query, body, None).await
+    }
+
+    /// [`Self::request_raw`] returning the body as a dynamic [`Value`]
+    /// (`null` for an empty body).
+    pub async fn request_value(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Value>,
+    ) -> Result<Value, BackendError> {
+        self.request(method, path, query, body, None).await
+    }
+
+    /// [`Self::request_raw`] returning the undecoded response body bytes — for
+    /// non-JSON responses such as the JSONL/CSV audit export.
+    pub async fn request_bytes(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Value>,
+    ) -> Result<Vec<u8>, BackendError> {
+        Ok(self.send_text(method, path, query, body, None).await?.into_bytes())
     }
 
     async fn backoff(&self, attempt: u32) {

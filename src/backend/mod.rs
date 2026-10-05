@@ -19,6 +19,7 @@
 mod client;
 mod error;
 mod pagination;
+mod platform;
 mod resources;
 mod testing;
 mod webhook;
@@ -36,6 +37,15 @@ pub use resources::{
     OrgInvitations, OrgMemberships, Organization, OrganizationInvitation, OrganizationMembership,
     OrganizationPolicy, Organizations, Session, Sessions, UpdateOrganizationBody, UpdateUserBody,
     User, Users,
+};
+pub use platform::{
+    AuditActor, AuditEvent, AuditEventFilter, AuditEvents, AuditTarget, CreateEntitlementOverrideBody,
+    CreateTicketBody, EffectiveEntitlements, EntitlementOverride, EntitlementOverrides, ErasureAck,
+    ErasureStatus, NotificationCategories, NotificationCategory, NotificationCategoryBody,
+    NotificationTemplate, NotificationTemplateBody, NotificationTemplates, Notifications, OrgBranding,
+    OrgPlatform, OrgSettings, OrgSettingsSchema, OrgSettingsSchemaApi, RedeemedTicket,
+    ScheduleDeletionBody, SendNotificationBody, SetOrgBrandingBody, Ticket, Tickets, UserErasure,
+    WriteAuditEventBody,
 };
 pub use testing::FakeTransport;
 pub use webhook::{

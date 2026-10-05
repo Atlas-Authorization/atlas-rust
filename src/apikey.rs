@@ -31,6 +31,9 @@ pub const DEFAULT_POSITIVE_TTL_MS: u64 = 300_000;
 /// Default negative-cache TTL: thirty seconds.
 pub const DEFAULT_NEGATIVE_TTL_MS: u64 = 30_000;
 
+/// Default max entries per cache (positive and negative each): 10 000.
+pub const DEFAULT_MAX_ENTRIES: usize = 10_000;
+
 /// The public API host. Override for self-hosted instances.
 pub const DEFAULT_BASE_URL: &str = "https://api.atlasauth.net";
 
@@ -86,6 +89,7 @@ pub struct ApiKeyVerifier {
     now: Clock,
     positive_ttl_ms: u64,
     negative_ttl_ms: u64,
+    max_entries: usize,
     positive: Mutex<HashMap<String, CacheEntry>>,
     negative: Mutex<HashMap<String, CacheEntry>>,
 }
@@ -98,6 +102,7 @@ pub struct ApiKeyVerifierBuilder {
     now: Option<Clock>,
     positive_ttl_ms: u64,
     negative_ttl_ms: u64,
+    max_entries: usize,
 }
 
 impl ApiKeyVerifierBuilder {
@@ -109,6 +114,7 @@ impl ApiKeyVerifierBuilder {
             now: None,
             positive_ttl_ms: DEFAULT_POSITIVE_TTL_MS,
             negative_ttl_ms: DEFAULT_NEGATIVE_TTL_MS,
+            max_entries: DEFAULT_MAX_ENTRIES,
         }
     }
 
@@ -142,6 +148,13 @@ impl ApiKeyVerifierBuilder {
         self
     }
 
+    /// Cap each cache (positive and negative separately) at this many entries
+    /// (default 10 000, minimum 1). On overflow the oldest entry is evicted.
+    pub fn max_entries(mut self, n: usize) -> Self {
+        self.max_entries = n.max(1);
+        self
+    }
+
     /// Finish building. Fails only when no transport is available (compile
     /// without `reqwest-transport` and you must supply [`Self::transport`]).
     pub fn build(self) -> Result<ApiKeyVerifier, ConfigError> {
@@ -156,6 +169,7 @@ impl ApiKeyVerifierBuilder {
             now: self.now.unwrap_or_else(system_clock),
             positive_ttl_ms: self.positive_ttl_ms,
             negative_ttl_ms: self.negative_ttl_ms,
+            max_entries: self.max_entries,
             positive: Mutex::new(HashMap::new()),
             negative: Mutex::new(HashMap::new()),
         })
@@ -226,19 +240,43 @@ impl ApiKeyVerifier {
             verdict: verdict.clone(),
             stored_at: now,
         };
-        if verdict.valid {
-            self.positive
-                .lock()
-                .unwrap()
-                .insert(secret.to_string(), entry);
-        } else {
-            self.negative
-                .lock()
-                .unwrap()
-                .insert(secret.to_string(), entry);
-        }
+        let cache = if verdict.valid { &self.positive } else { &self.negative };
+        self.insert_bounded(cache, secret, entry);
 
         Ok(verdict)
+    }
+
+    /// Drop one key from BOTH caches, so a just-revoked (or just-fixed) key is
+    /// re-verified against Atlas on its next use instead of waiting out a TTL.
+    pub fn invalidate(&self, secret: &str) {
+        self.positive.lock().unwrap().remove(secret);
+        self.negative.lock().unwrap().remove(secret);
+    }
+
+    /// Drop every cached verdict.
+    pub fn clear(&self) {
+        self.positive.lock().unwrap().clear();
+        self.negative.lock().unwrap().clear();
+    }
+
+    /// Insert, evicting the oldest entries (smallest `stored_at`) while the map
+    /// would exceed `max_entries`.
+    fn insert_bounded(&self, cache: &Mutex<HashMap<String, CacheEntry>>, secret: &str, entry: CacheEntry) {
+        let mut map = cache.lock().unwrap();
+        map.insert(secret.to_string(), entry);
+        while map.len() > self.max_entries {
+            let oldest = map
+                .iter()
+                .filter(|(k, _)| k.as_str() != secret)
+                .min_by_key(|(_, e)| e.stored_at)
+                .map(|(k, _)| k.clone());
+            match oldest {
+                Some(k) => {
+                    map.remove(&k);
+                }
+                None => break,
+            }
+        }
     }
 
     fn cached(

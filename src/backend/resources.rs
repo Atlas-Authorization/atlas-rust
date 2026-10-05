@@ -51,14 +51,14 @@ pub struct DeletedObject {
 
 /// Turn a typed, `skip_serializing_if`-annotated request body into an optional
 /// JSON value — `None` for a body-less call, so the request core omits it.
-fn body_of<T: Serialize>(body: &T) -> Result<Option<Value>, BackendError> {
+pub(super) fn body_of<T: Serialize>(body: &T) -> Result<Option<Value>, BackendError> {
     serde_json::to_value(body)
         .map(Some)
         .map_err(|e| BackendError::Malformed(e.to_string()))
 }
 
 /// A path segment encoder shared by every resource (an id, a slug, a provider).
-fn seg(s: &str) -> String {
+pub(super) fn seg(s: &str) -> String {
     encode_component(s)
 }
 
@@ -227,6 +227,17 @@ impl<'a> Users<'a> {
     pub async fn list_grants(&self, id: &str) -> Result<ListPage<Grant>, BackendError> {
         let path = format!("/v1/users/{}/grants", seg(id));
         self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    }
+    /// `GET /v1/users/:id/organization_memberships` — every org membership the
+    /// user holds, cursor-paginated.
+    pub async fn organization_memberships(
+        &self,
+        id: &str,
+        params: CursorParams,
+    ) -> Result<CursorPage<OrganizationMembership>, BackendError> {
+        let path = format!("/v1/users/{}/organization_memberships", seg(id));
+        let q = params.to_query();
+        self.client.request(HttpMethod::Get, &path, &q, None, None).await
     }
     /// `DELETE /v1/users/:id/grants` — revoke every consent grant, cascading to
     /// the associated access/refresh tokens.
@@ -413,9 +424,11 @@ pub struct OrgMemberships<'a> {
 }
 
 impl OrgMemberships<'_> {
-    pub async fn list(&self) -> Result<ListPage<OrganizationMembership>, BackendError> {
+    /// `GET /v1/organizations/:id/memberships` — cursor-paginated.
+    pub async fn list(&self, params: CursorParams) -> Result<CursorPage<OrganizationMembership>, BackendError> {
         let path = format!("/v1/organizations/{}/memberships", seg(&self.org_id));
-        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+        let q = params.to_query();
+        self.client.request(HttpMethod::Get, &path, &q, None, None).await
     }
     pub async fn add(
         &self,
@@ -607,12 +620,14 @@ pub struct ApiKeys<'a> {
 }
 
 impl ApiKeys<'_> {
+    /// `GET /v1/api_keys` — cursor-paginated, optionally filtered by subject.
     pub async fn list(
         &self,
         subject_type: Option<&str>,
         subject_id: Option<&str>,
-    ) -> Result<ListPage<ApiKey>, BackendError> {
-        let mut q: Vec<(&str, String)> = Vec::new();
+        params: CursorParams,
+    ) -> Result<CursorPage<ApiKey>, BackendError> {
+        let mut q: Vec<(&str, String)> = params.to_query();
         if let Some(t) = subject_type {
             q.push(("subject_type", t.to_string()));
         }
