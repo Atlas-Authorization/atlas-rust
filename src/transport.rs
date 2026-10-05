@@ -61,6 +61,44 @@ impl JwksSource for ReqwestTransport {
     }
 }
 
+// The full-verb transport the `backend` / `client` features build on. Same
+// reqwest client backs it, so one HTTP stack serves verification, API-key
+// checks, the management client, and the native-client flows.
+#[cfg(any(feature = "backend", feature = "client"))]
+impl crate::http::HttpTransport for ReqwestTransport {
+    fn send<'a>(
+        &'a self,
+        req: crate::http::HttpRequest,
+    ) -> BoxFuture<'a, Result<crate::http::HttpResponse, TransportError>> {
+        use crate::http::HttpMethod;
+        Box::pin(async move {
+            let mut builder = match req.method {
+                HttpMethod::Get => self.client.get(&req.url),
+                HttpMethod::Post => self.client.post(&req.url),
+                HttpMethod::Patch => self.client.patch(&req.url),
+                HttpMethod::Put => self.client.put(&req.url),
+                HttpMethod::Delete => self.client.delete(&req.url),
+            };
+            for (name, value) in &req.headers {
+                builder = builder.header(name, value);
+            }
+            if let Some(body) = req.body {
+                builder = builder.body(body);
+            }
+            let resp = builder
+                .send()
+                .await
+                .map_err(|e| TransportError::new(e.to_string()))?;
+            let status = resp.status().as_u16();
+            let body = resp
+                .text()
+                .await
+                .map_err(|e| TransportError::new(e.to_string()))?;
+            Ok(crate::http::HttpResponse { status, body })
+        })
+    }
+}
+
 impl HttpPost for ReqwestTransport {
     fn post_json<'a>(
         &'a self,
