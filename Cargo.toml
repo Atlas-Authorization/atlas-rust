@@ -1,6 +1,6 @@
 [package]
 name = "atlasauth"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
@@ -42,9 +42,35 @@ axum = ["dep:axum", "dep:tower"]
 # store on its matching target so the crate still builds on any one platform (and
 # `--all-features` on a single host only compiles the host's backend). They are
 # only useful alongside `client`.
-keychain = ["dep:keyring"]  # macOS Keychain
+#
+# `keychain` now serves BOTH macOS and iOS — the `keyring` Apple backend
+# (`apple-native`) is declared for both targets and its API is identical, so an
+# iOS app gets the same Keychain-backed store with no extra feature.
+keychain = ["dep:keyring"]  # macOS + iOS Keychain (Apple Secure Enclave-backed)
 dpapi = ["dep:keyring"]     # Windows Credential Manager (DPAPI)
-libsecret = ["dep:keyring"] # Linux Secret Service / libsecret
+
+# Linux has TWO mutually-independent backends so a host can pick a dbus-free one.
+# `libsecret` is the desktop Secret Service (needs libdbus/zbus at build+run);
+# `linux-keyutils` is the kernel keyutils session keyring (NO dbus), for a
+# headless box, a container, or a CI runner where no Secret Service daemon runs.
+# They select the matching `keyring` backend feature; the Linux `keyring` target
+# dep itself carries no default backend, so enabling ONLY `linux-keyutils` pulls
+# no dbus crate at all.
+libsecret = ["dep:keyring", "keyring/sync-secret-service"] # Linux Secret Service (libdbus)
+linux-keyutils = ["dep:keyring", "keyring/linux-native"]   # Linux kernel keyutils, no dbus
+
+# A dependency-light, cross-platform ENCRYPTED-FILE store: XChaCha20-Poly1305 over
+# a key derived (HKDF-SHA256) from a caller-supplied passphrase or machine key. It
+# needs no OS keychain and no dbus, so it is the portable fallback on a headless
+# Linux box — and, being pure Rust, it compiles and round-trips on every target
+# (which is how its round-trip is tested on the CI host). Only useful with `client`.
+encrypted-file = ["client", "dep:chacha20poly1305", "dep:hkdf", "dep:sha2", "dep:base64", "dep:rand"]
+
+# §P1-7 the public MACHINE (device) flow: generate an Ed25519 keypair, enrol it,
+# sign the server challenge, and mint/refresh a short m2m token. All three device
+# endpoints are public (no secret key), so this is a CLIENT-side feature; it adds
+# `ed25519-dalek` for the keypair + signing. Only useful with `client`.
+machine = ["client", "dep:ed25519-dalek", "dep:rand"]
 
 [dependencies]
 jsonwebtoken = "9"
@@ -70,17 +96,34 @@ tokio = { version = "1", default-features = false, features = ["time", "sync"], 
 axum = { version = "0.8", default-features = false, features = ["matched-path", "tokio"], optional = true }
 tower = { version = "0.5", default-features = false, optional = true }
 
+# Ed25519 keypair + detached signatures for the public machine flow (`machine`
+# feature). `pem` gives SPKI/PKCS#8 PEM import+export (the wire format the enrol
+# endpoint takes and a SecureStore persists); `rand_core` lets `SigningKey::generate`
+# take an `OsRng`. Pure-Rust, so the crate keeps `#![forbid(unsafe_code)]`.
+ed25519-dalek = { version = "2", default-features = false, features = ["std", "pem", "rand_core"], optional = true }
+
+# The encrypted-file store (`encrypted-file` feature). XChaCha20-Poly1305 AEAD
+# with an HKDF-SHA256-derived key. All pure-Rust.
+chacha20poly1305 = { version = "0.10", optional = true }
+hkdf = { version = "0.12", optional = true }
+
 # Platform secure-store backends. Declared per-target so a non-matching OS crate
 # never enters the dependency graph — `--all-features` on macOS pulls only the
-# Apple backend, so the build stays green on a single host.
+# Apple backend, so the build stays green on a single host. macOS and iOS share
+# the Apple `security-framework` backend; the Linux dep carries no default backend
+# so the `libsecret` / `linux-keyutils` features each select exactly one (and
+# `linux-keyutils` pulls no dbus).
 [target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["apple-native"], optional = true }
+
+[target.'cfg(target_os = "ios")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["apple-native"], optional = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["windows-native"], optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-keyring = { version = "3", default-features = false, features = ["sync-secret-service"], optional = true }
+keyring = { version = "3", default-features = false, optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
@@ -90,6 +133,9 @@ base64 = "0.22"
 # Used by the backend tests to produce a known-good webhook signature.
 hmac = "0.12"
 sha2 = "0.10"
+# `tests/client.rs` verifies the machine flow end-to-end: the fake /token endpoint
+# checks the SDK's Ed25519 signature over the challenge against the enrolled key.
+ed25519-dalek = { version = "2", features = ["pem", "rand_core"] }
 # `tests/axum.rs` drives the router with `tower::ServiceExt::oneshot` (no
 # network). The `util` feature carries `ServiceExt`; it merges with the optional
 # `tower` dep the `axum` feature activates, so it is present only when the axum

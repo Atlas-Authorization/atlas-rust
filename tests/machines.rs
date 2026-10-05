@@ -1,0 +1,276 @@
+//! Hermetic tests for the wave-3 #7 additions: the machine / device-registry /
+//! enrolment surface, plus the API-key patch / mint_token / revoked gaps. All
+//! offline via FakeTransport — assert the method + path + (de)serialization.
+#![cfg(feature = "backend")]
+
+use std::sync::Arc;
+
+use serde_json::{json, Value};
+
+use atlasauth::backend::{
+    BackendClient, CreateEnrolmentTokenBody, CreateMachineBody, CursorParams, FakeTransport,
+    MachineFilter, MintApiKeyTokenBody, UpdateApiKeyBody,
+};
+use atlasauth::{HttpMethod, HttpResponse};
+
+fn client(fake: &FakeTransport) -> BackendClient {
+    BackendClient::builder("sk_test_x")
+        .transport(Arc::new(fake.clone()))
+        .max_retries(0)
+        .build()
+        .unwrap()
+}
+
+/// Route a canned body by (method, path-suffix). The order of the match arms is
+/// the only thing that distinguishes `/v1/machines` from its sub-paths.
+fn routed() -> FakeTransport {
+    FakeTransport::new(|req| {
+        let path = req.url.replace("https://api.atlasauth.net", "");
+        let p = path.split('?').next().unwrap_or("");
+        let body: &str = match (req.method, p) {
+            (HttpMethod::Post, "/v1/machines") => {
+                r#"{"object":"machine","id":"mch_1","name":"ci-runner","status":"active","metadata":{},"secret":"mk_newsecret","future_field":1}"#
+            }
+            (HttpMethod::Get, "/v1/machines") => {
+                r#"{"object":"list","data":[{"id":"mch_1","status":"active","name":"ci-runner"}]}"#
+            }
+            (HttpMethod::Patch, "/v1/machines/mch_1") => {
+                r#"{"object":"machine","id":"mch_1","name":"renamed","status":"active"}"#
+            }
+            (HttpMethod::Post, "/v1/m2m_tokens/verify") => {
+                r#"{"object":"m2m_verification","valid":true,"machine_id":"mch_1","name":"ci-runner"}"#
+            }
+            (HttpMethod::Post, "/v1/machine_enrolment_tokens") => {
+                r#"{"object":"machine_enrolment_token","id":"met_1","organization_id":"org_1","max_uses":3,"uses":0,"requires_approval":true,"expires_at":123,"token":"met_secret"}"#
+            }
+            (HttpMethod::Get, "/v1/machine_enrolment_tokens") => {
+                r#"{"object":"list","data":[{"id":"met_1","max_uses":3,"uses":1,"requires_approval":false}]}"#
+            }
+            (HttpMethod::Delete, "/v1/machine_enrolment_tokens/met_1") => {
+                r#"{"object":"machine_enrolment_token","id":"met_1","deleted":true}"#
+            }
+            (HttpMethod::Patch, "/v1/api_keys/ak_1") => {
+                r#"{"object":"api_key","id":"ak_1","subject_type":"user","subject_id":"user_1","name":"renamed","scopes":["read","write"],"claims":{"plan":"pro"}}"#
+            }
+            (HttpMethod::Post, "/v1/api_keys/token") => {
+                r#"{"object":"api_key_token","token":"eyJ.jwt","token_type":"Bearer","jti":"jti_1","key_id":"ak_1","subject_type":"user","subject_id":"user_1","scopes":["read"],"constraints":{"ip":"*"},"expires_in":300,"expires_at":999,"issuer":"https://inst.fapi.atlasauth.net"}"#
+            }
+            (HttpMethod::Get, "/v1/api_keys/revoked") => {
+                r#"{"object":"list","data":[{"object":"api_key","id":"ak_9","revoked_at":4242}],"has_more":true,"next_cursor":"c2"}"#
+            }
+            _ => r#"{"object":"machine","id":"mch_1","status":"active","name":"ci-runner","metadata":{"hostname":"h1"}}"#,
+        };
+        HttpResponse { status: 200, body: body.into() }
+    })
+}
+
+// ── machines ────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn machine_create_and_rename_hit_right_method_path_and_deserialize() {
+    let fake = routed();
+    let c = client(&fake);
+
+    let created = c
+        .machines()
+        .create(&CreateMachineBody { name: "ci-runner".into(), ..Default::default() }, Some("idem-m"))
+        .await
+        .unwrap();
+    assert_eq!(created.id, "mch_1");
+    assert_eq!(created.secret, "mk_newsecret");
+    // The rest of the machine flattens into `machine` (never a typed secret_hash).
+    assert_eq!(created.machine["name"], "ci-runner");
+    assert!(created.machine.contains_key("future_field"));
+
+    let renamed = c.machines().rename("mch_1", "renamed").await.unwrap();
+    assert_eq!(renamed.name.as_deref(), Some("renamed"));
+
+    let reqs = fake.requests();
+    assert_eq!(reqs[0].method, HttpMethod::Post);
+    assert!(reqs[0].url.ends_with("/v1/machines"));
+    assert_eq!(reqs[0].body.as_deref(), Some(r#"{"name":"ci-runner"}"#));
+    assert!(reqs[0].headers.iter().any(|(k, v)| k == "idempotency-key" && v == "idem-m"));
+    assert_eq!(reqs[1].method, HttpMethod::Patch);
+    assert!(reqs[1].url.ends_with("/v1/machines/mch_1"));
+    assert_eq!(reqs[1].body.as_deref(), Some(r#"{"name":"renamed"}"#));
+}
+
+#[tokio::test]
+async fn machine_list_sends_filters_and_cursor_and_verify_m2m() {
+    let fake = routed();
+    let c = client(&fake);
+
+    let page = c
+        .machines()
+        .list(&MachineFilter {
+            status: Some("active".into()),
+            owner_user_id: Some("user_1".into()),
+            organization_id: Some("org_1".into()),
+            limit: Some(5),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(page.data.len(), 1);
+    assert_eq!(page.data[0].id, "mch_1");
+    assert!(!page.has_more); // the `{object,data}` list has no cursor fields
+
+    let v = c.machines().verify_m2m_token("mk_presented").await.unwrap();
+    assert!(v.valid);
+    assert_eq!(v.machine_id.as_deref(), Some("mch_1"));
+
+    let reqs = fake.requests();
+    assert!(reqs[0].url.contains("/v1/machines?"));
+    assert!(reqs[0].url.contains("status=active"));
+    assert!(reqs[0].url.contains("owner_user_id=user_1"));
+    assert!(reqs[0].url.contains("organization_id=org_1"));
+    assert!(reqs[0].url.contains("limit=5"));
+    assert_eq!(reqs[1].method, HttpMethod::Post);
+    assert!(reqs[1].url.ends_with("/v1/m2m_tokens/verify"));
+    assert_eq!(reqs[1].body.as_deref(), Some(r#"{"token":"mk_presented"}"#));
+}
+
+#[tokio::test]
+async fn enrolment_token_create_list_delete() {
+    let fake = routed();
+    let c = client(&fake);
+
+    let tok = c
+        .machines()
+        .create_enrolment_token(
+            &CreateEnrolmentTokenBody {
+                organization_id: Some("org_1".into()),
+                max_uses: Some(3),
+                requires_approval: Some(true),
+                ..Default::default()
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(tok.id, "met_1");
+    assert_eq!(tok.token.as_deref(), Some("met_secret"));
+    assert_eq!(tok.max_uses, Some(3));
+    assert!(tok.requires_approval);
+
+    let list = c.machines().list_enrolment_tokens().await.unwrap();
+    assert_eq!(list.data.len(), 1);
+    assert_eq!(list.data[0].id, "met_1");
+
+    let del = c.machines().delete_enrolment_token("met_1").await.unwrap();
+    assert_eq!(del.id, "met_1");
+    assert!(del.deleted);
+
+    let got: Vec<(HttpMethod, String)> = fake
+        .requests()
+        .into_iter()
+        .map(|r| (r.method, r.url.replace("https://api.atlasauth.net", "")))
+        .collect();
+    assert_eq!(got[0], (HttpMethod::Post, "/v1/machine_enrolment_tokens".into()));
+    assert_eq!(got[1], (HttpMethod::Get, "/v1/machine_enrolment_tokens".into()));
+    assert_eq!(got[2], (HttpMethod::Delete, "/v1/machine_enrolment_tokens/met_1".into()));
+    // The forward-compat body fields are omitted when unset.
+    assert_eq!(
+        serde_json::from_str::<Value>(fake.requests()[0].body.as_deref().unwrap()).unwrap(),
+        json!({"organization_id":"org_1","max_uses":3,"requires_approval":true})
+    );
+}
+
+// ── api-key gaps ─────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn api_key_patch_mint_token_and_revoked() {
+    let fake = routed();
+    let c = client(&fake);
+
+    let patched = c
+        .api_keys()
+        .patch(
+            "ak_1",
+            &UpdateApiKeyBody {
+                name: Some(Some("renamed".into())),
+                scopes: Some(vec!["read".into(), "write".into()]),
+                // `Some(None)` clears the field (serializes as JSON null).
+                max_token_lifetime_seconds: Some(None),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(patched.id, "ak_1");
+    assert_eq!(patched.name.as_deref(), Some("renamed"));
+
+    let minted = c
+        .api_keys()
+        .mint_token(&MintApiKeyTokenBody {
+            secret: "ak_abc_secret".into(),
+            ttl_seconds: Some(300),
+            audience: Some(json!("https://resource.example")),
+        })
+        .await
+        .unwrap();
+    assert_eq!(minted.token, "eyJ.jwt");
+    assert_eq!(minted.key_id.as_deref(), Some("ak_1"));
+    assert_eq!(minted.expires_in, Some(300));
+    assert_eq!(minted.scopes, vec!["read".to_string()]);
+
+    let revoked = c.api_keys().revoked(Some("4000"), Some(50)).await.unwrap();
+    assert_eq!(revoked.data.len(), 1);
+    assert_eq!(revoked.data[0].id, "ak_9");
+    assert_eq!(revoked.data[0].revoked_at, Some(4242));
+    assert!(revoked.has_more);
+    assert_eq!(revoked.next_cursor.as_deref(), Some("c2"));
+
+    let reqs = fake.requests();
+    assert_eq!(reqs[0].method, HttpMethod::Patch);
+    assert!(reqs[0].url.ends_with("/v1/api_keys/ak_1"));
+    assert_eq!(
+        serde_json::from_str::<Value>(reqs[0].body.as_deref().unwrap()).unwrap(),
+        json!({"name":"renamed","scopes":["read","write"],"max_token_lifetime_seconds":null})
+    );
+    assert_eq!(reqs[1].method, HttpMethod::Post);
+    assert!(reqs[1].url.ends_with("/v1/api_keys/token"));
+    assert_eq!(
+        serde_json::from_str::<Value>(reqs[1].body.as_deref().unwrap()).unwrap(),
+        json!({"secret":"ak_abc_secret","ttl_seconds":300,"audience":"https://resource.example"})
+    );
+    assert_eq!(reqs[2].method, HttpMethod::Get);
+    assert!(reqs[2].url.contains("/v1/api_keys/revoked?"));
+    assert!(reqs[2].url.contains("since=4000"));
+    assert!(reqs[2].url.contains("limit=50"));
+}
+
+// `update` is an alias of `patch`.
+#[tokio::test]
+async fn api_key_update_is_patch_alias() {
+    let fake = routed();
+    let c = client(&fake);
+    c.api_keys()
+        .update("ak_1", &UpdateApiKeyBody { name: Some(Some("x".into())), ..Default::default() })
+        .await
+        .unwrap();
+    let reqs = fake.requests();
+    assert_eq!(reqs[0].method, HttpMethod::Patch);
+    assert!(reqs[0].url.ends_with("/v1/api_keys/ak_1"));
+}
+
+// Organization memberships for a machine deserialize with a null `role`.
+#[tokio::test]
+async fn machine_org_memberships_tolerate_null_role() {
+    let fake = FakeTransport::new(|_req| HttpResponse {
+        status: 200,
+        body: r#"{"object":"list","data":[{"object":"organization_membership","organization_id":"org_1","organization_slug":"acme","role":null,"plan":"pro","joined_at":55}],"has_more":false,"next_cursor":null}"#
+            .into(),
+    });
+    let c = client(&fake);
+    let page = c
+        .machines()
+        .organization_memberships("mch_1", CursorParams::default())
+        .await
+        .unwrap();
+    assert_eq!(page.data.len(), 1);
+    assert_eq!(page.data[0].organization_id, "org_1");
+    assert_eq!(page.data[0].role, None);
+    assert_eq!(page.data[0].plan.as_deref(), Some("pro"));
+    assert!(fake.requests()[0].url.ends_with("/v1/machines/mch_1/organization_memberships"));
+}

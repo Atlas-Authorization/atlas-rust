@@ -199,10 +199,30 @@ fn map_refusal(status: u16, body: &str) -> SessionError {
 /// A callback handed the session after every change, so a store can persist it.
 pub type NativeSessionListener = Arc<dyn Fn(&NativeSession) + Send + Sync>;
 
+/// A callback fired when a refresh is REFUSED (one of the four typed codes), so a
+/// host can react — surface a "signed out" UI on a terminal refusal, or log a
+/// reuse-detected race. Receives the [`RefreshRefusal`]; use
+/// [`RefreshRefusal::is_terminal`] to decide whether to re-run OAuth.
+pub type RefusalListener = Arc<dyn Fn(RefreshRefusal) + Send + Sync>;
+
 struct ManagerState {
     session: Option<NativeSession>,
     /// Absolute expiry of the current session token, epoch ms.
     expires_at: u64,
+    /// The most recent refusal observed on a refresh, if any. Cleared on a
+    /// successful refresh.
+    last_refusal: Option<RefreshRefusal>,
+}
+
+/// The internal result of a single locked refresh attempt — what to hand the
+/// caller and whether to notify / fire listeners once the lock is released.
+enum RefreshOutcome {
+    /// The session rotated; the state now holds the new session.
+    Rotated(NativeSession),
+    /// A typed refusal. On a terminal one the state's session was cleared.
+    Refused(RefreshRefusal),
+    /// A transient transport/unexpected failure; the state was left untouched.
+    Transport(SessionError),
 }
 
 /// Holds the current [`NativeSession`] and keeps its JWT live.
@@ -222,6 +242,7 @@ pub struct NativeSessionManager {
     now: Clock,
     state: AsyncMutex<ManagerState>,
     listeners: Mutex<Vec<NativeSessionListener>>,
+    refusal_listeners: Mutex<Vec<RefusalListener>>,
 }
 
 impl NativeSessionManager {
@@ -239,8 +260,10 @@ impl NativeSessionManager {
             state: AsyncMutex::new(ManagerState {
                 session: None,
                 expires_at: 0,
+                last_refusal: None,
             }),
             listeners: Mutex::new(Vec::new()),
+            refusal_listeners: Mutex::new(Vec::new()),
         }
     }
 
@@ -256,12 +279,43 @@ impl NativeSessionManager {
         let mut st = self.state.lock().await;
         st.expires_at = (self.now)() + (session.expires_in_seconds.max(0) as u64) * 1000;
         st.session = Some(session);
+        st.last_refusal = None;
     }
 
     /// Register a listener fired with the session after every change (set or
     /// rotate). A secure-store wrapper uses this to persist each rotated token.
     pub fn on_change(&self, listener: NativeSessionListener) {
         self.listeners.lock().unwrap().push(listener);
+    }
+
+    /// Register a listener fired whenever a refresh is REFUSED. A terminal
+    /// refusal (see [`RefreshRefusal::is_terminal`]) means the session has also
+    /// been cleared and the host should route the user back through OAuth.
+    pub fn on_refused(&self, listener: RefusalListener) {
+        self.refusal_listeners.lock().unwrap().push(listener);
+    }
+
+    /// The absolute expiry of the current session token in epoch ms, or `None`
+    /// when signed out. A host can schedule a pre-emptive refresh off this, or
+    /// decide a token is close enough to expiry to refresh before a call.
+    pub async fn expires_at_ms(&self) -> Option<u64> {
+        let st = self.state.lock().await;
+        st.session.as_ref().map(|_| st.expires_at)
+    }
+
+    /// Alias of [`expires_at_ms`](Self::expires_at_ms): the current token's
+    /// absolute expiry, epoch ms.
+    pub async fn token_expiry_ms(&self) -> Option<u64> {
+        self.expires_at_ms().await
+    }
+
+    /// The most recent refusal observed on a refresh, or `None` if the last
+    /// refresh succeeded (or none has run). Set on every refused refresh —
+    /// including a non-terminal reuse-detected one, which does NOT clear the
+    /// session — so a host can inspect it without wiring an [`on_refused`](Self::on_refused)
+    /// listener.
+    pub async fn last_refusal(&self) -> Option<RefreshRefusal> {
+        self.state.lock().await.last_refusal
     }
 
     /// The current session, or `None` when signed out. Does NOT refresh.
@@ -275,6 +329,7 @@ impl NativeSessionManager {
             let mut st = self.state.lock().await;
             st.expires_at = (self.now)() + (session.expires_in_seconds.max(0) as u64) * 1000;
             st.session = Some(session);
+            st.last_refusal = None;
         }
         self.notify().await;
     }
@@ -284,6 +339,7 @@ impl NativeSessionManager {
         let mut st = self.state.lock().await;
         st.session = None;
         st.expires_at = 0;
+        st.last_refusal = None;
     }
 
     /// The current session JWT, refreshed first if it is within
@@ -300,10 +356,78 @@ impl NativeSessionManager {
         // network refresh is single-flight.
         let mut st = self.state.lock().await;
         let session = st.session.clone()?;
-        let needs = st.expires_at.saturating_sub(REFRESH_LEAD_MS) <= (self.now)();
-        if !needs {
+        if !self.refresh_owed(&st) {
             return Some(session.session_token);
         }
+        match self.refresh_locked(&mut st, &session).await {
+            RefreshOutcome::Rotated(rotated) => {
+                drop(st);
+                self.notify().await;
+                Some(rotated.session_token)
+            }
+            // A failed/refused refresh hands back the stale token: let the next
+            // real request get the authoritative 401. On a terminal refusal the
+            // session has already been cleared (so the NEXT get_token returns
+            // None), but this call still returns the stale token once.
+            RefreshOutcome::Refused(r) => {
+                drop(st);
+                self.fire_refused(r);
+                Some(session.session_token)
+            }
+            RefreshOutcome::Transport(_) => {
+                drop(st);
+                Some(session.session_token)
+            }
+        }
+    }
+
+    /// Like [`get_token`](Self::get_token) but SURFACES a refusal instead of
+    /// silently handing back a stale token.
+    ///
+    /// * signed out → `Err(`[`SessionError::NoSession`]`)`.
+    /// * a refused refresh → `Err(`[`SessionError::Refused`]`)` (the refusal is
+    ///   recorded and [`on_refused`](Self::on_refused) listeners fire; on a
+    ///   terminal refusal the session is cleared first).
+    /// * a transient transport failure on an owed refresh → `Ok(stale token)`,
+    ///   so a flaky link does not force a sign-out; the next real request gets
+    ///   the authoritative answer. Only a typed REFUSAL is treated as fatal.
+    /// * otherwise → `Ok(fresh token)`.
+    pub async fn get_token_checked(&self) -> Result<String, SessionError> {
+        let mut st = self.state.lock().await;
+        let session = st.session.clone().ok_or(SessionError::NoSession)?;
+        if !self.refresh_owed(&st) {
+            return Ok(session.session_token);
+        }
+        match self.refresh_locked(&mut st, &session).await {
+            RefreshOutcome::Rotated(rotated) => {
+                drop(st);
+                self.notify().await;
+                Ok(rotated.session_token)
+            }
+            RefreshOutcome::Refused(r) => {
+                drop(st);
+                self.fire_refused(r);
+                Err(SessionError::Refused(r))
+            }
+            RefreshOutcome::Transport(_) => {
+                drop(st);
+                Ok(session.session_token)
+            }
+        }
+    }
+
+    /// Whether the current token is within [`REFRESH_LEAD_MS`] of expiry.
+    fn refresh_owed(&self, st: &ManagerState) -> bool {
+        st.expires_at.saturating_sub(REFRESH_LEAD_MS) <= (self.now)()
+    }
+
+    /// Run the network refresh while holding the state lock (the single-flight
+    /// point) and fold the result back into `st`: on success store the rotated
+    /// session and clear `last_refusal`; on a typed refusal record it and, when
+    /// it is TERMINAL, clear the session. Returns the outcome so the caller can
+    /// decide what to hand back and whether to notify/fire listeners (which must
+    /// happen after the lock is released).
+    async fn refresh_locked(&self, st: &mut ManagerState, session: &NativeSession) -> RefreshOutcome {
         match refresh_native_session(
             &self.transport,
             &self.base_url,
@@ -316,13 +440,31 @@ impl NativeSessionManager {
             Ok(rotated) => {
                 st.expires_at = (self.now)() + (rotated.expires_in_seconds.max(0) as u64) * 1000;
                 st.session = Some(rotated.clone());
-                drop(st);
-                self.notify().await;
-                Some(rotated.session_token)
+                st.last_refusal = None;
+                RefreshOutcome::Rotated(rotated)
             }
-            // A failed/refused refresh hands back the stale token: let the next
-            // real request get the authoritative 401.
-            Err(_) => Some(session.session_token),
+            Err(SessionError::Refused(r)) => {
+                st.last_refusal = Some(r);
+                if r.is_terminal() {
+                    // Genuinely unrecoverable — drop the dead session so no stale
+                    // token lingers past this call. A non-terminal reuse-detected
+                    // refusal KEEPS the session for a retry with the current token.
+                    st.session = None;
+                    st.expires_at = 0;
+                }
+                RefreshOutcome::Refused(r)
+            }
+            // Transport/unexpected: not a verdict on the session — leave it be,
+            // but carry the error so a direct `refresh()` caller can see it.
+            Err(e) => RefreshOutcome::Transport(e),
+        }
+    }
+
+    /// Fire the refused-refresh listeners (outside the state lock).
+    fn fire_refused(&self, refusal: RefreshRefusal) {
+        let listeners = self.refusal_listeners.lock().unwrap().clone();
+        for cb in listeners {
+            cb(refusal);
         }
     }
 
@@ -337,28 +479,31 @@ impl NativeSessionManager {
         headers
     }
 
-    /// Rotate the session now, surfacing a terminal refusal as a
-    /// [`SessionError::Refused`]. On success the new session is stored and
-    /// listeners fire.
+    /// Rotate the session now, surfacing a refusal as a [`SessionError::Refused`].
+    /// On success the new session is stored and [`on_change`](Self::on_change)
+    /// listeners fire; on a refusal it is recorded, [`on_refused`](Self::on_refused)
+    /// listeners fire, and a TERMINAL refusal also clears the session.
     pub async fn refresh(&self) -> Result<NativeSession, SessionError> {
         let mut st = self.state.lock().await;
-        let session = st
-            .session
-            .clone()
-            .ok_or(SessionError::Unexpected { status: 0 })?;
-        let rotated = refresh_native_session(
-            &self.transport,
-            &self.base_url,
-            &self.publishable_key,
-            &session.session_id,
-            &session.refresh_token,
-        )
-        .await?;
-        st.expires_at = (self.now)() + (rotated.expires_in_seconds.max(0) as u64) * 1000;
-        st.session = Some(rotated.clone());
-        drop(st);
-        self.notify().await;
-        Ok(rotated)
+        let session = st.session.clone().ok_or(SessionError::NoSession)?;
+        match self.refresh_locked(&mut st, &session).await {
+            RefreshOutcome::Rotated(rotated) => {
+                drop(st);
+                self.notify().await;
+                Ok(rotated)
+            }
+            RefreshOutcome::Refused(r) => {
+                drop(st);
+                self.fire_refused(r);
+                Err(SessionError::Refused(r))
+            }
+            // A transient transport/unexpected failure: the session is untouched,
+            // and the concrete error goes straight back to the caller.
+            RefreshOutcome::Transport(e) => {
+                drop(st);
+                Err(e)
+            }
+        }
     }
 
     async fn notify(&self) {
