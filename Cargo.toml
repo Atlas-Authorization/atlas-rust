@@ -1,0 +1,32 @@
+[package]
+name = "atlasauth"
+version = "0.1.2"
+edition = "2021"
+rust-version = "1.70"
+license = "MIT"
+description = "Official Atlas backend verification crate: local RS256 session-token verification against a cached JWKS, plus API-key verification. The Rust peer of @atlasauth/backend, atlas-go, and the Ruby SDK."
+repository = "https://github.com/Atlas-Authorization/atlas-rust"
+documentation = "https://docs.rs/atlasauth"
+readme = "README.md"
+keywords = ["atlas", "auth", "jwt", "jwks", "verification"]
+categories = ["authentication", "web-programming"]
+
+[features]
+# The convenience constructors (`AtlasBackend::new`, `ApiKeyVerifier::new`) that
+# wire a reqwest-backed HTTP transport. Disable it to compile with no HTTP
+# dependency and supply your own `JwksSource` / `HttpPost` instead.
+default = ["reqwest-transport"]
+reqwest-transport = ["dep:reqwest"]
+
+[dependencies]
+jsonwebtoken = "9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
+rsa = "0.9"
+rand = "0.8"
+base64 = "0.22"
