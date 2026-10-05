@@ -264,6 +264,43 @@ impl BackendClient {
         Ok(self.send_text(method, path, query, body, None).await?.into_bytes())
     }
 
+    /// [`Self::request_raw`] carrying an idempotency key, so a retried write
+    /// (the §9.1 5xx/429 retry, or a caller's own re-issue) lands exactly once.
+    /// Additive peer of [`Self::request_raw`]: pass `Some(key)` to send an
+    /// `Idempotency-Key` header, or `None` for the plain behaviour.
+    ///
+    /// ```no_run
+    /// # async fn demo(atlas: &atlasauth::backend::BackendClient) -> Result<(), atlasauth::backend::BackendError> {
+    /// use atlasauth::HttpMethod;
+    /// let v: serde_json::Value = atlas
+    ///     .request_raw_idem(HttpMethod::Post, "/v1/some_new_thing", &[], None, Some("idem_01H…"))
+    ///     .await?;
+    /// # let _ = v; Ok(()) }
+    /// ```
+    pub async fn request_raw_idem<T: DeserializeOwned>(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Value>,
+        idempotency_key: Option<&str>,
+    ) -> Result<T, BackendError> {
+        self.request(method, path, query, body, idempotency_key).await
+    }
+
+    /// [`Self::request_value`] carrying an idempotency key. Additive peer of
+    /// [`Self::request_value`]; see [`Self::request_raw_idem`].
+    pub async fn request_value_idem(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Value>,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.request(method, path, query, body, idempotency_key).await
+    }
+
     async fn backoff(&self, attempt: u32) {
         if self.base_delay_ms == 0 {
             return;

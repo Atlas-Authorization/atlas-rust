@@ -229,3 +229,88 @@ async fn non_2xx_becomes_typed_api_error() {
         other => panic!("expected Api error, got {other:?}"),
     }
 }
+
+// ── round-8 #5: idempotency on the raw request + import on CreateApiKeyBody ────
+
+#[tokio::test]
+async fn request_raw_idem_sends_the_idempotency_key_header() {
+    let transport = Arc::new(FakeTransport::json_ok(r#"{"ok":true}"#));
+    let client = BackendClient::builder("sk_test")
+        .transport(transport.clone())
+        .build()
+        .unwrap();
+
+    // With a key → the header is present.
+    let _: serde_json::Value = client
+        .request_raw_idem(
+            HttpMethod::Post,
+            "/v1/some_new_thing",
+            &[],
+            Some(serde_json::json!({"a": 1})),
+            Some("idem_raw_1"),
+        )
+        .await
+        .unwrap();
+    // request_value_idem is the dynamic-Value peer.
+    let _ = client
+        .request_value_idem(HttpMethod::Post, "/v1/some_other", &[], None, Some("idem_raw_2"))
+        .await
+        .unwrap();
+    // And the existing (non-idem) escape hatch still sends NO key.
+    let _: serde_json::Value = client
+        .request_raw(HttpMethod::Post, "/v1/plain", &[], None)
+        .await
+        .unwrap();
+
+    let reqs = transport.requests();
+    assert_eq!(reqs.len(), 3);
+    let key_of = |r: &HttpRequest| {
+        r.headers
+            .iter()
+            .find(|(k, _)| k == "idempotency-key")
+            .map(|(_, v)| v.clone())
+    };
+    assert_eq!(key_of(&reqs[0]).as_deref(), Some("idem_raw_1"));
+    assert_eq!(key_of(&reqs[1]).as_deref(), Some("idem_raw_2"));
+    assert_eq!(key_of(&reqs[2]), None, "request_raw still sends no idempotency key");
+}
+
+#[test]
+fn create_api_key_body_serializes_import() {
+    use atlasauth::backend::{CreateApiKeyBody, ImportApiKey};
+
+    // No import → the field is omitted entirely.
+    let plain = CreateApiKeyBody {
+        subject_type: "user".into(),
+        subject_id: "user_1".into(),
+        ..Default::default()
+    };
+    let v = serde_json::to_value(&plain).unwrap();
+    assert!(v.get("import").is_none(), "import omitted when None");
+
+    // With import → every set field is serialized under `import`.
+    let body = CreateApiKeyBody {
+        subject_type: "user".into(),
+        subject_id: "user_1".into(),
+        import: Some(ImportApiKey {
+            secret_hash: Some("abc123".into()),
+            hash_algorithm: Some("sha256_hex".into()),
+            prefix: Some("ak_live_".into()),
+            created_at: Some(1_700_000_000_000),
+            last_used_at: Some(1_700_000_100_000),
+            revoked_at: None,
+            expires_at: Some(1_800_000_000_000),
+        }),
+        ..Default::default()
+    };
+    let v = serde_json::to_value(&body).unwrap();
+    let imp = v.get("import").expect("import present");
+    assert_eq!(imp["secret_hash"], "abc123");
+    assert_eq!(imp["hash_algorithm"], "sha256_hex");
+    assert_eq!(imp["prefix"], "ak_live_");
+    assert_eq!(imp["created_at"], 1_700_000_000_000i64);
+    assert_eq!(imp["last_used_at"], 1_700_000_100_000i64);
+    assert_eq!(imp["expires_at"], 1_800_000_000_000i64);
+    // Unset inner field is omitted, not null.
+    assert!(imp.get("revoked_at").is_none(), "unset import field omitted");
+}

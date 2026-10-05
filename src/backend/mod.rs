@@ -39,7 +39,7 @@ pub use resources::{
     AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,
     BillingSubscription, CreateApiKeyBody, CreateBillingPlanBody, CreateOrganizationBody,
     CreateUserBody, CustomDomain, DeletedObject, Domains, Grant, GrantRevocation, Grants,
-    Invitation, Invitations, ListPage, Metadata, MintApiKeyTokenBody, MintedSession, OrgDomain,
+    ImportApiKey, Invitation, Invitations, ListPage, Metadata, MintApiKeyTokenBody, MintedSession, OrgDomain,
     OrgDomains, OrgInvitations, OrgMemberships, Organization, OrganizationInvitation,
     OrganizationMembership, OrganizationPolicy, Organizations, RevokedApiKey, Session, Sessions,
     UpdateApiKeyBody, UpdateOrganizationBody, UpdateUserBody, User, Users,

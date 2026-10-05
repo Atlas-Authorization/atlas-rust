@@ -30,11 +30,11 @@ mod machine;
 pub use error::{DevicePollError, OAuthError, RefreshRefusal, SessionError};
 pub use native_session::{
     exchange_for_session, refresh_native_session, NativeSession, NativeSessionListener,
-    NativeSessionManager, RefusalListener, REFRESH_LEAD_MS,
+    NativeSessionManager, RefusalListener, StoredSessionManager, REFRESH_LEAD_MS,
 };
 pub use oauth::{
-    parse_callback, poll_device_token, request_device_code, AuthorizationRequest, CallbackParams,
-    DeviceAuthorization, TokenResponse,
+    parse_callback, poll_device_token, refresh_token_grant, request_device_code, revoke_token,
+    AuthorizationRequest, CallbackParams, DeviceAuthorization, TokenResponse,
 };
 pub use pkce::Pkce;
 pub use revocation::{

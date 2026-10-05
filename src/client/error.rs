@@ -108,6 +108,10 @@ pub enum SessionError {
     /// A 2xx with a body that did not carry a usable session.
     #[error("atlas session: malformed response: {0}")]
     Malformed(String),
+    /// A secure-store read/write failed while loading or persisting the session
+    /// (raised only by [`StoredSessionManager`](crate::client::StoredSessionManager)).
+    #[error("atlas session: secure store: {0}")]
+    Store(String),
 }
 
 /// A failure of an OAuth authorization/token/device call.
