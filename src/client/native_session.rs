@@ -642,7 +642,7 @@ impl NativeSessionManager {
 pub struct StoredSessionManager {
     store: Arc<dyn SecureStore>,
     key: String,
-    inner: NativeSessionManager,
+    inner: Arc<NativeSessionManager>,
     gate: AsyncMutex<()>,
     /// Whether the session JWT is written to the store. When false the persisted
     /// blob blanks the short-lived bearer and records no expiry, so a reload
@@ -760,6 +760,11 @@ impl StoredSessionManager {
         persist_jwt: bool,
     ) -> Self {
         let key = key.into();
+        // Hold the inner manager in an `Arc` so it can ALSO back a
+        // `SelfServiceClient` (whose bearer source is an `Arc<NativeSessionManager>`)
+        // without a hand-built `StaticBearer`. The listeners below are registered
+        // before it is shared out, so the wiring is identical to the bare case.
+        let inner = Arc::new(inner);
         let app_value: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         // Persist every rotation. A store write failure here is swallowed — the
         // in-memory session is still good; the next call's write (or a load on
@@ -805,10 +810,19 @@ impl StoredSessionManager {
 
     /// The wrapped manager, for the read-only accessors
     /// ([`current`](NativeSessionManager::current),
-    /// [`expires_at_ms`](NativeSessionManager::expires_at_ms), …) and for building
-    /// a self-service client over it.
+    /// [`expires_at_ms`](NativeSessionManager::expires_at_ms), …).
     pub fn inner(&self) -> &NativeSessionManager {
-        &self.inner
+        self.inner.as_ref()
+    }
+
+    /// A shared handle to the wrapped manager, for building a
+    /// [`SelfServiceClient`](super::self_service::SelfServiceClient) whose bearer
+    /// is driven by THIS stored manager — the same session, auto-refreshing and
+    /// revoked on sign-out, with no hand-built `StaticBearer`. Prefer
+    /// [`SelfServiceClient::from_stored`](super::self_service::SelfServiceClient::from_stored),
+    /// which calls this for you.
+    pub fn manager_arc(&self) -> Arc<NativeSessionManager> {
+        self.inner.clone()
     }
 
     /// Load a persisted session from the store into the inner manager. Returns

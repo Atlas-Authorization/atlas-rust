@@ -15,7 +15,7 @@ use serde_json::Value;
 use crate::http::{HttpMethod, HttpRequest, HttpTransport};
 use crate::jwks::BoxFuture;
 
-use super::native_session::NativeSessionManager;
+use super::native_session::{NativeSessionManager, StoredSessionManager};
 
 /// A source of the auth headers a FAPI client call needs (a fresh bearer plus
 /// the publishable key). Implemented by [`NativeSessionManager`] (auto-refresh)
@@ -92,6 +92,14 @@ impl SelfServiceClient {
             base_url: manager.base_url().to_string(),
             bearer: manager,
         }
+    }
+
+    /// Build over a [`StoredSessionManager`] — the persisted session drives the
+    /// bearer, so calls auto-refresh and the client follows the SAME session the
+    /// stored manager signs out (and revokes). No hand-built [`StaticBearer`] and
+    /// no separate token plumbing: the stored manager's inner handle is shared in.
+    pub fn from_stored(stored: &StoredSessionManager) -> Self {
+        Self::from_manager(stored.manager_arc())
     }
 
     async fn call(

@@ -9,7 +9,8 @@ use serde_json::{json, Value};
 
 use atlasauth::backend::{
     BackendClient, CreateEnrolmentTokenBody, CreateMachineBody, CursorParams, EnrolMachineBody,
-    FakeTransport, Machine, MachineFilter, MintApiKeyTokenBody, RedeemedEnrolment, UpdateApiKeyBody,
+    EnrolmentToken, FakeTransport, ListEnrolmentTokensParams, ListPage, Machine, MachineFilter,
+    MintApiKeyTokenBody, OrgFilter, RedeemedEnrolment, UpdateApiKeyBody,
 };
 use atlasauth::{HttpMethod, HttpResponse};
 
@@ -352,6 +353,104 @@ async fn machine_redeem_and_enroll_with_device_key() {
     assert!(reqs[1].url.ends_with("/v1/machines/enroll"));
     let enroll_body: Value = serde_json::from_str(reqs[1].body.as_deref().unwrap()).unwrap();
     assert_eq!(enroll_body["device_key"], json!("dev-xyz"));
+}
+
+// ── enrolment-token listing: filter + paging + next_cursor (0.6.3) ───────────
+
+/// `list_enrolment_tokens_with` serializes the org filter + paging into the
+/// query: a concrete org as `organization_id=<id>`, the org-less pool as the
+/// literal `organization_id=null`, `limit`/`starting_after` when set — and the
+/// bare `list_enrolment_tokens()` sends no query string at all.
+#[tokio::test]
+async fn list_enrolment_tokens_with_serializes_filter_and_paging() {
+    let fake = routed();
+    let c = client(&fake);
+
+    // Concrete org + paging.
+    c.machines()
+        .list_enrolment_tokens_with(&ListEnrolmentTokensParams {
+            organization_id: Some(OrgFilter::Org("org_1".into())),
+            limit: Some(50),
+            starting_after: Some("cur_abc".into()),
+        })
+        .await
+        .unwrap();
+    // Org-less pool → the literal `organization_id=null`, nothing else.
+    c.machines()
+        .list_enrolment_tokens_with(&ListEnrolmentTokensParams {
+            organization_id: Some(OrgFilter::OrgLess),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    // Bare list: every field None → no query params.
+    c.machines().list_enrolment_tokens().await.unwrap();
+
+    let urls: Vec<String> = fake
+        .requests()
+        .into_iter()
+        .map(|r| r.url.replace("https://api.atlasauth.net", ""))
+        .collect();
+
+    assert!(urls[0].starts_with("/v1/machine_enrolment_tokens?"));
+    assert!(urls[0].contains("organization_id=org_1"));
+    assert!(urls[0].contains("limit=50"));
+    assert!(urls[0].contains("starting_after=cur_abc"));
+
+    assert!(
+        urls[1].contains("organization_id=null"),
+        "org-less pool sends the null literal: {}",
+        urls[1]
+    );
+    assert!(!urls[1].contains("limit="));
+    assert!(!urls[1].contains("starting_after="));
+
+    // Omitted-when-None: the default (bare) list carries no query string.
+    assert_eq!(urls[2], "/v1/machine_enrolment_tokens");
+}
+
+/// A paginated enrolment-token `ListPage` deserializes `has_more` + the opaque
+/// `next_cursor`; a single-page response (no cursor fields) leaves them
+/// `false` / `None`.
+#[test]
+fn enrolment_token_list_page_reads_next_cursor() {
+    let page: ListPage<EnrolmentToken> = serde_json::from_str(
+        r#"{"object":"list","data":[{"id":"met_1","max_uses":3,"uses":1,"requires_approval":false}],"has_more":true,"next_cursor":"cur_next"}"#,
+    )
+    .unwrap();
+    assert_eq!(page.data.len(), 1);
+    assert_eq!(page.data[0].id, "met_1");
+    assert!(page.has_more);
+    assert_eq!(page.next_cursor.as_deref(), Some("cur_next"));
+
+    // Absent next_cursor / has_more default to None / false (the single-page shape).
+    let page2: ListPage<EnrolmentToken> =
+        serde_json::from_str(r#"{"object":"list","data":[{"id":"met_2"}]}"#).unwrap();
+    assert!(!page2.has_more);
+    assert_eq!(page2.next_cursor, None);
+}
+
+/// End-to-end: `list_enrolment_tokens_with` returns the server's `next_cursor`
+/// so a caller can page.
+#[tokio::test]
+async fn list_enrolment_tokens_with_returns_next_cursor() {
+    let fake = FakeTransport::new(|_req| HttpResponse {
+        status: 200,
+        body: r#"{"object":"list","data":[{"id":"met_1","requires_approval":false}],"has_more":true,"next_cursor":"cur_page2"}"#
+            .into(),
+    });
+    let c = client(&fake);
+    let page = c
+        .machines()
+        .list_enrolment_tokens_with(&ListEnrolmentTokensParams {
+            limit: Some(1),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(page.data[0].id, "met_1");
+    assert!(page.has_more);
+    assert_eq!(page.next_cursor.as_deref(), Some("cur_page2"));
 }
 
 // Organization memberships for a machine deserialize with a null `role`.
