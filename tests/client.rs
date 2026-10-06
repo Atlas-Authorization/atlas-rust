@@ -925,3 +925,69 @@ async fn stored_manager_app_value_round_trips_and_clears_on_sign_out() {
     assert_eq!(mgr2.app_value(), None);
     assert_eq!(store.get("session").unwrap(), None, "sign_out deletes the blob");
 }
+
+// ── 0.6.3: a self-service client built from a stored session manager ──────────
+
+/// `SelfServiceClient::from_stored` builds a client driven by the stored
+/// manager's session — no hand-built `StaticBearer`. A call carries the seeded
+/// bearer + publishable key; after the stored manager signs out (clearing and
+/// revoking the session) the SAME client follows it, so the next call carries
+/// only the publishable key.
+#[tokio::test]
+async fn self_service_from_stored_follows_the_stored_session() {
+    use atlasauth::client::{SelfServiceClient, StoredSessionManager};
+    use std::sync::atomic::AtomicU64;
+
+    let now_ms = Arc::new(AtomicU64::new(1_000_000));
+    let store = Arc::new(MemorySecureStore::new());
+
+    // A recording transport, shared by the manager and (via from_stored) the
+    // self-service client, answering every call with the `me` profile.
+    let transport = recording(|_req| HttpResponse {
+        status: 200,
+        body: r#"{"id":"user_1","first_name":"Ada"}"#.to_string(),
+    });
+    let t: Arc<dyn HttpTransport> = transport.clone();
+    let inner = NativeSessionManager::new(t, "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr = StoredSessionManager::new(store.clone(), "session", inner);
+
+    // Seed a healthy session (no refresh owed), then build the client from the
+    // stored manager — it borrows the manager, shares its inner handle.
+    mgr.set_session(NativeSession {
+        session_token: "jwt_live".into(),
+        refresh_token: "rt_live".into(),
+        session_id: "sess_1".into(),
+        expires_in_seconds: 60,
+    })
+    .await;
+    let client = SelfServiceClient::from_stored(&mgr);
+
+    // A call carries the stored session bearer + publishable key.
+    let profile = client.me_typed().await.unwrap();
+    assert_eq!(profile.id, "user_1");
+    let reqs = transport.requests();
+    let last = reqs.last().unwrap();
+    assert!(
+        last.headers.iter().any(|(k, v)| k == "authorization" && v == "Bearer jwt_live"),
+        "self-service call carries the stored session bearer: {:?}",
+        last.headers
+    );
+    assert!(last.headers.iter().any(|(k, v)| k == "x-publishable-key" && v == "pk_test"));
+
+    // Sign out on the STORED manager (clears in-memory + deletes the blob). The
+    // same client follows it: the next call carries no bearer, only the pk.
+    mgr.sign_out().await.unwrap();
+    assert!(mgr.current().await.is_none());
+    assert_eq!(store.get("session").unwrap(), None);
+
+    let _ = client.me().await.unwrap();
+    let reqs = transport.requests();
+    let last = reqs.last().unwrap();
+    assert!(
+        !last.headers.iter().any(|(k, _)| k == "authorization"),
+        "after sign-out the client sends no bearer: {:?}",
+        last.headers
+    );
+    assert!(last.headers.iter().any(|(k, v)| k == "x-publishable-key" && v == "pk_test"));
+}

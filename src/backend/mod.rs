@@ -32,8 +32,8 @@ pub use error::{AtlasApiError, AtlasErrorItem, BackendError};
 pub use pagination::{collect, CursorPage, CursorParams};
 pub use machines::{
     CreateEnrolmentTokenBody, CreateMachineBody, EnrolMachineBody, EnrolledMachine, EnrolmentToken,
-    M2mVerification, Machine, MachineChallenge, MachineFilter, MachineOrgMembership, MachineToken,
-    MachineWithSecret, Machines, RedeemedEnrolment,
+    ListEnrolmentTokensParams, M2mVerification, Machine, MachineChallenge, MachineFilter,
+    MachineOrgMembership, MachineToken, MachineWithSecret, Machines, OrgFilter, RedeemedEnrolment,
 };
 pub use resources::{
     AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,

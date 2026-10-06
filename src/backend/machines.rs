@@ -263,6 +263,53 @@ pub struct CreateEnrolmentTokenBody {
     pub max_machines: Option<u64>,
 }
 
+/// How an enrolment-token list is scoped by organization.
+///
+/// The server distinguishes "tokens for this org" from "tokens in the org-less
+/// (platform) pool", and the latter is expressed on the wire as the literal
+/// `organization_id=null`. This enum keeps that distinct from leaving the filter
+/// UNSET (which returns tokens across every scope).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OrgFilter {
+    /// Tokens owned by one organization — sent as `organization_id=<id>`.
+    Org(String),
+    /// The org-less (platform) pool — sent as the literal `organization_id=null`.
+    OrgLess,
+}
+
+/// Filter + paging for [`Machines::list_enrolment_tokens_with`]
+/// (`GET /v1/machine_enrolment_tokens`). All fields are optional, sent as query
+/// params, and dropped when unset.
+#[derive(Debug, Clone, Default)]
+pub struct ListEnrolmentTokensParams {
+    /// Scope by organization — a concrete org, or the org-less pool
+    /// ([`OrgFilter::OrgLess`], sent as `organization_id=null`). Left `None`, the
+    /// list spans every scope.
+    pub organization_id: Option<OrgFilter>,
+    /// Page size, 1–100 (the server clamps out-of-range values).
+    pub limit: Option<u32>,
+    /// An opaque cursor from a prior page's `next_cursor`.
+    pub starting_after: Option<String>,
+}
+
+impl ListEnrolmentTokensParams {
+    fn to_query(&self) -> Vec<(&'static str, String)> {
+        let mut q = Vec::new();
+        match &self.organization_id {
+            Some(OrgFilter::Org(id)) => q.push(("organization_id", id.clone())),
+            Some(OrgFilter::OrgLess) => q.push(("organization_id", "null".to_string())),
+            None => {}
+        }
+        if let Some(l) = self.limit {
+            q.push(("limit", l.to_string()));
+        }
+        if let Some(after) = &self.starting_after {
+            q.push(("starting_after", after.clone()));
+        }
+        q
+    }
+}
+
 /// `POST /v1/machines/enroll` body (public device self-serve).
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct EnrolMachineBody {
@@ -376,10 +423,26 @@ impl Machines<'_> {
             )
             .await
     }
-    /// `GET /v1/machine_enrolment_tokens` — never the secret.
+    /// `GET /v1/machine_enrolment_tokens` — never the secret. Returns the first
+    /// page across every scope with the server's default paging; use
+    /// [`list_enrolment_tokens_with`](Self::list_enrolment_tokens_with) to filter
+    /// by organization or walk the pages via `next_cursor`.
     pub async fn list_enrolment_tokens(&self) -> Result<ListPage<EnrolmentToken>, BackendError> {
+        self.list_enrolment_tokens_with(&ListEnrolmentTokensParams::default()).await
+    }
+    /// `GET /v1/machine_enrolment_tokens`, filtered + paged.
+    ///
+    /// Scope by organization (a concrete org, or the org-less pool via
+    /// [`OrgFilter::OrgLess`]) and page with `limit` / `starting_after`. The
+    /// returned [`ListPage`] carries `has_more` and the opaque `next_cursor` to
+    /// pass back as the next page's `starting_after`.
+    pub async fn list_enrolment_tokens_with(
+        &self,
+        params: &ListEnrolmentTokensParams,
+    ) -> Result<ListPage<EnrolmentToken>, BackendError> {
+        let q = params.to_query();
         self.client
-            .request(HttpMethod::Get, "/v1/machine_enrolment_tokens", &[], None, None)
+            .request(HttpMethod::Get, "/v1/machine_enrolment_tokens", &q, None, None)
             .await
     }
     /// `DELETE /v1/machine_enrolment_tokens/:id`.

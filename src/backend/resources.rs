@@ -26,13 +26,18 @@ use super::pagination::{CursorPage, CursorParams};
 /// A free-form metadata bag. The BAPI stores arbitrary JSON objects here.
 pub type Metadata = Map<String, Value>;
 
-/// The `{ object: "list", data, has_more? }` envelope some list routes use.
+/// The `{ object: "list", data, has_more?, next_cursor? }` envelope some list
+/// routes use. `next_cursor` is the opaque cursor to pass back as
+/// `starting_after` on the routes that paginate; it is absent (deserializing to
+/// `None`) on the routes that return a single unpaged page.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ListPage<T> {
     #[serde(default = "Vec::new")]
     pub data: Vec<T>,
     #[serde(default)]
     pub has_more: bool,
+    #[serde(default)]
+    pub next_cursor: Option<String>,
 }
 
 /// The minimal `{ object, id, deleted }` acknowledgement several DELETE routes

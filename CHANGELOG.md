@@ -2,6 +2,27 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.6.3
+
+- **Filter + paging for enrolment-token listing.** `machines().list_enrolment_tokens()`
+  is unchanged (first page, every scope), and a new
+  `machines().list_enrolment_tokens_with(&ListEnrolmentTokensParams { .. })` adds
+  organization scoping and cursor paging. `organization_id` takes an `OrgFilter`:
+  `OrgFilter::Org(id)` for one organization, or `OrgFilter::OrgLess` to select the
+  org-less (platform) pool (sent on the wire as `organization_id=null`); leaving it
+  unset returns tokens across every scope. `limit` (1–100) and `starting_after`
+  page the results.
+- **`next_cursor` on the list envelope.** The `ListPage<T>` returned by the
+  backend list methods now exposes `next_cursor: Option<String>` alongside
+  `has_more` — the opaque cursor to pass back as the next page's `starting_after`.
+  It is `None` on routes that return a single unpaged page. Additive only.
+- **Self-service client from a stored session.** `SelfServiceClient::from_stored(&stored)`
+  builds a self-service client directly from a `StoredSessionManager`, driven by
+  the persisted session — calls auto-refresh and the client follows the same
+  session the stored manager signs out and revokes, with no hand-built
+  `StaticBearer`. `StoredSessionManager::manager_arc()` exposes the shared manager
+  handle this uses.
+
 ## 0.6.2
 
 - **Enrolment `device_key`.** `EnrolMachineBody` gains an optional `device_key`
