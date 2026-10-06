@@ -274,11 +274,36 @@ impl NativeSessionManager {
         self
     }
 
-    /// Seed the manager with a session the app already holds (e.g. loaded from a
-    /// secure store). Does NOT notify listeners — the caller already has it.
+    /// Seed the manager with a FRESHLY-ISSUED session (e.g. straight off
+    /// [`exchange_for_session`]). `expires_in_seconds` is read as a lifetime
+    /// relative to NOW, so the absolute expiry becomes `now + expires_in`. Does
+    /// NOT notify listeners — the caller already has it.
+    ///
+    /// Do NOT use this for a session read back from a store on restart: its
+    /// `expires_in_seconds` was relative to the ORIGINAL issue time, so treating
+    /// it as relative to now would hand a stale (or dead) token a whole fresh
+    /// lifetime. Use [`seed_with_expiry`](Self::seed_with_expiry) with the
+    /// persisted absolute expiry for that.
     pub async fn seed(&self, session: NativeSession) {
+        let expires_at = (self.now)() + (session.expires_in_seconds.max(0) as u64) * 1000;
+        self.seed_with_expiry(session, Some(expires_at)).await;
+    }
+
+    /// Seed the manager with a session AND its already-known absolute expiry
+    /// (epoch ms) — the shape a reload from a [`SecureStore`] takes, where the
+    /// expiry must come from the stored value, not be re-derived from now.
+    ///
+    /// * `Some(at)` seeds that exact expiry; a past/near value makes the next
+    ///   [`get_token`](Self::get_token) refresh before handing anything back.
+    /// * `None` means the expiry is UNKNOWN (e.g. an older persisted blob carried
+    ///   no absolute expiry). It is seeded as owed-a-refresh (expiry 0), never as
+    ///   fresh — the next call refreshes (or, if the session is dead, forgets it)
+    ///   rather than trusting an on-disk token for a full lifetime.
+    ///
+    /// Does NOT notify listeners — the caller already holds the session.
+    pub async fn seed_with_expiry(&self, session: NativeSession, expires_at: Option<u64>) {
         let mut st = self.state.lock().await;
-        st.expires_at = (self.now)() + (session.expires_in_seconds.max(0) as u64) * 1000;
+        st.expires_at = expires_at.unwrap_or(0);
         st.session = Some(session);
         st.last_refusal = None;
     }
@@ -558,6 +583,13 @@ impl NativeSessionManager {
     pub(crate) fn transport(&self) -> &Arc<dyn HttpTransport> {
         &self.transport
     }
+
+    /// A clone of the manager's clock, so a wrapper (the [`StoredSessionManager`])
+    /// can stamp the SAME absolute expiry the manager computes when it persists a
+    /// rotated session.
+    pub(crate) fn clock(&self) -> Clock {
+        self.now.clone()
+    }
 }
 
 /// A [`NativeSessionManager`] that PERSISTS the session through a [`SecureStore`].
@@ -569,7 +601,11 @@ impl NativeSessionManager {
 ///
 /// # How it persists
 ///
-/// * The whole [`NativeSession`] is serialized to JSON under one store `key`.
+/// * The [`NativeSession`] is serialized to JSON under one store `key`, wrapped
+///   with its ABSOLUTE expiry (epoch ms) so a reload on restart knows the token's
+///   real remaining life rather than granting it a full fresh lifetime. An older
+///   bare-`NativeSession` blob still loads — its expiry is treated as unknown, so
+///   it is refreshed (or forgotten) on next use, never trusted as fresh.
 /// * An [`on_change`](NativeSessionManager::on_change) listener re-writes that
 ///   JSON after every rotation, so the store always holds the LIVE refresh
 ///   token; the superseded one is already dead.
@@ -610,6 +646,57 @@ pub struct StoredSessionManager {
     gate: AsyncMutex<()>,
 }
 
+/// The current persisted-blob schema version. `v1` was a bare [`NativeSession`]
+/// JSON with no absolute expiry — a blob at that version reloaded as "fresh for a
+/// full lifetime", which is the bug this shape fixes.
+const PERSIST_V: u32 = 2;
+
+/// The on-disk shape of a stored session.
+///
+/// A bare [`NativeSession`] only carries `expires_in_seconds`, a lifetime
+/// RELATIVE to issue time — useless for deciding expiry after a restart, because
+/// the issue moment is gone. So the persisted blob also carries the ABSOLUTE
+/// expiry (`expires_at`, epoch ms) stamped when the session was minted/rotated;
+/// a reload reads that directly instead of re-deriving a full fresh lifetime from
+/// "now".
+///
+/// Back-compat: a v1 blob is a bare `NativeSession` (none of `v` / `session` /
+/// `expires_at`), so it will NOT deserialize here (no `session` field) and
+/// [`parse_persisted`] falls back to the bare shape with `expires_at: None` —
+/// "unknown → refresh on next use", never "fresh".
+#[derive(Debug, Serialize, Deserialize)]
+struct PersistedSession {
+    #[serde(default)]
+    v: u32,
+    session: NativeSession,
+    /// Absolute expiry, epoch ms. `None` only on a hand-written/forward-compat
+    /// blob that omitted it → treated as unknown.
+    #[serde(default)]
+    expires_at: Option<u64>,
+}
+
+/// Parse a stored blob into its session and absolute expiry. Tries the current
+/// [`PersistedSession`] shape first; falls back to a bare [`NativeSession`] (a v1
+/// blob) with an UNKNOWN expiry so it is refreshed, not trusted, on next use.
+fn parse_persisted(json: &str) -> Result<(NativeSession, Option<u64>), SessionError> {
+    if let Ok(p) = serde_json::from_str::<PersistedSession>(json) {
+        return Ok((p.session, p.expires_at));
+    }
+    // v1 fallback: a bare NativeSession with no absolute expiry recorded.
+    let session: NativeSession =
+        serde_json::from_str(json).map_err(|e| SessionError::Malformed(e.to_string()))?;
+    Ok((session, None))
+}
+
+/// Serialize a session + its absolute expiry into the current persisted shape.
+fn to_persisted(session: &NativeSession, expires_at: u64) -> Result<String, serde_json::Error> {
+    serde_json::to_string(&PersistedSession {
+        v: PERSIST_V,
+        session: session.clone(),
+        expires_at: Some(expires_at),
+    })
+}
+
 impl StoredSessionManager {
     /// Wrap an existing [`NativeSessionManager`] so it persists through `store`
     /// under `key`. Registers the change/refusal listeners that keep the store in
@@ -629,8 +716,14 @@ impl StoredSessionManager {
         {
             let store = store.clone();
             let k = key.clone();
+            // Stamp the absolute expiry with the manager's own clock — the same
+            // value it computed under the lock when it set this session — so the
+            // persisted blob survives a restart with a real expiry instead of a
+            // lifetime relative to a now that is gone.
+            let clock = inner.clock();
             inner.on_change(Arc::new(move |s: &NativeSession| {
-                if let Ok(json) = serde_json::to_string(s) {
+                let expires_at = clock() + (s.expires_in_seconds.max(0) as u64) * 1000;
+                if let Ok(json) = to_persisted(s, expires_at) {
                     let _ = store.set(&k, &json);
                 }
             }));
@@ -672,9 +765,14 @@ impl StoredSessionManager {
     async fn reseed_from_store(&self) -> Result<bool, SessionError> {
         match self.store.get(&self.key).map_err(store_err)? {
             Some(json) => {
-                let session: NativeSession = serde_json::from_str(&json)
-                    .map_err(|e| SessionError::Malformed(e.to_string()))?;
-                self.inner.seed(session).await;
+                // Derive the REAL expiry from the stored blob (absolute epoch ms),
+                // not from `now + expires_in` — a session read off disk was issued
+                // in the past, so its remaining life is whatever the stored
+                // absolute expiry says, and a missing one means "unknown → refresh
+                // on next use". Seeding with that is what makes a stale/expired
+                // on-disk token get refreshed or forgotten instead of trusted.
+                let (session, expires_at) = parse_persisted(&json)?;
+                self.inner.seed_with_expiry(session, expires_at).await;
                 Ok(true)
             }
             None => Ok(false),
