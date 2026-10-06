@@ -839,3 +839,89 @@ async fn stored_manager_v1_bare_blob_refreshes_on_first_use() {
     assert!(upgraded.contains("expires_at"), "v1 blob upgraded on rotation: {upgraded}");
     assert!(upgraded.contains("rt_rotated"));
 }
+
+// ── 0.6.2: JWT-less persistence + an app-held value ───────────────────────────
+
+/// In JWT-less mode the store keeps the rotating refresh token but NOT the
+/// short-lived session JWT, and records no expiry — so a reload is owed a refresh
+/// and mints a fresh JWT before first use.
+#[tokio::test]
+async fn stored_manager_without_jwt_persists_no_session_token_and_refreshes_on_reload() {
+    use atlasauth::client::StoredSessionManager;
+    use std::sync::atomic::AtomicU64;
+
+    let now_ms = Arc::new(AtomicU64::new(1_000_000));
+    let store = Arc::new(MemorySecureStore::new());
+
+    // Write a session in JWT-less mode.
+    {
+        let inner = NativeSessionManager::new(canned(200, "{}"), "https://fapi.acme.atlasauth.net", "pk_test")
+            .with_clock(test_clock(now_ms.clone()));
+        let mgr = StoredSessionManager::new_without_jwt(store.clone(), "session", inner);
+        mgr.set_session(NativeSession {
+            session_token: "jwt_secret".into(),
+            refresh_token: "rt_keep".into(),
+            session_id: "sess_1".into(),
+            expires_in_seconds: 60,
+        })
+        .await;
+    }
+
+    // The blob holds the refresh token but NOT the JWT, and no absolute expiry.
+    let blob = store.get("session").unwrap().unwrap();
+    assert!(blob.contains("rt_keep"), "refresh token persisted: {blob}");
+    assert!(!blob.contains("jwt_secret"), "session JWT NOT persisted: {blob}");
+    let parsed: serde_json::Value = serde_json::from_str(&blob).unwrap();
+    assert_eq!(parsed["session"]["session_token"], serde_json::json!(""));
+    assert_eq!(parsed["expires_at"], serde_json::Value::Null);
+
+    // Reload: seeded owed-a-refresh (expiry unknown → 0), so get_token refreshes.
+    let transport = canned(
+        200,
+        r#"{"object":"session","jwt":"jwt_fresh","refresh_token":"rt_rotated","session_id":"sess_1","expires_in":60}"#,
+    );
+    let inner2 = NativeSessionManager::new(transport, "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr2 = StoredSessionManager::new_without_jwt(store.clone(), "session", inner2);
+    assert!(mgr2.load().await.expect("load"));
+    assert_eq!(mgr2.inner().expires_at_ms().await, Some(0), "reload is owed a refresh");
+    assert_eq!(mgr2.get_token().await.unwrap(), "jwt_fresh");
+}
+
+/// An app-held value round-trips through save → reload and is gone after sign-out.
+#[tokio::test]
+async fn stored_manager_app_value_round_trips_and_clears_on_sign_out() {
+    use atlasauth::client::StoredSessionManager;
+    use std::sync::atomic::AtomicU64;
+
+    let now_ms = Arc::new(AtomicU64::new(1_000_000));
+    let store = Arc::new(MemorySecureStore::new());
+
+    let inner = NativeSessionManager::new(canned(200, "{}"), "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr = StoredSessionManager::new(store.clone(), "session", inner);
+    mgr.set_session(NativeSession {
+        session_token: "jwt_x".into(),
+        refresh_token: "rt_x".into(),
+        session_id: "sess_1".into(),
+        expires_in_seconds: 60,
+    })
+    .await;
+
+    // Set an app value → persisted alongside the session, same blob.
+    mgr.set_app_value(Some("org_42".into())).await;
+    assert_eq!(mgr.app_value().as_deref(), Some("org_42"));
+    assert!(store.get("session").unwrap().unwrap().contains("org_42"));
+
+    // A fresh manager reloads the value.
+    let inner2 = NativeSessionManager::new(canned(200, "{}"), "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr2 = StoredSessionManager::new(store.clone(), "session", inner2);
+    assert!(mgr2.load().await.expect("load"));
+    assert_eq!(mgr2.app_value().as_deref(), Some("org_42"));
+
+    // Sign out clears the in-memory value AND the blob.
+    mgr2.sign_out().await.unwrap();
+    assert_eq!(mgr2.app_value(), None);
+    assert_eq!(store.get("session").unwrap(), None, "sign_out deletes the blob");
+}

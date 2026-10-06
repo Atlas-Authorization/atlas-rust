@@ -112,6 +112,9 @@ pub struct Enrollment {
     pub status: Option<String>,
     #[serde(default)]
     pub public_key_jkt: Option<String>,
+    /// The opaque per-device key supplied at enrolment, echoed back here.
+    #[serde(default)]
+    pub device_key: Option<String>,
     #[serde(default)]
     pub enrolled_at: Option<i64>,
     /// When true the device must wait for an admin to approve it before
@@ -182,6 +185,21 @@ impl MachineClient {
         public_key_pem: &str,
         metadata: Option<serde_json::Value>,
     ) -> Result<Enrollment, MachineError> {
+        self.enroll_with(enrolment_token, name, public_key_pem, metadata, None)
+            .await
+    }
+
+    /// Enrol a device like [`enroll`](Self::enroll), additionally recording an
+    /// opaque per-device `device_key` — a stable client-chosen handle the server
+    /// stores on the machine and echoes back. Sent only when `Some`.
+    pub async fn enroll_with(
+        &self,
+        enrolment_token: &str,
+        name: &str,
+        public_key_pem: &str,
+        metadata: Option<serde_json::Value>,
+        device_key: Option<&str>,
+    ) -> Result<Enrollment, MachineError> {
         let mut body = serde_json::json!({
             "enrolment_token": enrolment_token,
             "name": name,
@@ -189,6 +207,9 @@ impl MachineClient {
         });
         if let Some(md) = metadata {
             body["metadata"] = md;
+        }
+        if let Some(dk) = device_key {
+            body["device_key"] = serde_json::Value::String(dk.to_string());
         }
         let raw = self.post("/v1/machines/enroll", body).await?;
         serde_json::from_str(&raw).map_err(|e| MachineError::Malformed(e.to_string()))

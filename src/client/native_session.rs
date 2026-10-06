@@ -644,12 +644,20 @@ pub struct StoredSessionManager {
     key: String,
     inner: NativeSessionManager,
     gate: AsyncMutex<()>,
+    /// Whether the session JWT is written to the store. When false the persisted
+    /// blob blanks the short-lived bearer and records no expiry, so a reload
+    /// refreshes before first use. The rotating refresh token is still persisted.
+    persist_jwt: bool,
+    /// An opaque app-held value persisted and cleared alongside the session. Held
+    /// in an `Arc` so the `on_change` writer can see the live value.
+    app_value: Arc<Mutex<Option<String>>>,
 }
 
 /// The current persisted-blob schema version. `v1` was a bare [`NativeSession`]
-/// JSON with no absolute expiry — a blob at that version reloaded as "fresh for a
-/// full lifetime", which is the bug this shape fixes.
-const PERSIST_V: u32 = 2;
+/// JSON with no absolute expiry; `v2` added the absolute expiry; `v3` adds an
+/// optional app-held value and the JWT-less persistence mode. Older blobs still
+/// load (the new field defaults to `None`).
+const PERSIST_V: u32 = 3;
 
 /// The on-disk shape of a stored session.
 ///
@@ -670,30 +678,51 @@ struct PersistedSession {
     v: u32,
     session: NativeSession,
     /// Absolute expiry, epoch ms. `None` only on a hand-written/forward-compat
-    /// blob that omitted it → treated as unknown.
+    /// blob that omitted it → treated as unknown. Also `None` in the JWT-less
+    /// mode, so a reload refreshes before first use.
     #[serde(default)]
     expires_at: Option<u64>,
+    /// An opaque app-held value persisted and cleared alongside the session. A
+    /// v1/v2 blob (or any that omitted it) loads as `None`.
+    #[serde(default)]
+    app_value: Option<String>,
 }
 
 /// Parse a stored blob into its session and absolute expiry. Tries the current
 /// [`PersistedSession`] shape first; falls back to a bare [`NativeSession`] (a v1
 /// blob) with an UNKNOWN expiry so it is refreshed, not trusted, on next use.
-fn parse_persisted(json: &str) -> Result<(NativeSession, Option<u64>), SessionError> {
+fn parse_persisted(json: &str) -> Result<(NativeSession, Option<u64>, Option<String>), SessionError> {
     if let Ok(p) = serde_json::from_str::<PersistedSession>(json) {
-        return Ok((p.session, p.expires_at));
+        return Ok((p.session, p.expires_at, p.app_value));
     }
     // v1 fallback: a bare NativeSession with no absolute expiry recorded.
     let session: NativeSession =
         serde_json::from_str(json).map_err(|e| SessionError::Malformed(e.to_string()))?;
-    Ok((session, None))
+    Ok((session, None, None))
 }
 
-/// Serialize a session + its absolute expiry into the current persisted shape.
-fn to_persisted(session: &NativeSession, expires_at: u64) -> Result<String, serde_json::Error> {
+/// Serialize a session + its absolute expiry + the app-held value into the
+/// current persisted shape. When `persist_jwt` is false the session JWT is
+/// blanked and the expiry recorded as `None`, so a reload refreshes before first
+/// use and the store never holds the short-lived bearer.
+fn to_persisted(
+    session: &NativeSession,
+    expires_at: u64,
+    persist_jwt: bool,
+    app_value: Option<String>,
+) -> Result<String, serde_json::Error> {
+    let (session, expires_at) = if persist_jwt {
+        (session.clone(), Some(expires_at))
+    } else {
+        let mut stripped = session.clone();
+        stripped.session_token = String::new();
+        (stripped, None)
+    };
     serde_json::to_string(&PersistedSession {
         v: PERSIST_V,
-        session: session.clone(),
-        expires_at: Some(expires_at),
+        session,
+        expires_at,
+        app_value,
     })
 }
 
@@ -708,7 +737,30 @@ impl StoredSessionManager {
         key: impl Into<String>,
         inner: NativeSessionManager,
     ) -> Self {
+        Self::with_options(store, key, inner, true)
+    }
+
+    /// Like [`new`](Self::new) but keeps the session JWT OUT of the store: each
+    /// persisted blob blanks the short-lived bearer and records no expiry, so a
+    /// reload always refreshes before first use. The rotating refresh token is
+    /// still persisted (it is the credential that survives a restart). Choose this
+    /// when the store should never hold even a transient copy of the session JWT.
+    pub fn new_without_jwt(
+        store: Arc<dyn SecureStore>,
+        key: impl Into<String>,
+        inner: NativeSessionManager,
+    ) -> Self {
+        Self::with_options(store, key, inner, false)
+    }
+
+    fn with_options(
+        store: Arc<dyn SecureStore>,
+        key: impl Into<String>,
+        inner: NativeSessionManager,
+        persist_jwt: bool,
+    ) -> Self {
         let key = key.into();
+        let app_value: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         // Persist every rotation. A store write failure here is swallowed — the
         // in-memory session is still good; the next call's write (or a load on
         // restart) reconciles. A caller that must observe write failures can wrap
@@ -721,9 +773,11 @@ impl StoredSessionManager {
             // persisted blob survives a restart with a real expiry instead of a
             // lifetime relative to a now that is gone.
             let clock = inner.clock();
+            let app_value = app_value.clone();
             inner.on_change(Arc::new(move |s: &NativeSession| {
                 let expires_at = clock() + (s.expires_in_seconds.max(0) as u64) * 1000;
-                if let Ok(json) = to_persisted(s, expires_at) {
+                let av = app_value.lock().unwrap().clone();
+                if let Ok(json) = to_persisted(s, expires_at, persist_jwt, av) {
                     let _ = store.set(&k, &json);
                 }
             }));
@@ -739,7 +793,14 @@ impl StoredSessionManager {
                 }
             }));
         }
-        StoredSessionManager { store, key, inner, gate: AsyncMutex::new(()) }
+        StoredSessionManager {
+            store,
+            key,
+            inner,
+            gate: AsyncMutex::new(()),
+            persist_jwt,
+            app_value,
+        }
     }
 
     /// The wrapped manager, for the read-only accessors
@@ -771,7 +832,8 @@ impl StoredSessionManager {
                 // absolute expiry says, and a missing one means "unknown → refresh
                 // on next use". Seeding with that is what makes a stale/expired
                 // on-disk token get refreshed or forgotten instead of trusted.
-                let (session, expires_at) = parse_persisted(&json)?;
+                let (session, expires_at, app_value) = parse_persisted(&json)?;
+                *self.app_value.lock().unwrap() = app_value;
                 self.inner.seed_with_expiry(session, expires_at).await;
                 Ok(true)
             }
@@ -831,11 +893,37 @@ impl StoredSessionManager {
         self.inner.set_session(session).await;
     }
 
-    /// Sign out: clear the in-memory session AND delete it from the store.
+    /// Sign out: clear the in-memory session (and the app-held value) AND delete
+    /// the blob from the store. The app value goes away with the blob.
     pub async fn sign_out(&self) -> Result<(), SessionError> {
         let _gate = self.gate.lock().await;
         self.inner.clear().await;
+        *self.app_value.lock().unwrap() = None;
         self.store.delete(&self.key).map_err(store_err)
+    }
+
+    /// The opaque app-held value currently stored alongside the session, or
+    /// `None` if none was set (or it was cleared on sign-out).
+    pub fn app_value(&self) -> Option<String> {
+        self.app_value.lock().unwrap().clone()
+    }
+
+    /// Set (or clear, with `None`) an opaque app-held value persisted ALONGSIDE
+    /// the session in the same store blob, and cleared when the session is signed
+    /// out. Use it for a small piece of app state that must live and die with the
+    /// session — a selected org id, a device nickname, a feature flag. When a
+    /// session is present the blob is re-written immediately so the store reflects
+    /// the new value; it is also re-persisted on the next session rotation.
+    pub async fn set_app_value(&self, v: Option<String>) {
+        let _gate = self.gate.lock().await;
+        *self.app_value.lock().unwrap() = v;
+        if let Some(session) = self.inner.current().await {
+            let expires_at = self.inner.expires_at_ms().await.unwrap_or(0);
+            let av = self.app_value.lock().unwrap().clone();
+            if let Ok(json) = to_persisted(&session, expires_at, self.persist_jwt, av) {
+                let _ = self.store.set(&self.key, &json);
+            }
+        }
     }
 }
 
