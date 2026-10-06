@@ -521,6 +521,24 @@ fn session_json(token: &str, refresh: &str, sid: &str, expires_in: i64) -> Strin
     .unwrap()
 }
 
+/// The CURRENT persisted-blob shape: the session wrapped with its ABSOLUTE expiry
+/// (epoch ms), the on-disk form `StoredSessionManager` now reads and writes. This
+/// mirrors what the manager persists so a test can plant a stored session with a
+/// precise remaining life (past / near / healthy) and watch the reload honor it.
+fn persisted_json(token: &str, refresh: &str, sid: &str, expires_in: i64, expires_at: u64) -> String {
+    serde_json::json!({
+        "v": 2,
+        "session": {
+            "session_token": token,
+            "refresh_token": refresh,
+            "session_id": sid,
+            "expires_in_seconds": expires_in,
+        },
+        "expires_at": expires_at,
+    })
+    .to_string()
+}
+
 #[tokio::test]
 async fn stored_manager_loads_refreshes_and_writes_back() {
     use atlasauth::client::StoredSessionManager;
@@ -528,8 +546,11 @@ async fn stored_manager_loads_refreshes_and_writes_back() {
 
     let now_ms = Arc::new(AtomicU64::new(1_000_000));
     let store = Arc::new(MemorySecureStore::new());
-    // A persisted session, near expiry once we advance the clock.
-    store.set("session", &session_json("jwt_seed", "rt_seed", "sess_1", 60)).unwrap();
+    // A persisted session that is HEALTHY at now (absolute expiry well past the
+    // refresh lead) and goes near-expiry once we advance the clock.
+    store
+        .set("session", &persisted_json("jwt_seed", "rt_seed", "sess_1", 60, 1_060_000))
+        .unwrap();
 
     let transport = canned(
         200,
@@ -539,9 +560,11 @@ async fn stored_manager_loads_refreshes_and_writes_back() {
         .with_clock(test_clock(now_ms.clone()));
     let mgr = StoredSessionManager::new(store.clone(), "session", inner);
 
-    // Load seeds the inner manager; no rewrite (seed doesn't notify).
+    // Load seeds the inner manager with the STORED absolute expiry; no rewrite
+    // (seed doesn't notify).
     assert!(mgr.load().await.expect("load"));
     assert_eq!(mgr.current().await.unwrap().session_token, "jwt_seed");
+    assert_eq!(mgr.inner().expires_at_ms().await, Some(1_060_000));
 
     // Still fresh → returns the seeded token, store unchanged.
     assert_eq!(mgr.get_token().await.unwrap(), "jwt_seed");
@@ -588,8 +611,10 @@ async fn stored_manager_rereads_store_on_reuse_detected() {
 
     let now_ms = Arc::new(AtomicU64::new(1_000_000));
     let store = Arc::new(MemorySecureStore::new());
-    // Seed session A (near expiry after the clock advance).
-    store.set("session", &session_json("jwt_A", "rt_A", "sess_1", 60)).unwrap();
+    // Seed session A, healthy at now but owed a refresh once we advance the clock.
+    store
+        .set("session", &persisted_json("jwt_A", "rt_A", "sess_1", 60, 1_060_000))
+        .unwrap();
 
     // The server ALWAYS trips reuse detection for the token this process holds.
     let transport = canned(401, r#"{"errors":[{"code":"REFRESH_REUSE_DETECTED"}]}"#);
@@ -601,12 +626,216 @@ async fn stored_manager_rereads_store_on_reuse_detected() {
     // Advance so A is owed a refresh.
     now_ms.fetch_add(60_000, Ordering::SeqCst);
 
-    // Simulate ANOTHER process having rotated + persisted a fresh session B.
-    // (expires_in 60 at now = 1_060_000 → not owed, so the retry returns it
-    // without a second network refresh.)
-    store.set("session", &session_json("jwt_B", "rt_B", "sess_1", 60)).unwrap();
+    // Simulate ANOTHER process having rotated + persisted a fresh session B, in
+    // the current shape with an absolute expiry of now(1_060_000) + 60s. B is NOT
+    // owed, so the retry returns it without a second network refresh.
+    store
+        .set("session", &persisted_json("jwt_B", "rt_B", "sess_1", 60, 1_120_000))
+        .unwrap();
 
     // get_token: refresh with rt_A trips reuse → re-read store → find B → return B.
     assert_eq!(mgr.get_token().await.unwrap(), "jwt_B");
     assert_eq!(mgr.current().await.unwrap().refresh_token, "rt_B");
+}
+
+// ── round-8 #7 bugfix: a RELOADED session must honor its stored absolute expiry ──
+// A session read off disk on restart is NOT freshly issued; its stored lifetime is
+// relative to a past issue moment. These assert the manager derives the real expiry
+// from the stored blob and refreshes / forgets a stale token instead of trusting it.
+
+/// A near-expiry session read from the store is REFRESHED on the first
+/// `get_token`, not handed back stale. The stored absolute expiry (now + 5s) is
+/// already inside the 10s refresh lead, so the reload is owed a refresh with no
+/// clock advance at all — the bug was that a reload looked fresh for a full
+/// lifetime regardless.
+#[tokio::test]
+async fn stored_manager_refreshes_a_near_expiry_reloaded_session() {
+    use atlasauth::client::StoredSessionManager;
+    use std::sync::atomic::AtomicU64;
+
+    let now_ms = Arc::new(AtomicU64::new(1_000_000));
+    let store = Arc::new(MemorySecureStore::new());
+    // Absolute expiry 5s out — inside REFRESH_LEAD_MS (10s), so already owed.
+    store
+        .set("session", &persisted_json("jwt_stale", "rt_stale", "sess_1", 60, 1_005_000))
+        .unwrap();
+
+    let transport = canned(
+        200,
+        r#"{"object":"session","jwt":"jwt_rotated","refresh_token":"rt_rotated","session_id":"sess_1","expires_in":60}"#,
+    );
+    let inner = NativeSessionManager::new(transport, "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr = StoredSessionManager::new(store.clone(), "session", inner);
+    assert!(mgr.load().await.expect("load"));
+
+    // The reload is owed a refresh immediately from its stored expiry.
+    assert_eq!(mgr.inner().expires_at_ms().await, Some(1_005_000));
+    // First get_token refreshes rather than returning the near-expiry on-disk token.
+    assert_eq!(mgr.get_token().await.unwrap(), "jwt_rotated");
+    // The rotation was persisted with a FRESH absolute expiry (now + 60s).
+    let persisted = store.get("session").unwrap().unwrap();
+    assert!(persisted.contains("rt_rotated"), "store holds rotated token: {persisted}");
+    assert!(persisted.contains("1060000"), "store holds fresh absolute expiry: {persisted}");
+}
+
+/// An expired session whose refresh is refused TERMINALLY (its absolute lifetime
+/// elapsed) is forgotten: the store is cleared and `get_token` surfaces the
+/// refusal instead of handing back a dead on-disk token.
+#[tokio::test]
+async fn stored_manager_forgets_an_expired_terminal_reloaded_session() {
+    use atlasauth::client::StoredSessionManager;
+    use std::sync::atomic::AtomicU64;
+
+    let now_ms = Arc::new(AtomicU64::new(1_000_000));
+    let store = Arc::new(MemorySecureStore::new());
+    // Absolute expiry already in the PAST → owed, and the server confirms it is
+    // gone with a terminal SESSION_EXPIRED.
+    store
+        .set("session", &persisted_json("jwt_dead", "rt_dead", "sess_1", 60, 500_000))
+        .unwrap();
+
+    let transport = canned(401, r#"{"errors":[{"code":"SESSION_EXPIRED"}]}"#);
+    let inner = NativeSessionManager::new(transport, "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr = StoredSessionManager::new(store.clone(), "session", inner);
+    assert!(mgr.load().await.expect("load"));
+    assert_eq!(mgr.inner().expires_at_ms().await, Some(500_000));
+
+    // No clock advance needed — the stored expiry is already past.
+    match mgr.get_token().await {
+        Err(SessionError::Refused(RefreshRefusal::SessionExpired)) => {}
+        other => panic!("expected terminal SESSION_EXPIRED, got {other:?}"),
+    }
+    // The dead session was forgotten in memory AND deleted from the store.
+    assert!(mgr.current().await.is_none(), "expired reloaded session is forgotten");
+    assert_eq!(store.get("session").unwrap(), None, "store cleared of the dead session");
+}
+
+/// A genuinely healthy session read from the store is returned WITHOUT a needless
+/// refresh — the fix must not over-correct into refreshing every reload. A
+/// recording transport proves no network call was made.
+#[tokio::test]
+async fn stored_manager_returns_a_healthy_reloaded_session_without_refresh() {
+    use atlasauth::client::StoredSessionManager;
+    use std::sync::atomic::AtomicU64;
+
+    let now_ms = Arc::new(AtomicU64::new(1_000_000));
+    let store = Arc::new(MemorySecureStore::new());
+    // Absolute expiry well beyond the refresh lead.
+    store
+        .set("session", &persisted_json("jwt_healthy", "rt_healthy", "sess_1", 60, 1_060_000))
+        .unwrap();
+
+    // A recording transport that would rotate IF asked — but it must never be hit.
+    let transport = recording(|_req| HttpResponse {
+        status: 200,
+        body: r#"{"object":"session","jwt":"jwt_rotated","refresh_token":"rt_rotated","session_id":"sess_1","expires_in":60}"#.to_string(),
+    });
+    let t: Arc<dyn HttpTransport> = transport.clone();
+    let inner = NativeSessionManager::new(t, "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr = StoredSessionManager::new(store.clone(), "session", inner);
+    assert!(mgr.load().await.expect("load"));
+
+    assert_eq!(mgr.get_token().await.unwrap(), "jwt_healthy");
+    assert!(transport.requests().is_empty(), "a healthy reload must not refresh");
+    // Store untouched (no rotation written back).
+    assert!(store.get("session").unwrap().unwrap().contains("rt_healthy"));
+}
+
+/// The persisted blob round-trips the ABSOLUTE expiry across a restart: a session
+/// minted at t0 and reloaded 50s later still expires at t0+60s, NOT at
+/// reload-time+60s. This is the direct regression test for the bug — a reload
+/// used to be granted a whole fresh lifetime.
+#[tokio::test]
+async fn stored_blob_round_trips_the_absolute_expiry_across_restart() {
+    use atlasauth::client::StoredSessionManager;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    let store = Arc::new(MemorySecureStore::new());
+
+    // Process 1 mints a session at t0 = 1_000_000 with a 60s lifetime; the change
+    // listener persists it with an absolute expiry of 1_060_000.
+    let t0 = Arc::new(AtomicU64::new(1_000_000));
+    {
+        let inner = NativeSessionManager::new(
+            canned(200, "{}"),
+            "https://fapi.acme.atlasauth.net",
+            "pk_test",
+        )
+        .with_clock(test_clock(t0.clone()));
+        let mgr = StoredSessionManager::new(store.clone(), "session", inner);
+        mgr.set_session(NativeSession {
+            session_token: "jwt_x".into(),
+            refresh_token: "rt_x".into(),
+            session_id: "sess_1".into(),
+            expires_in_seconds: 60,
+        })
+        .await;
+    }
+    // The blob carries an explicit absolute expiry.
+    let blob = store.get("session").unwrap().unwrap();
+    assert!(blob.contains("expires_at"), "blob records absolute expiry: {blob}");
+    assert!(blob.contains("1060000"), "blob expiry is t0+60s: {blob}");
+
+    // Process 2 ("restart") loads 45s later at 1_045_000. The reloaded expiry is
+    // the STORED 1_060_000 (15s of life left), NOT 1_045_000 + 60s = 1_105_000.
+    let t1 = Arc::new(AtomicU64::new(1_045_000));
+    let inner2 = NativeSessionManager::new(
+        canned(
+            200,
+            r#"{"object":"session","jwt":"jwt_rotated","refresh_token":"rt_rotated","session_id":"sess_1","expires_in":60}"#,
+        ),
+        "https://fapi.acme.atlasauth.net",
+        "pk_test",
+    )
+    .with_clock(test_clock(t1.clone()));
+    let mgr2 = StoredSessionManager::new(store.clone(), "session", inner2);
+    assert!(mgr2.load().await.expect("load"));
+    assert_eq!(
+        mgr2.inner().expires_at_ms().await,
+        Some(1_060_000),
+        "reload honors the stored absolute expiry, not a fresh lifetime",
+    );
+
+    // And the token is still live at 1_045_000 (15s left, outside the 10s lead),
+    // so no refresh.
+    assert_eq!(mgr2.get_token().await.unwrap(), "jwt_x");
+    // Advance into the lead (11s → now 1_056_000, 4s of life left) → owed → it
+    // refreshes off the reloaded session rather than trusting the stale token.
+    t1.fetch_add(11_000, Ordering::SeqCst);
+    assert_eq!(mgr2.get_token().await.unwrap(), "jwt_rotated");
+}
+
+/// An older v1 blob (a bare `NativeSession`, no absolute expiry) still loads, and
+/// its expiry is treated as UNKNOWN → refreshed on first use, never trusted as
+/// fresh.
+#[tokio::test]
+async fn stored_manager_v1_bare_blob_refreshes_on_first_use() {
+    use atlasauth::client::StoredSessionManager;
+    use std::sync::atomic::AtomicU64;
+
+    let now_ms = Arc::new(AtomicU64::new(1_000_000));
+    let store = Arc::new(MemorySecureStore::new());
+    // The LEGACY shape: a bare NativeSession with no absolute expiry.
+    store.set("session", &session_json("jwt_v1", "rt_v1", "sess_1", 60)).unwrap();
+
+    let transport = canned(
+        200,
+        r#"{"object":"session","jwt":"jwt_rotated","refresh_token":"rt_rotated","session_id":"sess_1","expires_in":60}"#,
+    );
+    let inner = NativeSessionManager::new(transport, "https://fapi.acme.atlasauth.net", "pk_test")
+        .with_clock(test_clock(now_ms.clone()));
+    let mgr = StoredSessionManager::new(store.clone(), "session", inner);
+    assert!(mgr.load().await.expect("load"));
+
+    // Unknown expiry seeds as owed (epoch 0), not a fresh lifetime.
+    assert_eq!(mgr.inner().expires_at_ms().await, Some(0));
+    // So the very first get_token refreshes rather than trusting the v1 token.
+    assert_eq!(mgr.get_token().await.unwrap(), "jwt_rotated");
+    // And the rewrite upgrades the blob to the current shape with an absolute expiry.
+    let upgraded = store.get("session").unwrap().unwrap();
+    assert!(upgraded.contains("expires_at"), "v1 blob upgraded on rotation: {upgraded}");
+    assert!(upgraded.contains("rt_rotated"));
 }
