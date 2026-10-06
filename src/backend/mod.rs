@@ -33,7 +33,7 @@ pub use pagination::{collect, CursorPage, CursorParams};
 pub use machines::{
     CreateEnrolmentTokenBody, CreateMachineBody, EnrolMachineBody, EnrolledMachine, EnrolmentToken,
     M2mVerification, Machine, MachineChallenge, MachineFilter, MachineOrgMembership, MachineToken,
-    MachineWithSecret, Machines,
+    MachineWithSecret, Machines, RedeemedEnrolment,
 };
 pub use resources::{
     AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,

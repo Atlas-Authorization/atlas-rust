@@ -8,8 +8,8 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 
 use atlasauth::backend::{
-    BackendClient, CreateEnrolmentTokenBody, CreateMachineBody, CursorParams, FakeTransport,
-    MachineFilter, MintApiKeyTokenBody, UpdateApiKeyBody,
+    BackendClient, CreateEnrolmentTokenBody, CreateMachineBody, CursorParams, EnrolMachineBody,
+    FakeTransport, Machine, MachineFilter, MintApiKeyTokenBody, RedeemedEnrolment, UpdateApiKeyBody,
 };
 use atlasauth::{HttpMethod, HttpResponse};
 
@@ -36,6 +36,12 @@ fn routed() -> FakeTransport {
             }
             (HttpMethod::Patch, "/v1/machines/mch_1") => {
                 r#"{"object":"machine","id":"mch_1","name":"renamed","status":"active"}"#
+            }
+            (HttpMethod::Post, "/v1/machines/redeem") => {
+                r#"{"object":"enrolment_redemption","data":{"scope":"ci"},"owner_user_id":"user_1","organization_id":"org_1","id":"met_1"}"#
+            }
+            (HttpMethod::Post, "/v1/machines/enroll") => {
+                r#"{"object":"machine","id":"mch_1","name":"ci-runner","status":"active","device_key":"dev-xyz","approval_required":false}"#
             }
             (HttpMethod::Post, "/v1/m2m_tokens/verify") => {
                 r#"{"object":"m2m_verification","valid":true,"machine_id":"mch_1","name":"ci-runner"}"#
@@ -252,6 +258,100 @@ async fn api_key_update_is_patch_alias() {
     let reqs = fake.requests();
     assert_eq!(reqs[0].method, HttpMethod::Patch);
     assert!(reqs[0].url.ends_with("/v1/api_keys/ak_1"));
+}
+
+// ── device_key + redeem (0.6.2) ──────────────────────────────────────────────
+
+/// `EnrolMachineBody` serializes `device_key` only when set, and omits it (like
+/// the other `skip_serializing_if` fields) when `None`.
+#[test]
+fn enrol_machine_body_device_key_serializes_only_when_set() {
+    let with = EnrolMachineBody {
+        enrolment_token: "met_abc".into(),
+        name: "ci-runner".into(),
+        public_key_pem: "-----BEGIN PUBLIC KEY-----\n...".into(),
+        device_key: Some("dev-xyz".into()),
+        ..Default::default()
+    };
+    let v = serde_json::to_value(&with).unwrap();
+    assert_eq!(v["device_key"], json!("dev-xyz"));
+    // No metadata was set, so it is absent — only the fields that are Some appear.
+    assert!(v.get("metadata").is_none());
+
+    let without = EnrolMachineBody {
+        enrolment_token: "met_abc".into(),
+        name: "ci-runner".into(),
+        public_key_pem: "pem".into(),
+        ..Default::default()
+    };
+    let v = serde_json::to_value(&without).unwrap();
+    assert!(v.get("device_key").is_none(), "device_key omitted when None: {v}");
+}
+
+/// A `Machine` record deserializes the echoed `device_key`.
+#[test]
+fn machine_record_picks_up_device_key() {
+    let m: Machine = serde_json::from_str(
+        r#"{"id":"mch_1","status":"active","device_key":"dev-xyz","metadata":{}}"#,
+    )
+    .unwrap();
+    assert_eq!(m.id, "mch_1");
+    assert_eq!(m.device_key.as_deref(), Some("dev-xyz"));
+    // Absent device_key defaults to None.
+    let m2: Machine = serde_json::from_str(r#"{"id":"mch_2","status":"active"}"#).unwrap();
+    assert_eq!(m2.device_key, None);
+}
+
+/// A `RedeemedEnrolment` deserializes `data`, the owner/org binding, and the
+/// token `id`.
+#[test]
+fn redeemed_enrolment_deserializes_data_owner_and_id() {
+    let r: RedeemedEnrolment = serde_json::from_str(
+        r#"{"object":"enrolment_redemption","data":{"scope":"ci"},"owner_user_id":"user_1","organization_id":"org_1","id":"met_1"}"#,
+    )
+    .unwrap();
+    assert_eq!(r.id.as_deref(), Some("met_1"));
+    assert_eq!(r.owner_user_id.as_deref(), Some("user_1"));
+    assert_eq!(r.organization_id.as_deref(), Some("org_1"));
+    assert_eq!(r.data["scope"], json!("ci"));
+}
+
+/// `machines().redeem()` POSTs the token to `/v1/machines/redeem` and returns the
+/// redemption; `machines().enroll(..device_key..)` sends the field and reads it
+/// back off the machine record.
+#[tokio::test]
+async fn machine_redeem_and_enroll_with_device_key() {
+    let fake = routed();
+    let c = client(&fake);
+
+    let redeemed = c.machines().redeem("met_secret").await.unwrap();
+    assert_eq!(redeemed.id.as_deref(), Some("met_1"));
+    assert_eq!(redeemed.organization_id.as_deref(), Some("org_1"));
+
+    let enrolled = c
+        .machines()
+        .enroll(&EnrolMachineBody {
+            enrolment_token: "met_secret".into(),
+            name: "ci-runner".into(),
+            public_key_pem: "pem".into(),
+            device_key: Some("dev-xyz".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    assert_eq!(enrolled.device_key.as_deref(), Some("dev-xyz"));
+
+    let reqs = fake.requests();
+    assert_eq!(reqs[0].method, HttpMethod::Post);
+    assert!(reqs[0].url.ends_with("/v1/machines/redeem"));
+    assert_eq!(
+        serde_json::from_str::<Value>(reqs[0].body.as_deref().unwrap()).unwrap(),
+        json!({"enrolment_token": "met_secret"})
+    );
+    assert_eq!(reqs[1].method, HttpMethod::Post);
+    assert!(reqs[1].url.ends_with("/v1/machines/enroll"));
+    let enroll_body: Value = serde_json::from_str(reqs[1].body.as_deref().unwrap()).unwrap();
+    assert_eq!(enroll_body["device_key"], json!("dev-xyz"));
 }
 
 // Organization memberships for a machine deserialize with a null `role`.

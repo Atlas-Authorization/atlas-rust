@@ -41,6 +41,9 @@ pub struct Machine {
     /// JWK thumbprint of the device's registered public key (device half).
     #[serde(default)]
     pub public_key_jkt: Option<String>,
+    /// The opaque per-device key supplied at enrolment, echoed back here.
+    #[serde(default)]
+    pub device_key: Option<String>,
     #[serde(default)]
     pub metadata: Metadata,
     #[serde(default)]
@@ -120,6 +123,23 @@ pub struct EnrolmentToken {
     pub extra: Map<String, Value>,
 }
 
+/// The result of redeeming an enrolment token (`POST /v1/machines/redeem`): the
+/// token's payload plus the owner/organization it binds to and the token's own
+/// `id`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RedeemedEnrolment {
+    #[serde(default)]
+    pub data: Value,
+    #[serde(default)]
+    pub owner_user_id: Option<String>,
+    #[serde(default)]
+    pub organization_id: Option<String>,
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// A device's enrolment result (`POST /v1/machines/enroll`).
 #[derive(Debug, Clone, Deserialize)]
 pub struct EnrolledMachine {
@@ -132,6 +152,9 @@ pub struct EnrolledMachine {
     pub status: String,
     #[serde(default)]
     pub public_key_jkt: Option<String>,
+    /// The opaque per-device key supplied at enrolment, echoed back here.
+    #[serde(default)]
+    pub device_key: Option<String>,
     #[serde(default)]
     pub enrolled_at: Option<i64>,
     /// Whether the device must wait for approval before `/token` will work.
@@ -248,6 +271,11 @@ pub struct EnrolMachineBody {
     pub public_key_pem: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Metadata>,
+    /// An opaque per-device key the server records on the machine and echoes
+    /// back on the machine record — lets a device be re-enrolled or located by a
+    /// stable client-chosen handle. Dropped from the body when unset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_key: Option<String>,
 }
 
 // ── namespace ───────────────────────────────────────────────────────────────
@@ -378,6 +406,14 @@ impl Machines<'_> {
     pub async fn enroll(&self, body: &EnrolMachineBody) -> Result<EnrolledMachine, BackendError> {
         self.client
             .request(HttpMethod::Post, "/v1/machines/enroll", &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/machines/redeem` — redeem an enrolment token, resolving it to its
+    /// payload, the owner/organization it binds to, and the token's `id`.
+    pub async fn redeem(&self, enrolment_token: &str) -> Result<RedeemedEnrolment, BackendError> {
+        let body = serde_json::json!({ "enrolment_token": enrolment_token });
+        self.client
+            .request(HttpMethod::Post, "/v1/machines/redeem", &[], Some(body), None)
             .await
     }
     /// `POST /v1/machines/challenge` — get a nonce for a machine to sign. Public.
