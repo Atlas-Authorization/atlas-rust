@@ -79,6 +79,18 @@ fn decode_allowlist_identifiers() {
 }
 
 #[test]
+fn decode_api_keys() {
+    // GET /v1/api_keys/{id}/usage
+    round_trip::<types::ApiKeyUsage>(
+        r#"{"counters":[{"period":"day","resets_at":7,"unit":"x","used":7,"window_start":7}],"key_id":"x","limits":[{"amount":7,"period":"request","unit":"x"}],"object":"api_key_usage","usage":[{"amount":7,"period":"request","remaining":7,"resets_at":7,"unit":"x","used":7,"window_start":7}]}"#,
+    );
+    // POST /v1/api_keys/{id}/usage
+    round_trip::<types::ApiKeyUsageDebit>(
+        r#"{"allowed":true,"amount":7,"code":"LIMIT_EXCEEDED","counters":[{"period":"day","resets_at":7,"unit":"x","used":7,"window_start":7}],"exceeded":[{"amount":7,"period":"request","remaining":7,"resets_at":7,"unit":"x","used":7,"window_start":7}],"idempotent_replay":true,"key_id":"x","object":"api_key_usage_debit","unit":"x","usage":[{"amount":7,"period":"request","remaining":7,"resets_at":7,"unit":"x","used":7,"window_start":7}]}"#,
+    );
+}
+
+#[test]
 fn decode_attack_protection() {
     // GET /v1/attack_protection
     round_trip::<types::AttackProtection>(
@@ -916,6 +928,10 @@ fn decode_session_exchange_apps() {
 fn decode_sessions() {
     // POST /v1/sessions/{id}/tokens/{template}
     round_trip::<types::SessionsCreateTokenResponse>(r#"{"expires_in":7,"jwt":"x","object":"x"}"#);
+    // POST /v1/sessions/{id}/touch
+    round_trip::<types::SessionTouch>(
+        r#"{"abandon_at":7,"created_at":7,"expire_at":7,"extended":true,"id":"x","idle_expires_at":7,"impersonated_by":"x","last_active_at":7,"last_active_organization_id":"x","object":"session","status":"x","user_id":"x"}"#,
+    );
 }
 
 #[test]
@@ -1128,7 +1144,7 @@ fn decode_users() {
     );
     // GET /v1/users/{id}/sessions
     round_trip::<types::UsersListSessionsResponse>(
-        r#"{"data":[{"abandon_at":7,"created_at":7,"expire_at":7,"id":"x","impersonated_by":"x","last_active_at":7,"last_active_organization_id":"x","object":"session","status":"x","user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"abandon_at":7,"created_at":7,"expire_at":7,"id":"x","idle_expires_at":7,"impersonated_by":"x","last_active_at":7,"last_active_organization_id":"x","object":"session","status":"x","user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/users/{id}/sessions/revoke
     round_trip::<types::UsersRevokeSessionsResponse>(

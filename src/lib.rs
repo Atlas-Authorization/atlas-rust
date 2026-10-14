@@ -76,7 +76,8 @@ pub mod client;
 pub mod axum;
 
 pub use apikey::{
-    ApiKeyVerification, ApiKeyVerifier, ApiKeyVerifierBuilder, HttpPost, HttpResponse,
+    ApiKeyCap, ApiKeyCapUsage, ApiKeyVerification, ApiKeyVerifier, ApiKeyVerifierBuilder, HttpPost,
+    HttpResponse,
     DEFAULT_BASE_URL, DEFAULT_MAX_ENTRIES, DEFAULT_NEGATIVE_TTL_MS, DEFAULT_POSITIVE_TTL_MS,
 };
 pub use claims::Claims;

@@ -433,6 +433,56 @@ impl ApiKeysVerifyBody {
     }
 }
 
+/// The request body of `POST /v1/api_keys/{id}/usage`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ApiKeysRecordUsageBody {
+    /// How much to debit, in unit.
+    #[serde(default)]
+    pub amount: i64,
+    /// The unit to debit, matching the unit of the caps it should count against.
+    #[serde(default)]
+    pub unit: String,
+    /// Retry-safe key: the same value returns the first outcome without counting again (24 hours).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotency_key: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl ApiKeysRecordUsageBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(amount: impl Into<i64>, unit: impl Into<String>) -> Self {
+        Self {
+            amount: amount.into(),
+            unit: unit.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `amount`.
+    pub fn with_amount(mut self, v: impl Into<i64>) -> Self {
+        self.amount = v.into();
+        self
+    }
+    /// Set `unit`.
+    pub fn with_unit(mut self, v: impl Into<String>) -> Self {
+        self.unit = v.into();
+        self
+    }
+    /// Set `idempotency_key`.
+    pub fn with_idempotency_key(mut self, v: impl Into<String>) -> Self {
+        self.idempotency_key = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `PATCH /v1/attack_protection`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -9117,6 +9167,11 @@ pub struct ImportExportImportUsersBody {
     pub users: Option<Vec<Map<String, Value>>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub upsert: Option<bool>,
+    /// false (the default) guarantees the import sends no email, SMS or push to any imported user,
+    /// regardless of templates. true is reserved for future welcome messages and currently sends
+    /// nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notify: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -9136,6 +9191,11 @@ impl ImportExportImportUsersBody {
     /// Set `upsert`.
     pub fn with_upsert(mut self, v: impl Into<bool>) -> Self {
         self.upsert = Some(v.into());
+        self
+    }
+    /// Set `notify`.
+    pub fn with_notify(mut self, v: impl Into<bool>) -> Self {
+        self.notify = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -10089,6 +10149,141 @@ pub struct AllowlistIdentifiersDeleteResponse {
     pub id: String,
     #[serde(default)]
     pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ApiKeyUsage` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ApiKeyUsage {
+    /// Always `api_key_usage`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub key_id: String,
+    #[serde(default)]
+    pub limits: Option<Vec<ApiKeyLimit>>,
+    #[serde(default)]
+    pub usage: Vec<ApiKeyLimitState>,
+    /// Current-window counters for every unit the key has been debited in, capped or not.
+    #[serde(default)]
+    pub counters: Vec<ApiKeyUsageCounter>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ApiKeyLimit` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ApiKeyLimit {
+    /// App-defined unit, e.g. "requests" or "usd_cents".
+    #[serde(default)]
+    pub unit: String,
+    /// The cap, in `unit`.
+    #[serde(default)]
+    pub amount: i64,
+    /// `request` caps a single debit; `day`/`month` are UTC calendar windows; `total` never resets.
+    ///
+    /// Known values: `request`, `day`, `month`, `total`.
+    #[serde(default)]
+    pub period: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ApiKeyLimitState` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ApiKeyLimitState {
+    #[serde(default)]
+    pub unit: String,
+    /// Known values: `request`, `day`, `month`, `total`.
+    #[serde(default)]
+    pub period: String,
+    #[serde(default)]
+    pub amount: i64,
+    /// Used in the current window (always 0 for a per-request cap).
+    #[serde(default)]
+    pub used: i64,
+    /// amount − used, never below 0 (the cap itself for a per-request cap).
+    #[serde(default)]
+    pub remaining: i64,
+    /// Epoch ms the current window started (UTC); null for a per-request cap.
+    #[serde(default)]
+    pub window_start: Option<i64>,
+    /// Epoch ms the current window ends (UTC); null for per-request and total caps.
+    #[serde(default)]
+    pub resets_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ApiKeyUsageCounter` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ApiKeyUsageCounter {
+    #[serde(default)]
+    pub unit: String,
+    /// Known values: `day`, `month`, `total`.
+    #[serde(default)]
+    pub period: String,
+    #[serde(default)]
+    pub used: i64,
+    /// Window start (epoch ms).
+    #[serde(default)]
+    pub window_start: i64,
+    /// Epoch ms the window ends; null for total.
+    #[serde(default)]
+    pub resets_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ApiKeyUsageDebit` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ApiKeyUsageDebit {
+    /// Always `api_key_usage_debit`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub key_id: String,
+    #[serde(default)]
+    pub unit: String,
+    #[serde(default)]
+    pub amount: i64,
+    /// true when the debit was recorded; false when it would exceed a cap (nothing was recorded).
+    #[serde(default)]
+    pub allowed: bool,
+    /// Present only when allowed is false.
+    ///
+    /// Always `LIMIT_EXCEEDED`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// The caps that refused the debit (empty when allowed).
+    #[serde(default)]
+    pub exceeded: Vec<ApiKeyLimitState>,
+    /// Every cap on the key after this call, with remaining.
+    #[serde(default)]
+    pub usage: Vec<ApiKeyLimitState>,
+    /// The debited unit's day, month and total counters after this call.
+    #[serde(default)]
+    pub counters: Vec<ApiKeyUsageCounter>,
+    /// true when this is the stored outcome of an earlier call with the same idempotency_key
+    /// (nothing was counted again).
+    #[serde(default)]
+    pub idempotent_replay: bool,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -16987,6 +17182,48 @@ pub struct SessionsCreateTokenResponse {
     pub extra: Map<String, Value>,
 }
 
+/// The session after a keep-alive touch.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SessionTouch {
+    /// Always `session`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub user_id: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_active_organization_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub impersonated_by: Option<String>,
+    /// Last active (epoch ms).
+    #[serde(default)]
+    pub last_active_at: i64,
+    /// Expires (epoch ms).
+    #[serde(default)]
+    pub expire_at: i64,
+    /// Abandoned (epoch ms).
+    #[serde(default)]
+    pub abandon_at: i64,
+    /// Inactivity deadline (epoch ms).
+    #[serde(default)]
+    pub idle_expires_at: i64,
+    /// Created (epoch ms).
+    #[serde(default)]
+    pub created_at: i64,
+    /// true when this touch moved the inactivity window; false when a touch within the last 60
+    /// seconds already did (the current state is returned unchanged).
+    #[serde(default)]
+    pub extended: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The `SignInToken` object.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -18334,6 +18571,10 @@ pub struct Session {
     /// Abandoned (epoch ms).
     #[serde(default)]
     pub abandon_at: i64,
+    /// Epoch ms when the session ends from inactivity unless there is activity first (same value as
+    /// abandon_at). Slides on activity and on POST /v1/sessions/{id}/touch; never past expire_at.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idle_expires_at: Option<i64>,
     /// Created (epoch ms).
     #[serde(default)]
     pub created_at: i64,

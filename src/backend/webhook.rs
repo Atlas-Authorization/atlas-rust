@@ -239,6 +239,15 @@ pub enum EventType {
     EmailCreated,
     SmsCreated,
     SubscriptionCreated,
+    ApiKeyCreated,
+    ApiKeyUpdated,
+    ApiKeyRevoked,
+    /// One of a key's spend caps filled up, or refused a debit, for the first
+    /// time in its current window. The payload is the key plus `limit`.
+    ApiKeyLimitReached,
+    EntitlementOverrideCreated,
+    EntitlementOverrideDeleted,
+    EntitlementOverrideExpired,
     /// Any event type not modelled above — carries the raw dotted string.
     Other(String),
 }
@@ -269,6 +278,13 @@ impl From<&str> for EventType {
             "email.created" => EventType::EmailCreated,
             "sms.created" => EventType::SmsCreated,
             "subscription.created" => EventType::SubscriptionCreated,
+            "api_key.created" => EventType::ApiKeyCreated,
+            "api_key.updated" => EventType::ApiKeyUpdated,
+            "api_key.revoked" => EventType::ApiKeyRevoked,
+            "api_key.limit_reached" => EventType::ApiKeyLimitReached,
+            "entitlement.override.created" => EventType::EntitlementOverrideCreated,
+            "entitlement.override.deleted" => EventType::EntitlementOverrideDeleted,
+            "entitlement.override.expired" => EventType::EntitlementOverrideExpired,
             other => EventType::Other(other.to_string()),
         }
     }
@@ -301,6 +317,13 @@ impl EventType {
             EventType::EmailCreated => "email.created",
             EventType::SmsCreated => "sms.created",
             EventType::SubscriptionCreated => "subscription.created",
+            EventType::ApiKeyCreated => "api_key.created",
+            EventType::ApiKeyUpdated => "api_key.updated",
+            EventType::ApiKeyRevoked => "api_key.revoked",
+            EventType::ApiKeyLimitReached => "api_key.limit_reached",
+            EventType::EntitlementOverrideCreated => "entitlement.override.created",
+            EventType::EntitlementOverrideDeleted => "entitlement.override.deleted",
+            EventType::EntitlementOverrideExpired => "entitlement.override.expired",
             EventType::Other(s) => s,
         }
     }

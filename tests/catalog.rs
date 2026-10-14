@@ -140,6 +140,23 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.api_keys().get_usage("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/api_keys/p0_id/usage".into(),
+        B::None,
+        false,
+    ));
+    c.api_keys()
+        .record_usage("p0_id", &types::ApiKeysRecordUsageBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/api_keys/p0_id/usage".into(),
+        B::Obj,
+        false,
+    ));
     c.attack_protection().get().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1827,6 +1844,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.sessions().touch("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/sessions/p0_id/touch".into(),
+        B::None,
+        false,
+    ));
     c.sign_in_tokens()
         .create(&types::SignInTokensCreateBody::default())
         .await
@@ -2465,4 +2489,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 285 operations, 285 typed; 285 calls.
+// 288 operations, 288 typed; 288 calls.

@@ -150,6 +150,8 @@ NS = [
 
 # Exact (METHOD, template-path) -> method name overrides.
 OVR = {
+    ('GET', '/v1/api_keys/{id}/usage'): 'get_usage',
+    ('POST', '/v1/api_keys/{id}/usage'): 'record_usage',
     ('GET', '/v1/actions/bindings/{trigger}'): 'get_bindings',
     ('PUT', '/v1/actions/bindings/{trigger}'): 'set_bindings',
     ('GET', '/v1/attack_protection'): 'get',

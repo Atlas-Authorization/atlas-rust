@@ -490,8 +490,11 @@ impl AllowlistIdentifiers<'_> {
 }
 
 impl ApiKeys<'_> {
-    /// `POST /v1/api_keys/verify` — Verify a presented ak_ secret. Returns the subject + claims, or
-    /// valid:false. Rate-limited.
+    /// `POST /v1/api_keys/verify` — Verify a presented end-user API key secret. Any secret works: a
+    /// natively minted ak_ key AND an imported key of any format or prefix (resolved by its
+    /// SHA-256). Returns the subject, name, claims, scopes, constraints, spend caps (limits) and
+    /// their current-window usage, or valid:false alone (unknown, revoked, expired or subject
+    /// deleted; never says which). Rate-limited.
     ///
     /// Takes [`types::ApiKeysVerifyBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn verify(&self, body: &types::ApiKeysVerifyBody) -> Result<Value, BackendError> {
@@ -503,6 +506,41 @@ impl ApiKeys<'_> {
                 body_of(body)?,
                 None,
             )
+            .await
+    }
+    /// `GET /v1/api_keys/{id}/usage` — A key's current-window usage: each cap with
+    /// used/remaining/resets_at, plus the day, month and total counters of every unit the key has
+    /// been debited in.
+    ///
+    /// Returns [`types::ApiKeyUsage`].
+    pub async fn get_usage(&self, id: &str) -> Result<types::ApiKeyUsage, BackendError> {
+        let path = format!("/v1/api_keys/{}/usage", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/api_keys/{id}/usage` — Meter usage against a key's spend caps, atomically. Body:
+    /// amount (positive integer), unit (app-defined, e.g. requests or usd_cents), optional
+    /// idempotency_key. When the debit fits every cap for that unit it is recorded (day, month and
+    /// total counters) and allowed:true is returned; when it would exceed a cap — or is larger than
+    /// a per-request cap — NOTHING is recorded and the response is 200 with allowed:false and code
+    /// LIMIT_EXCEEDED, so you enforce it in your own transaction. Concurrent debits on one key
+    /// serialize: two can never both pass a cap only one fits under. Day and month windows are UTC
+    /// calendar windows. The same idempotency_key (kept 24 hours) returns the first outcome without
+    /// counting again (idempotent_replay:true); reusing it with a different unit or amount is 409
+    /// IDEMPOTENCY_CONFLICT. A revoked or expired key is 409 CONFLICT; an unknown id 404. The first
+    /// time a cap fills or refuses a debit in a window, api_key.limit_reached is emitted (once per
+    /// cap per window).
+    ///
+    /// Takes [`types::ApiKeysRecordUsageBody`]. Returns [`types::ApiKeyUsageDebit`].
+    pub async fn record_usage(
+        &self,
+        id: &str,
+        body: &types::ApiKeysRecordUsageBody,
+    ) -> Result<types::ApiKeyUsageDebit, BackendError> {
+        let path = format!("/v1/api_keys/{}/usage", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
 }
@@ -3852,6 +3890,24 @@ impl Sessions<'_> {
             .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
+    /// `POST /v1/sessions/{id}/touch` — Keep a session alive from your backend: slides its
+    /// inactivity (idle) window as if the user had just loaded a page. Use it when your app mounts
+    /// the Atlas SDK only on some pages, so time spent on pages without it does not count as
+    /// inactivity. Never extends past the session's absolute expiry and never revives an ended
+    /// session — a revoked session is 409 SESSION_REVOKED, a session that already timed out is 409
+    /// SESSION_IDLE_EXPIRED, and one past its absolute expiry is 409 SESSION_EXPIRED; an unknown id
+    /// is 404. At most one effective write per minute per session: a touch within 60 seconds of the
+    /// session's last activity returns the current state with extended:false, so calling it on
+    /// every request is safe. No request body. Returns the session with last_active_at and
+    /// idle_expires_at.
+    ///
+    /// Returns [`types::SessionTouch`].
+    pub async fn touch(&self, id: &str) -> Result<types::SessionTouch, BackendError> {
+        let path = format!("/v1/sessions/{}/touch", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
 }
 
 impl SignInTokens<'_> {
@@ -4296,7 +4352,10 @@ impl ImportExport<'_> {
     /// `POST /v1/user_imports` — Bulk-create users from an array, deduping by verified email,
     /// through the same path sign-up uses. Plaintext passwords are Argon2id-hashed; an Argon2id
     /// hash is imported verbatim; other hash formats are rejected per row. Per-row failures are
-    /// recorded, never fatal.
+    /// recorded, never fatal. Body: an array of users, or { users, upsert?, notify? }. An import
+    /// never notifies the imported users: with notify false (the default) no email, SMS or push is
+    /// sent as a consequence of the import, whatever templates are configured; notify:true is
+    /// reserved for future welcome messages and currently sends nothing.
     ///
     /// Takes [`types::ImportExportImportUsersBody`]. Returns [`types::Job`].
     pub async fn import_users(

@@ -68,9 +68,52 @@ pub struct ApiKeyVerification {
     #[serde(default)]
     pub subject_id: Option<String>,
     #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
     pub claims: Option<Map<String, Value>>,
     #[serde(default)]
+    pub scopes: Option<Vec<String>>,
+    #[serde(default)]
+    pub constraints: Option<Map<String, Value>>,
+    /// The key's spend caps (`None` when it has none, or on an invalid verdict).
+    #[serde(default)]
+    pub limits: Option<Vec<ApiKeyCap>>,
+    /// Each cap with its current-window usage.
+    #[serde(default)]
+    pub usage: Vec<ApiKeyCapUsage>,
+    #[serde(default)]
     pub last_used_at: Option<i64>,
+    #[serde(default)]
+    pub expires_at: Option<i64>,
+}
+
+/// A per-key spend cap as the verify result reports it.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ApiKeyCap {
+    /// App-defined unit, e.g. `"requests"` or `"usd_cents"`.
+    pub unit: String,
+    /// The cap, in `unit`.
+    pub amount: i64,
+    /// `request`, `day`, `month` or `total`.
+    pub period: String,
+}
+
+/// A spend cap with its current-window usage, as the verify result reports it.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ApiKeyCapUsage {
+    pub unit: String,
+    pub period: String,
+    pub amount: i64,
+    /// Used in the current window (always 0 for a per-request cap).
+    pub used: i64,
+    /// `amount - used`, never below 0.
+    pub remaining: i64,
+    /// Epoch ms the window started; `None` for a per-request cap.
+    #[serde(default)]
+    pub window_start: Option<i64>,
+    /// Epoch ms the window ends; `None` for per-request and total caps.
+    #[serde(default)]
+    pub resets_at: Option<i64>,
 }
 
 #[derive(Clone)]

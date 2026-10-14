@@ -108,6 +108,15 @@ pub mod codes {
     pub const RATE_LIMITED: &str = "RATE_LIMITED";
     /// The same idempotency key was reused with a different request.
     pub const IDEMPOTENCY_CONFLICT: &str = "IDEMPOTENCY_CONFLICT";
+    /// A usage debit would exceed an API key's spend cap. `api_keys().record_usage`
+    /// reports it as the debit's `code` (with `allowed: false`), not as an error.
+    pub const LIMIT_EXCEEDED: &str = "LIMIT_EXCEEDED";
+    /// The session was revoked (signed out) and cannot be kept alive.
+    pub const SESSION_REVOKED: &str = "SESSION_REVOKED";
+    /// The session already timed out from inactivity and cannot be kept alive.
+    pub const SESSION_IDLE_EXPIRED: &str = "SESSION_IDLE_EXPIRED";
+    /// The session is past its absolute expiry and cannot be kept alive.
+    pub const SESSION_EXPIRED: &str = "SESSION_EXPIRED";
     /// The feature this call needs is not configured on the instance.
     pub const NOT_CONFIGURED: &str = "NOT_CONFIGURED";
 }

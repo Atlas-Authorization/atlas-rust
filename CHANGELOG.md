@@ -2,6 +2,41 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.9.0
+
+- **API key spend caps.** `CreateApiKeyBody::limits` and
+  `UpdateApiKeyBody::limits` (`Some(None)` removes the caps) take
+  `types::ApiKeyLimit` (`unit`, `amount`, `period`: `request`, `day`, `month`
+  or `total`; build one with `ApiKeyLimit::new(unit, amount, period)`). `ApiKey`
+  gains `limits` and `usage` (`types::ApiKeyLimitState`: `unit`, `period`,
+  `amount`, `used`, `remaining`, `window_start`, `resets_at`).
+- **Usage metering.** `api_keys().record_usage(id, &types::ApiKeysRecordUsageBody)`
+  (`amount`, `unit`, optional `idempotency_key`) returns
+  `types::ApiKeyUsageDebit` (`key_id`, `unit`, `amount`, `allowed`, `code`,
+  `exceeded`, `usage`, `counters`, `idempotent_replay`); a refusal is
+  `allowed: false` with `code` `"LIMIT_EXCEEDED"`, not an error.
+  `api_keys().get_usage(id)` returns `types::ApiKeyUsage` (`key_id`, `limits`,
+  `usage`, `counters` of `types::ApiKeyUsageCounter`).
+- **Verify.** `ApiKeyVerification` gains `name`, `scopes`, `constraints`,
+  `limits` (`ApiKeyCap`), `usage` (`ApiKeyCapUsage`) and `expires_at`.
+- **Session keep-alive.** `sessions().touch(id)` returns `types::SessionTouch`
+  (the session plus `idle_expires_at` and `extended`). `Session` gains
+  `idle_expires_at`.
+- **Users.** `CreateUserBody::notify` and
+  `types::ImportExportImportUsersBody::notify` (unset or `false` sends nothing to
+  the user).
+- **Webhooks.** `EventType` gains `ApiKeyCreated`, `ApiKeyUpdated`,
+  `ApiKeyRevoked`, `ApiKeyLimitReached`, `EntitlementOverrideCreated`,
+  `EntitlementOverrideDeleted` and `EntitlementOverrideExpired`. These types
+  used to arrive as `EventType::Other(..)`.
+- **Error codes.** `codes::LIMIT_EXCEEDED`, `SESSION_REVOKED`,
+  `SESSION_IDLE_EXPIRED` and `SESSION_EXPIRED`.
+- **Breaking (struct literals only).** `CreateApiKeyBody`, `UpdateApiKeyBody`,
+  `CreateUserBody`, `ApiKeyVerification` and `EventType` have new fields or
+  variants; code that builds these with `..Default::default()` or matches
+  `EventType` with a wildcard arm is unaffected.
+- Coverage: 450 Backend API and Platform API operations.
+
 ## 0.8.0
 
 - **Typed long-tail API.** The 285 Backend API / Platform API operations that

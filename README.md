@@ -24,7 +24,7 @@ On [crates.io](https://crates.io/crates/atlasauth):
 ```toml
 # Cargo.toml
 [dependencies]
-atlasauth = "0.8"
+atlasauth = "0.9"
 ```
 
 Requires Rust 1.70+. The default `reqwest-transport` feature pulls in `reqwest`
@@ -237,7 +237,7 @@ token is refused. It covers one process; with several instances, record the
 ## Management API (`backend` feature)
 
 ```toml
-atlasauth = { version = "0.8", features = ["backend"] }
+atlasauth = { version = "0.9", features = ["backend"] }
 ```
 
 `BackendClient` covers the whole Backend API with your secret key, and the
@@ -319,6 +319,75 @@ Error codes worth branching on are in `atlasauth::backend::codes`
 `EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, …):
 `err.has_code(codes::UNKNOWN_FIELD)`.
 
+### API key spend caps
+
+Give an end-user API key caps per unit and period (`"request"`, `"day"`,
+`"month"` or `"total"`), then meter what each call costs. A debit that would
+exceed a cap records nothing and comes back with `allowed: false`; it is not an
+error:
+
+```rust
+use atlasauth::backend::{codes, types, BackendClient, CreateApiKeyBody, UpdateApiKeyBody};
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let atlas = BackendClient::new("sk_live_...")?;
+let key = atlas
+    .api_keys()
+    .create(
+        &CreateApiKeyBody {
+            subject_type: "user".into(),
+            subject_id: "user_123".into(),
+            limits: Some(vec![
+                types::ApiKeyLimit::new("requests", 1000, "day"),
+                types::ApiKeyLimit::new("usd_cents", 5000, "month"),
+            ]),
+            ..Default::default()
+        },
+        None,
+    )
+    .await?;
+
+let debit = atlas
+    .api_keys()
+    .record_usage(
+        &key.id,
+        // a retry with the same idempotency key returns the first outcome
+        &types::ApiKeysRecordUsageBody::new(12, "usd_cents").with_idempotency_key("req_8f2c"),
+    )
+    .await?;
+if !debit.allowed {
+    assert_eq!(debit.code.as_deref(), Some(codes::LIMIT_EXCEEDED)); // debit.exceeded lists the caps
+}
+
+let usage = atlas.api_keys().get_usage(&key.id).await?; // used / remaining / resets_at per cap
+atlas
+    .api_keys()
+    .update(&key.id, &UpdateApiKeyBody { limits: Some(None), ..Default::default() }) // remove the caps
+    .await?;
+# let _ = usage; Ok(()) }
+```
+
+`ApiKeyVerifier::verify` also returns the key's `name`, `scopes`,
+`constraints`, `limits` and current `usage`.
+
+### Session keep-alive
+
+If your app loads the Atlas frontend SDK only on some pages, time spent on the
+other pages can count as inactivity. Touch the session from your backend to
+slide its inactivity window:
+
+```rust
+# async fn demo(atlas: atlasauth::backend::BackendClient) -> Result<(), Box<dyn std::error::Error>> {
+let s = atlas.sessions().touch("sess_123").await?;
+// s.idle_expires_at is the new deadline; s.extended is false when a touch in the last minute already did it
+# let _ = s; Ok(()) }
+```
+
+A touch never extends past the session's absolute expiry and never revives an
+ended session (409 `SESSION_REVOKED`, `SESSION_IDLE_EXPIRED` or
+`SESSION_EXPIRED`). It writes at most once a minute, so calling it on every
+request is safe.
+
 ### Sign-in page design and image uploads
 
 The design is fully typed (`AtlasDesign`: preset, palettes, typography, shape,
@@ -371,7 +440,7 @@ own transport by implementing `JwksSource` (for session verification) and/or
 `HttpPost` (for API-key verification):
 
 ```toml
-atlasauth = { version = "0.8", default-features = false }
+atlasauth = { version = "0.9", default-features = false }
 ```
 
 ```rust

@@ -115,6 +115,10 @@ pub struct CreateUserBody {
     pub public_metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub private_metadata: Option<Metadata>,
+    /// Whether the create may notify the user. Unset or `false` guarantees no
+    /// email, SMS or push is sent as a consequence of the create.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify: Option<bool>,
 }
 
 /// `PATCH /v1/users/:id` body.
@@ -673,8 +677,27 @@ pub struct ApiKey {
     pub prefix: Option<String>,
     #[serde(default)]
     pub claims: Map<String, Value>,
+    /// Per-key spend caps; `None` when the key has none.
+    #[serde(default)]
+    pub limits: Option<Vec<super::types::ApiKeyLimit>>,
+    /// Each cap with its current-window usage (empty when the key has no caps).
+    #[serde(default)]
+    pub usage: Vec<super::types::ApiKeyLimitState>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+impl super::types::ApiKeyLimit {
+    /// A spend cap of `amount` `unit`s per `period` (`"request"`, `"day"`,
+    /// `"month"` or `"total"`), for [`CreateApiKeyBody::limits`] and
+    /// [`UpdateApiKeyBody::limits`].
+    pub fn new(unit: impl Into<String>, amount: i64, period: impl Into<String>) -> Self {
+        let mut limit = Self::default();
+        limit.unit = unit.into();
+        limit.amount = amount;
+        limit.period = period.into();
+        limit
+    }
 }
 
 /// The mint response: the key plus its `secret`, revealed exactly once.
@@ -704,6 +727,9 @@ pub struct CreateApiKeyBody {
     pub constraints: Option<Map<String, Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_token_lifetime_seconds: Option<i64>,
+    /// Per-key spend caps, metered with [`ApiKeys::record_usage`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limits: Option<Vec<super::types::ApiKeyLimit>>,
     /// Migrate an EXISTING key by its hash instead of minting a fresh secret
     /// (import-spec Blocker 2). Mutually exclusive with a minted secret, and the
     /// server never accepts a plaintext secret here — only the hash. Omitted
@@ -742,7 +768,7 @@ pub struct ImportApiKey {
 
 /// `PATCH /v1/api_keys/:id` body. Each field is a double `Option`: outer `None`
 /// omits the key, `Some(None)` sends JSON `null` to clear it (the server clears
-/// `expires_at`/`max_token_lifetime_seconds` on null). `scopes`/`constraints`
+/// `expires_at`/`max_token_lifetime_seconds`/`limits` on null). `scopes`/`constraints`
 /// are the §P1-8 delegated-token policy.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct UpdateApiKeyBody {
@@ -758,6 +784,9 @@ pub struct UpdateApiKeyBody {
     pub constraints: Option<Map<String, Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_token_lifetime_seconds: Option<Option<i64>>,
+    /// Replace the spend caps; `Some(None)` removes them (usage counters are kept).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limits: Option<Option<Vec<super::types::ApiKeyLimit>>>,
 }
 
 /// `POST /v1/api_keys/token` body — present an `ak_` secret to mint a
@@ -986,6 +1015,11 @@ pub struct Session {
     pub user_id: String,
     #[serde(default)]
     pub status: String,
+    /// Epoch ms the session ends from inactivity unless there is activity first
+    /// (same value as `abandon_at`). Slides on activity and on
+    /// [`Sessions::touch`].
+    #[serde(default)]
+    pub idle_expires_at: Option<i64>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
