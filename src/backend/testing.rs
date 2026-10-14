@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::{json, Value};
 
 use crate::error::TransportError;
-use crate::http::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+use crate::http::{HttpFullResponse, HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use crate::jwks::{BoxFuture, Jwks, JwksSource};
 
 type Handler = Arc<dyn Fn(&HttpRequest) -> HttpResponse + Send + Sync>;
@@ -43,6 +43,8 @@ impl SigningMaterial {
 pub struct FakeTransport {
     handler: Handler,
     recorded: Arc<Mutex<Vec<HttpRequest>>>,
+    raw_bodies: Arc<Mutex<Vec<Option<Vec<u8>>>>>,
+    response_headers: Arc<Vec<(String, String)>>,
     signing: Option<Arc<SigningMaterial>>,
 }
 
@@ -52,6 +54,8 @@ impl FakeTransport {
         FakeTransport {
             handler: Arc::new(handler),
             recorded: Arc::new(Mutex::new(Vec::new())),
+            raw_bodies: Arc::new(Mutex::new(Vec::new())),
+            response_headers: Arc::new(Vec::new()),
             signing: None,
         }
     }
@@ -133,6 +137,23 @@ impl FakeTransport {
         self.recorded.lock().unwrap().clone()
     }
 
+    /// The binary body of every request, in the same order as
+    /// [`Self::requests`]: `Some(bytes)` for a raw upload, `None` for a JSON or
+    /// body-less request.
+    pub fn raw_bodies(&self) -> Vec<Option<Vec<u8>>> {
+        self.raw_bodies.lock().unwrap().clone()
+    }
+
+    /// Answer every request with these extra response headers (e.g.
+    /// `Atlas-Unknown-Fields`), so header-reading code can be tested. Chainable.
+    pub fn with_response_headers<K: Into<String>, V: Into<String>>(
+        mut self,
+        headers: impl IntoIterator<Item = (K, V)>,
+    ) -> Self {
+        self.response_headers = Arc::new(headers.into_iter().map(|(k, v)| (k.into(), v.into())).collect());
+        self
+    }
+
     /// How many requests have been received — handy for asserting retries.
     pub fn request_count(&self) -> usize {
         self.recorded.lock().unwrap().len()
@@ -144,6 +165,7 @@ impl JwksSource for FakeTransport {
         let req = HttpRequest::new(HttpMethod::Get, url);
         let resp = (self.handler)(&req);
         self.recorded.lock().unwrap().push(req);
+        self.raw_bodies.lock().unwrap().push(None);
         Box::pin(async move {
             if !(200..300).contains(&resp.status) {
                 return Err(TransportError::new(format!("JWKS fetch failed ({})", resp.status)));
@@ -158,6 +180,19 @@ impl HttpTransport for FakeTransport {
     fn send<'a>(&'a self, req: HttpRequest) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
         let resp = (self.handler)(&req);
         self.recorded.lock().unwrap().push(req);
+        self.raw_bodies.lock().unwrap().push(None);
         Box::pin(async move { Ok(resp) })
+    }
+
+    fn send_full<'a>(
+        &'a self,
+        req: HttpRequest,
+        raw_body: Option<Vec<u8>>,
+    ) -> BoxFuture<'a, Result<HttpFullResponse, TransportError>> {
+        let resp = (self.handler)(&req);
+        self.recorded.lock().unwrap().push(req);
+        self.raw_bodies.lock().unwrap().push(raw_body);
+        let headers = self.response_headers.as_ref().clone();
+        Box::pin(async move { Ok(HttpFullResponse { status: resp.status, body: resp.body, headers }) })
     }
 }

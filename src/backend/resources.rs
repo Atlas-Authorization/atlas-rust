@@ -172,7 +172,7 @@ pub struct AllGrantsRevocation {
 
 /// The `/v1/users` namespace.
 pub struct Users<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl<'a> Users<'a> {
@@ -256,7 +256,7 @@ impl<'a> Users<'a> {
 
 /// The `/v1/grants` namespace — instance-scoped OAuth consent grants.
 pub struct Grants<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl<'a> Grants<'a> {
@@ -334,13 +334,89 @@ pub struct OrgDomain {
     pub extra: Map<String, Value>,
 }
 
-/// The org security policy (§4.4). The returned `policy` bag is server-shaped.
+/// The org security policy (§4.4). `policy` is the raw bag; read it typed
+/// with [`OrganizationPolicy::typed`].
 #[derive(Debug, Clone, Deserialize)]
 pub struct OrganizationPolicy {
     #[serde(default)]
     pub organization_id: String,
     #[serde(default)]
     pub policy: Map<String, Value>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl OrganizationPolicy {
+    /// The policy as an [`OrgPolicy`] (unknown keys land in its `extra`).
+    pub fn typed(&self) -> Result<OrgPolicy, BackendError> {
+        serde_json::from_value(Value::Object(self.policy.clone()))
+            .map_err(|e| BackendError::Malformed(e.to_string()))
+    }
+}
+
+/// An organization's reader (end-user) pool settings.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EndUserPoolPolicy {
+    pub enabled: bool,
+    /// Seat a self-signed-up reader as pending until an org admin approves.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_approval: Option<bool>,
+    /// Allow hosted self-signup into this org's reader pool.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_hosted_signup: Option<bool>,
+}
+
+/// The typed org policy. Keys are camelCase on the wire.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrgPolicy {
+    /// Members must have MFA.
+    #[serde(default)]
+    pub require_mfa: Option<bool>,
+    /// Members must sign in with the org's SSO.
+    #[serde(default)]
+    pub sso_required: Option<bool>,
+    /// Session idle timeout override, in milliseconds.
+    #[serde(default)]
+    pub session_idle_override_ms: Option<i64>,
+    /// Allowed sign-in methods or families (e.g. `password`, `passkey`,
+    /// `oauth_google`); empty means all.
+    #[serde(default)]
+    pub allowed_sign_in_methods: Option<Vec<String>>,
+    /// IPs/CIDRs members may sign in from.
+    #[serde(default)]
+    pub ip_allowlist: Option<Vec<String>>,
+    /// Maximum session age, in seconds.
+    #[serde(default)]
+    pub max_session_age_seconds: Option<i64>,
+    #[serde(default)]
+    pub end_user_pool: Option<EndUserPoolPolicy>,
+    /// Keys not modelled above.
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// A partial update for `PATCH /v1/organizations/:id/policy`: outer `None`
+/// leaves a key alone, `Some(None)` sends `null` to clear it.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrgPolicyPatch {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub require_mfa: Option<Option<bool>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sso_required: Option<Option<bool>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_idle_override_ms: Option<Option<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_sign_in_methods: Option<Option<Vec<String>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ip_allowlist: Option<Option<Vec<String>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_session_age_seconds: Option<Option<i64>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_user_pool: Option<Option<EndUserPoolPolicy>>,
+    /// Extra keys, sent as-is (for a policy key added after this release).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -372,7 +448,7 @@ pub struct UpdateOrganizationBody {
 
 /// The `/v1/organizations` namespace.
 pub struct Organizations<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl<'a> Organizations<'a> {
@@ -407,6 +483,11 @@ impl<'a> Organizations<'a> {
         let path = format!("/v1/organizations/{}/policy", seg(id));
         self.client.request(HttpMethod::Patch, &path, &[], Some(policy), None).await
     }
+    /// `PATCH /v1/organizations/:id/policy` with a typed partial update.
+    pub async fn patch_policy(&self, id: &str, patch: &OrgPolicyPatch) -> Result<OrganizationPolicy, BackendError> {
+        let path = format!("/v1/organizations/{}/policy", seg(id));
+        self.client.request(HttpMethod::Patch, &path, &[], body_of(patch)?, None).await
+    }
 
     /// Nested `/v1/organizations/:id/memberships`.
     pub fn memberships(&self, org_id: &str) -> OrgMemberships<'a> {
@@ -424,8 +505,8 @@ impl<'a> Organizations<'a> {
 
 /// `/v1/organizations/:id/memberships`.
 pub struct OrgMemberships<'a> {
-    client: &'a BackendClient,
-    org_id: String,
+    pub(super) client: &'a BackendClient,
+    pub(super) org_id: String,
 }
 
 impl OrgMemberships<'_> {
@@ -464,8 +545,8 @@ impl OrgMemberships<'_> {
 
 /// `/v1/organizations/:id/invitations`.
 pub struct OrgInvitations<'a> {
-    client: &'a BackendClient,
-    org_id: String,
+    pub(super) client: &'a BackendClient,
+    pub(super) org_id: String,
 }
 
 impl OrgInvitations<'_> {
@@ -496,8 +577,8 @@ impl OrgInvitations<'_> {
 
 /// `/v1/organizations/:id/domains`.
 pub struct OrgDomains<'a> {
-    client: &'a BackendClient,
-    org_id: String,
+    pub(super) client: &'a BackendClient,
+    pub(super) org_id: String,
 }
 
 impl OrgDomains<'_> {
@@ -548,7 +629,7 @@ pub struct Invitation {
 
 /// The `/v1/invitations` namespace.
 pub struct Invitations<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Invitations<'_> {
@@ -733,7 +814,7 @@ pub struct RevokedApiKey {
 /// The `/v1/api_keys` namespace. (The online *verify* with positive/negative
 /// caching lives in [`crate::ApiKeyVerifier`]; this is the management surface.)
 pub struct ApiKeys<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl ApiKeys<'_> {
@@ -856,7 +937,7 @@ pub struct CreateBillingPlanBody {
 
 /// The `/v1/billing` namespace.
 pub struct Billing<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Billing<'_> {
@@ -928,7 +1009,7 @@ pub struct MintedSession {
 
 /// The `/v1/sessions` namespace.
 pub struct Sessions<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Sessions<'_> {
@@ -975,7 +1056,7 @@ pub struct CustomDomain {
 
 /// The `/v1/domains` namespace (the instance's own FAPI/accounts domains).
 pub struct Domains<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Domains<'_> {

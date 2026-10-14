@@ -13,7 +13,7 @@ use serde_json::{Map, Value};
 use crate::http::HttpMethod;
 
 use super::client::BackendClient;
-use super::error::BackendError;
+use super::error::{AtlasApiError, AtlasErrorItem, BackendError};
 use super::pagination::CursorPage;
 use super::resources::{body_of, seg, ListPage, Metadata};
 
@@ -123,7 +123,7 @@ impl AuditEventFilter {
 
 /// The `/v1/audit_events` namespace.
 pub struct AuditEvents<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl AuditEvents<'_> {
@@ -220,7 +220,7 @@ pub struct RedeemedTicket {
 
 /// The `/v1/tickets` namespace.
 pub struct Tickets<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Tickets<'_> {
@@ -268,7 +268,7 @@ pub struct SendNotificationBody {
 
 /// The `/v1/notifications` namespace.
 pub struct Notifications<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Notifications<'_> {
@@ -316,7 +316,7 @@ pub struct NotificationTemplateBody {
 
 /// The `/v1/notification_templates` namespace.
 pub struct NotificationTemplates<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl NotificationTemplates<'_> {
@@ -350,56 +350,109 @@ impl NotificationTemplates<'_> {
     }
 }
 
-/// A notification category (the unit end-users opt in/out of).
+/// A tenant-defined notification category (the unit end-users opt in/out of).
 #[derive(Debug, Clone, Deserialize)]
 pub struct NotificationCategory {
     #[serde(default)]
+    pub id: Option<String>,
+    /// The category key.
+    #[serde(default)]
+    pub key: String,
+    /// The label shown on the end-user's preference toggle.
+    #[serde(default)]
+    pub label: Option<String>,
+    /// Tenant categories are always optional.
+    #[serde(default)]
+    pub optional: Option<bool>,
+    #[serde(default)]
+    pub created_at: Option<i64>,
+    /// Deprecated: the server field is `key`; this is kept for source
+    /// compatibility and is always empty.
+    #[serde(default)]
     pub name: String,
+    /// Deprecated: the server field is `label`; always `None`.
     #[serde(default)]
     pub description: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-/// Body for `POST`/`PUT /v1/notification_categories`.
+/// Body for `POST`/`PUT /v1/notification_categories`: `key` (create only) and
+/// `label`.
+///
+/// `name`/`description` are the older spellings and are sent as `key`/`label`
+/// when those are unset.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct NotificationCategoryBody {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    pub key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// Deprecated alias of `key`.
+    #[serde(skip_serializing)]
+    pub name: Option<String>,
+    /// Deprecated alias of `label`.
+    #[serde(skip_serializing)]
     pub description: Option<String>,
-    /// Extra server-defined fields (e.g. default opt-in) merged into the body.
+    /// Extra fields merged into the body.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-/// The `/v1/notification_categories` namespace, keyed by category name.
+impl NotificationCategoryBody {
+    fn normalized(&self, with_key: bool) -> NotificationCategoryBody {
+        let mut b = self.clone();
+        if b.key.is_none() {
+            b.key = b.name.take();
+        }
+        if b.label.is_none() {
+            b.label = b.description.take();
+        }
+        if !with_key {
+            b.key = None;
+        }
+        b
+    }
+}
+
+/// The `/v1/notification_categories` namespace, keyed by category key.
 pub struct NotificationCategories<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl NotificationCategories<'_> {
     pub async fn list(&self) -> Result<ListPage<NotificationCategory>, BackendError> {
         self.client.request(HttpMethod::Get, "/v1/notification_categories", &[], None, None).await
     }
-    pub async fn get(&self, name: &str) -> Result<NotificationCategory, BackendError> {
-        let path = format!("/v1/notification_categories/{}", seg(name));
-        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    /// Find one category by key. The API has no single-category route, so this
+    /// lists and filters; an unknown key is a `404 NOT_FOUND`.
+    pub async fn get(&self, key: &str) -> Result<NotificationCategory, BackendError> {
+        let page = self.list().await?;
+        page.data.into_iter().find(|c| c.key == key).ok_or_else(|| {
+            BackendError::Api(AtlasApiError {
+                status: 404,
+                errors: vec![AtlasErrorItem {
+                    code: "NOT_FOUND".into(),
+                    message: "Unknown notification category.".into(),
+                    param: None,
+                    meta: None,
+                }],
+            })
+        })
     }
     pub async fn create(&self, body: &NotificationCategoryBody) -> Result<NotificationCategory, BackendError> {
         self.client
-            .request(HttpMethod::Post, "/v1/notification_categories", &[], body_of(body)?, None)
+            .request(HttpMethod::Post, "/v1/notification_categories", &[], body_of(&body.normalized(true))?, None)
             .await
     }
+    /// `PUT /v1/notification_categories/:key` — change the label.
     pub async fn update(
         &self,
-        name: &str,
+        key: &str,
         body: &NotificationCategoryBody,
     ) -> Result<NotificationCategory, BackendError> {
-        let path = format!("/v1/notification_categories/{}", seg(name));
-        let mut b = body.clone();
-        b.name = None;
-        self.client.request(HttpMethod::Put, &path, &[], body_of(&b)?, None).await
+        let path = format!("/v1/notification_categories/{}", seg(key));
+        self.client.request(HttpMethod::Put, &path, &[], body_of(&body.normalized(false))?, None).await
     }
     pub async fn delete(&self, name: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/notification_categories/{}", seg(name));
@@ -482,6 +535,12 @@ pub struct EffectiveEntitlements {
 #[derive(Debug, Clone, Deserialize)]
 pub struct EntitlementOverride {
     pub id: String,
+    /// The API key that created it.
+    #[serde(default)]
+    pub created_by: Option<String>,
+    /// Epoch milliseconds.
+    #[serde(default)]
+    pub created_at: Option<i64>,
     #[serde(default)]
     pub subject_type: String,
     #[serde(default)]
@@ -515,7 +574,7 @@ pub struct CreateEntitlementOverrideBody {
 
 /// The `/v1/entitlement_overrides` namespace.
 pub struct EntitlementOverrides<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl EntitlementOverrides<'_> {
@@ -542,9 +601,29 @@ impl EntitlementOverrides<'_> {
         }
         self.client.request(HttpMethod::Get, "/v1/entitlement_overrides", &q, None, None).await
     }
+    /// Find one override by id.
+    ///
+    /// The API has no single-override route, so this lists the overrides and
+    /// picks the matching id; an unknown id is a `404 NOT_FOUND`
+    /// [`BackendError::Api`], as a direct lookup would be. Prefer
+    /// [`Self::list`] with a subject filter when you know the subject.
+    #[deprecated(
+        since = "0.7.0",
+        note = "there is no GET /v1/entitlement_overrides/:id; this now lists and filters — use list() with a subject filter"
+    )]
     pub async fn get(&self, id: &str) -> Result<EntitlementOverride, BackendError> {
-        let path = format!("/v1/entitlement_overrides/{}", seg(id));
-        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+        let page = self.list(None, None).await?;
+        page.data.into_iter().find(|o| o.id == id).ok_or_else(|| {
+            BackendError::Api(AtlasApiError {
+                status: 404,
+                errors: vec![AtlasErrorItem {
+                    code: "NOT_FOUND".into(),
+                    message: "Unknown entitlement override.".into(),
+                    param: None,
+                    meta: None,
+                }],
+            })
+        })
     }
     pub async fn delete(&self, id: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/entitlement_overrides/{}", seg(id));
@@ -555,8 +634,8 @@ impl EntitlementOverrides<'_> {
 /// Per-organization platform surfaces, reached via
 /// [`BackendClient::org_platform`]: branding, settings, effective entitlements.
 pub struct OrgPlatform<'a> {
-    client: &'a BackendClient,
-    org_id: String,
+    pub(super) client: &'a BackendClient,
+    pub(super) org_id: String,
 }
 
 impl OrgPlatform<'_> {
@@ -590,7 +669,7 @@ impl OrgPlatform<'_> {
 
 /// The instance-wide org-settings schema (`/v1/organization_settings_schema`).
 pub struct OrgSettingsSchemaApi<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl OrgSettingsSchemaApi<'_> {
@@ -649,8 +728,8 @@ pub struct ErasureAck {
 /// User deletion + erasure orchestration, reached via
 /// [`BackendClient::user_erasure`].
 pub struct UserErasure<'a> {
-    client: &'a BackendClient,
-    user_id: String,
+    pub(super) client: &'a BackendClient,
+    pub(super) user_id: String,
 }
 
 impl UserErasure<'_> {

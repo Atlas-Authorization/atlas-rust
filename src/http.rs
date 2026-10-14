@@ -94,6 +94,60 @@ impl HttpRequest {
 /// (DNS, TLS, connection reset).
 pub trait HttpTransport: Send + Sync {
     fn send<'a>(&'a self, req: HttpRequest) -> BoxFuture<'a, Result<HttpResponse, TransportError>>;
+
+    /// Perform a request that may carry a BINARY body, returning the response
+    /// headers as well as the status and body.
+    ///
+    /// The management client calls this for every request: `raw_body`, when
+    /// `Some`, is sent as the request body verbatim (an image upload) instead of
+    /// `req.body`; the returned headers let the client read
+    /// `Atlas-Unknown-Fields`. The default implementation delegates to
+    /// [`Self::send`] (so an existing custom transport keeps working unchanged)
+    /// and reports no headers; it refuses a binary body that is not valid UTF-8,
+    /// because [`HttpRequest::body`] is text. Override it to support uploads and
+    /// response headers in a custom transport — the built-in reqwest transport
+    /// and the test `FakeTransport` both do.
+    fn send_full<'a>(
+        &'a self,
+        req: HttpRequest,
+        raw_body: Option<Vec<u8>>,
+    ) -> BoxFuture<'a, Result<HttpFullResponse, TransportError>> {
+        Box::pin(async move {
+            let req = match raw_body {
+                None => req,
+                Some(bytes) => match String::from_utf8(bytes) {
+                    Ok(text) => req.body(text),
+                    Err(_) => {
+                        return Err(TransportError::new(
+                            "this HTTP transport cannot send a binary body: implement `HttpTransport::send_full`",
+                        ))
+                    }
+                },
+            };
+            let resp = self.send(req).await?;
+            Ok(HttpFullResponse { status: resp.status, body: resp.body, headers: Vec::new() })
+        })
+    }
+}
+
+/// A response with its headers, returned by [`HttpTransport::send_full`].
+/// Header names are as the transport reports them; compare case-insensitively
+/// (see [`HttpFullResponse::header`]).
+#[derive(Debug, Clone, Default)]
+pub struct HttpFullResponse {
+    pub status: u16,
+    pub body: String,
+    pub headers: Vec<(String, String)>,
+}
+
+impl HttpFullResponse {
+    /// The first header named `name` (case-insensitive), if any.
+    pub fn header(&self, name: &str) -> Option<&str> {
+        self.headers
+            .iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case(name))
+            .map(|(_, v)| v.as_str())
+    }
 }
 
 /// Percent-encode one URL path/query component (an id, slug, or provider name)

@@ -80,3 +80,73 @@ where
         }
     }
 }
+
+/// A free-form query string for the list and lookup methods that take filters
+/// (`?limit=`, `?status=`, `?user_id=`, …). Build it fluently; pairs are
+/// percent-encoded when sent, and a key may repeat (`provider=a&provider=b`).
+///
+/// ```
+/// use atlasauth::backend::Query;
+/// let q = Query::new().set("limit", 20).set("status", "pending");
+/// assert_eq!(q.len(), 2);
+/// ```
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Query {
+    pairs: Vec<(String, String)>,
+}
+
+impl Query {
+    /// An empty query.
+    pub fn new() -> Self {
+        Query::default()
+    }
+
+    /// Append `key=value`. Chainable.
+    pub fn set(mut self, key: impl Into<String>, value: impl ToString) -> Self {
+        self.pairs.push((key.into(), value.to_string()));
+        self
+    }
+
+    /// Append `key=value` only when `value` is `Some`. Chainable.
+    pub fn set_opt<V: ToString>(self, key: impl Into<String>, value: Option<V>) -> Self {
+        match value {
+            Some(v) => self.set(key, v),
+            None => self,
+        }
+    }
+
+    /// Append `key=value` in place.
+    pub fn push(&mut self, key: impl Into<String>, value: impl ToString) {
+        self.pairs.push((key.into(), value.to_string()));
+    }
+
+    /// The number of pairs.
+    pub fn len(&self) -> usize {
+        self.pairs.len()
+    }
+
+    /// Whether no pair is set.
+    pub fn is_empty(&self) -> bool {
+        self.pairs.is_empty()
+    }
+
+    /// The pairs, in insertion order.
+    pub fn pairs(&self) -> &[(String, String)] {
+        &self.pairs
+    }
+
+    /// Borrowed pairs in the shape the request core takes.
+    pub(crate) fn as_pairs(&self) -> Vec<(&str, String)> {
+        self.pairs.iter().map(|(k, v)| (k.as_str(), v.clone())).collect()
+    }
+}
+
+impl From<CursorParams> for Query {
+    fn from(p: CursorParams) -> Self {
+        let mut q = Query::new();
+        for (k, v) in p.to_query() {
+            q.push(k, v);
+        }
+        q
+    }
+}

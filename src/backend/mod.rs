@@ -16,20 +16,47 @@
 //! # let _ = (user, first_page); Ok(()) }
 //! ```
 
+mod catalog;
 mod client;
+mod design;
 mod error;
+mod instance;
 mod machines;
 mod pagination;
 mod platform;
+mod platform_api;
 mod resources;
 mod testing;
+pub mod types;
 mod webhook;
 
+pub use catalog::*;
 pub use client::{
-    BackendClient, BackendClientBuilder, DEFAULT_API_URL, DEFAULT_BASE_DELAY_MS, DEFAULT_MAX_RETRIES,
+    BackendClient, BackendClientBuilder, UnknownFields, UnknownFieldsHook, ATLAS_STRICT_HEADER,
+    ATLAS_UNKNOWN_FIELDS_HEADER, DEFAULT_API_URL, DEFAULT_BASE_DELAY_MS, DEFAULT_MAX_RETRIES,
 };
-pub use error::{AtlasApiError, AtlasErrorItem, BackendError};
-pub use pagination::{collect, CursorPage, CursorParams};
+pub use design::{
+    sniff_image_content_type, AtlasDesign, DesignApi, DesignAsset, DesignAssetKind, DesignBackground,
+    DesignBackgroundImage, DesignButtons, DesignCard, DesignElevation, DesignGradient,
+    DesignGradientStop, DesignInputs, DesignLayout, DesignLogo, DesignOverlay, DesignPalette,
+    DesignPreview, DesignSettings, DesignShape, DesignSpacing, DesignTypography, DesignWarning,
+};
+pub use error::{codes, AtlasApiError, AtlasErrorItem, BackendError};
+pub use instance::{
+    AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig, CookieConsent, EmailProviderConfig,
+    InfobipConfig, Instance, MailgunConfig, MessagebirdConfig, MessagingChannel, MessagingProvider,
+    MessagingProviders, MessagingProvidersApi, OAuthProvider, OAuthProviderFilter, OAuthProviderUpdate,
+    OAuthProviders, PlivoConfig, Preflight, PreflightFinding, ResendConfig, SesConfig,
+    SetCookieConsentBody, SinchConfig, SmsProviderConfig, SmtpConfig, TelnyxConfig, TwilioConfig,
+    UpdateWebhookEndpointBody, UpsertOAuthProviderBody, VonageConfig, WalletSettings, WebhookDelivery,
+    WebhookDeliveryReceipt, WebhookEndpoint, WebhookEndpointList, WebhookEndpoints, WebhookSecret,
+};
+pub use pagination::{collect, CursorPage, CursorParams, Query};
+pub use platform_api::{
+    AtlasIdApp, AtlasIdAppBranding, AtlasIdAppBrandingInput, AtlasIdAppCopy, AtlasIdAppList,
+    AtlasIdApps, CreateAtlasIdAppBody, CreatePlatformAppBody, PlatformApi, PlatformApp, PlatformApps,
+    UpdateAtlasIdAppBody, UpdatePlatformAppBody,
+};
 pub use machines::{
     CreateEnrolmentTokenBody, CreateMachineBody, EnrolMachineBody, EnrolledMachine, EnrolmentToken,
     ListEnrolmentTokensParams, M2mVerification, Machine, MachineChallenge, MachineFilter,
@@ -39,7 +66,8 @@ pub use resources::{
     AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,
     BillingSubscription, CreateApiKeyBody, CreateBillingPlanBody, CreateOrganizationBody,
     CreateUserBody, CustomDomain, DeletedObject, Domains, Grant, GrantRevocation, Grants,
-    ImportApiKey, Invitation, Invitations, ListPage, Metadata, MintApiKeyTokenBody, MintedSession, OrgDomain,
+    EndUserPoolPolicy, ImportApiKey, Invitation, Invitations, ListPage, Metadata, MintApiKeyTokenBody,
+    MintedSession, OrgDomain, OrgPolicy, OrgPolicyPatch,
     OrgDomains, OrgInvitations, OrgMemberships, Organization, OrganizationInvitation,
     OrganizationMembership, OrganizationPolicy, Organizations, RevokedApiKey, Session, Sessions,
     UpdateApiKeyBody, UpdateOrganizationBody, UpdateUserBody, User, Users,

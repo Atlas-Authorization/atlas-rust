@@ -19,10 +19,12 @@ It does the two things a Rust service needs:
 
 ## Install
 
+On [crates.io](https://crates.io/crates/atlasauth):
+
 ```toml
 # Cargo.toml
 [dependencies]
-atlasauth = "0.1"
+atlasauth = "0.8"
 ```
 
 Requires Rust 1.70+. The default `reqwest-transport` feature pulls in `reqwest`
@@ -169,6 +171,199 @@ parse (e.g. a bad `sk_` key → HTTP 401).
 The secret key is sent as `Authorization: Bearer sk_...` and is never placed in a
 URL.
 
+## Back-channel logout
+
+When a user signs out, Atlas can POST a `logout_token` (OpenID Connect
+Back-Channel Logout) to your app's back-channel logout URI. Verify it with the
+same `AtlasBackend` you use for tokens — built with the issuer of the provider
+that registered your client (`https://atlasauth.net` for Sign in with Atlas
+apps, your instance issuer for your instance's own OAuth clients):
+
+```rust
+use atlasauth::{AtlasBackend, LogoutTokenReplayCache};
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let verifier = AtlasBackend::new(
+    "https://atlasauth.net",
+    "https://atlasauth.net/.well-known/jwks.json",
+)?;
+let claims = verifier.verify_logout_token(logout_token, "your_client_id").await?;
+// claims.sid / claims.sub / claims.jti / claims.iat
+# Ok(()) }
+# let logout_token = "";
+```
+
+The check follows the spec: RS256 only, the expected issuer, your client id in
+`aud`, `iat` present (and not in the future), `exp` honoured when present, a
+`jti`, the back-channel logout event, a `sid` and/or `sub`, no `nonce`, and a
+`typ` of `logout+jwt` when present. Any failure is a `VerifyError` — answer 400.
+
+A framework-agnostic handler:
+
+```rust
+use atlasauth::{AtlasBackend, LogoutTokenReplayCache};
+
+/// POST /backchannel-logout  (Content-Type: application/x-www-form-urlencoded)
+/// Returns (status, headers) — map it onto your framework's response type.
+async fn backchannel_logout(
+    verifier: &AtlasBackend,
+    seen: &LogoutTokenReplayCache,
+    form: &std::collections::HashMap<String, String>,
+    now_seconds: i64,
+) -> (u16, Vec<(&'static str, &'static str)>) {
+    let no_store = vec![("Cache-Control", "no-store")];
+    let Some(token) = form.get("logout_token") else { return (400, no_store) };
+    let Ok(claims) = verifier.verify_logout_token(token, "your_client_id").await else {
+        return (400, no_store);
+    };
+    if !seen.check_and_remember(&claims.jti, now_seconds) {
+        return (400, no_store); // replayed
+    }
+    match (&claims.sid, &claims.sub) {
+        (Some(sid), _) => end_sessions_with_sid(sid).await,   // your session store
+        (None, Some(sub)) => end_sessions_for_user(sub).await,
+        (None, None) => unreachable!("the verifier requires sid or sub"),
+    }
+    (200, no_store)
+}
+# async fn end_sessions_with_sid(_: &str) {}
+# async fn end_sessions_for_user(_: &str) {}
+```
+
+`LogoutTokenReplayCache` remembers each accepted `jti` in memory so a replayed
+token is refused. It covers one process; with several instances, record the
+`jti` in your shared store instead (for example a Redis `SET <jti> 1 NX EX 300`).
+
+## Management API (`backend` feature)
+
+```toml
+atlasauth = { version = "0.8", features = ["backend"] }
+```
+
+`BackendClient` covers the whole Backend API with your secret key, and the
+Platform API with a platform key:
+
+```rust
+use atlasauth::backend::{types, BackendClient, CursorParams, Query};
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let atlas = BackendClient::new("sk_live_...")?;
+
+// Typed resources
+let user = atlas.users().get("user_123").await?;
+let page = atlas.users().list(CursorParams { limit: Some(50), ..Default::default() }).await?;
+
+// Setup check: every misconfiguration the server can see, with how to fix it
+let preflight = atlas.instance().preflight().await?;
+for f in preflight.findings.iter().filter(|f| f.is_error()) {
+    eprintln!("{}: {} — {}", f.code, f.message, f.fix);
+}
+
+// Every other endpoint: one typed method per route
+let role = atlas
+    .roles()
+    .create(&types::RolesCreateBody::new().with_key("editor").with_name("Editor"))
+    .await?;
+let waitlist = atlas.waitlist().list(&Query::new().set("limit", 20)).await?;
+for entry in &waitlist.data {
+    println!("{} {}", entry.id, entry.status);
+}
+# let _ = (user, page, role, waitlist); Ok(()) }
+```
+
+Typed surfaces include users, organizations (memberships, invitations, domains,
+policy, settings, branding, design), sessions, API keys, machines, billing,
+entitlement overrides, notifications, audit events, tickets, user erasure, the
+instance preflight, cookie consent, email/SMS delivery providers, social sign-in
+providers, webhook endpoints, and the sign-in page design. Everything else —
+roles and permissions, OAuth clients, SSO/LDAP/SCIM, FGA and the
+OpenFGA-compatible API, connectors, data subject requests, templates,
+localizations, log streams, network ACLs, RADIUS, rate limits, risk-based MFA,
+bot signals, jobs, and the test-mode helpers — has a typed method per route,
+whose request and response structs live in `atlasauth::backend::types`:
+
+- Build a request with `Type::new()` and the `with_*` setters (or
+  `Type::default()` and assign fields). Unset optional fields are left out of
+  the request; `clear_*` sends `null` where the API lets you clear a value.
+- Every struct has an `extra` map. On a response it keeps any field the server
+  added after this crate was released; on a request, `with_extra(key, value)`
+  sends a field this crate does not know yet.
+- Enumerations are plain `String`s (each field's docs list the known values), so
+  a new value from the server never fails to decode.
+- A few operations whose request or response is open-ended JSON keep
+  `serde_json::Value` on that side. `BackendClient::request_value` calls any
+  route with raw JSON.
+
+### Strict request bodies
+
+By default the API ignores a body field it does not accept and names it in an
+`Atlas-Unknown-Fields` response header. Turn on strict mode to get a
+`422 UNKNOWN_FIELD` instead, and/or log what was ignored:
+
+```rust
+use atlasauth::backend::{BackendClient, codes, BackendError};
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let atlas = BackendClient::builder("sk_live_...")
+    .strict(true)                                   // Atlas-Strict: true on every write
+    .on_unknown_fields(|u| eprintln!("{:?} {} ignored {:?}", u.method, u.path, u.fields))
+    .build()?;
+
+// Per-call override:
+let lenient = atlas.with_strict(Some(false));
+# let _ = lenient; Ok(()) }
+```
+
+Error codes worth branching on are in `atlasauth::backend::codes`
+(`UNKNOWN_FIELD`, `WRONG_KEY_SURFACE`, `INVALID_KEY`, `PLAN_IN_USE`,
+`EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, …):
+`err.has_code(codes::UNKNOWN_FIELD)`.
+
+### Sign-in page design and image uploads
+
+The design is fully typed (`AtlasDesign`: preset, palettes, typography, shape,
+card, layout, buttons, inputs, backgrounds, logo). Images are uploaded as raw
+bytes; the content type is detected from the bytes when you pass `None`:
+
+```rust
+use atlasauth::backend::{AtlasDesign, BackendClient, DesignAssetKind, DesignLogo};
+
+# async fn demo(atlas: &BackendClient, png: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
+let logo = atlas.design().upload_asset(DesignAssetKind::Logo, png, None).await?;
+let design = AtlasDesign {
+    preset: Some("glass".into()),
+    logo: Some(DesignLogo { asset_id: Some(logo.asset_id), ..Default::default() }),
+    ..Default::default()
+};
+let preview = atlas.design().preview(&design).await?;  // nothing saved
+atlas.design().put(&design).await?;
+atlas.design().patch_organization("org_123", serde_json::json!({ "palette": { "primary": "#0F766E" } })).await?;
+# let _ = preview; Ok(()) }
+```
+
+### Platform API: Sign in with Atlas apps
+
+Build the client with a platform key (`psk_…`) and use `platform()`:
+
+```rust
+use atlasauth::backend::{BackendClient, CreateAtlasIdAppBody};
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let platform = BackendClient::new("psk_live_...")?;
+let app = platform.platform().atlas_id_apps().create(&CreateAtlasIdAppBody {
+    name: "Acme".into(),
+    redirect_uris: vec!["https://acme.example/callback".into()],
+    post_logout_redirect_uris: Some(vec!["https://acme.example/signed-out".into()]),
+    backchannel_logout_uri: Some("https://acme.example/backchannel-logout".into()),
+    ..Default::default()
+}, None).await?;
+// app.client_id, app.client_secret (shown once)
+# let _ = app; Ok(()) }
+```
+
+`platform().apps()` provisions and manages the apps your platform owns, and
+`platform().upload_design_asset(...)` uploads images for app designs.
+
 ## Custom transport (no reqwest)
 
 Disable the default feature to compile with no HTTP dependency and supply your
@@ -176,7 +371,7 @@ own transport by implementing `JwksSource` (for session verification) and/or
 `HttpPost` (for API-key verification):
 
 ```toml
-atlasauth = { version = "0.1", default-features = false }
+atlasauth = { version = "0.8", default-features = false }
 ```
 
 ```rust
@@ -191,6 +386,11 @@ let backend = AtlasBackend::builder("https://your-instance-fapi.atlasauth.net")
 # let _ = backend;
 # Ok(()) }
 ```
+
+For the management client, implement `HttpTransport`. Its `send_full` method
+(which has a default) carries binary upload bodies and returns response
+headers; override it if you need image uploads or `Atlas-Unknown-Fields`
+reporting through your own transport.
 
 ## Development
 

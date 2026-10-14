@@ -330,7 +330,7 @@ pub struct EnrolMachineBody {
 /// The `/v1/machines` (+ `/v1/machine_enrolment_tokens`, `/v1/m2m_tokens`)
 /// namespace.
 pub struct Machines<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Machines<'_> {

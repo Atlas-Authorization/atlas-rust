@@ -174,6 +174,7 @@ impl AtlasBackendBuilder {
             default_source()?
         };
 
+        let clock = self.clock.clone().unwrap_or_else(crate::clock::system_clock);
         let cache = JwksCache::new(
             self.jwks_url,
             self.static_jwks,
@@ -190,6 +191,7 @@ impl AtlasBackendBuilder {
                 audiences: self.audiences,
             },
             jwks: cache,
+            clock,
         })
     }
 }
@@ -208,8 +210,9 @@ fn default_source() -> Result<Option<Arc<dyn JwksSource>>, ConfigError> {
 
 /// Verifies Atlas session JWTs locally against the instance JWKS, with caching.
 pub struct AtlasBackend {
-    options: AtlasBackendOptions,
-    jwks: JwksCache,
+    pub(crate) options: AtlasBackendOptions,
+    pub(crate) jwks: JwksCache,
+    pub(crate) clock: Clock,
 }
 
 impl AtlasBackend {

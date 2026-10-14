@@ -41,6 +41,7 @@ mod claims;
 mod clock;
 mod error;
 mod jwks;
+mod logout;
 mod user;
 mod verify;
 
@@ -85,10 +86,13 @@ pub use jwks::{
     BoxFuture, FetchOutcome, Jwk, Jwks, JwksCache, JwksSource, DEFAULT_TTL_MS, REFETCH_INTERVAL_MS,
 };
 pub use user::{real_email, EmailAddress, User, NO_EMAIL_SENTINEL_DOMAIN};
+pub use logout::{
+    LogoutTokenClaims, LogoutTokenReplayCache, BACKCHANNEL_LOGOUT_EVENT, LOGOUT_TOKEN_TYPE,
+};
 pub use verify::{AtlasBackend, AtlasBackendBuilder, AtlasBackendOptions, CLOCK_SKEW_SECONDS};
 
 #[cfg(feature = "reqwest-transport")]
 pub use transport::ReqwestTransport;
 
 #[cfg(any(feature = "backend", feature = "client"))]
-pub use http::{HttpMethod, HttpRequest, HttpTransport};
+pub use http::{HttpFullResponse, HttpMethod, HttpRequest, HttpTransport};

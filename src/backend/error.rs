@@ -72,3 +72,42 @@ pub enum BackendError {
     #[error("atlas: malformed backend response: {0}")]
     Malformed(String),
 }
+
+/// Stable error codes worth branching on, for use with
+/// [`AtlasApiError::code`] / [`AtlasApiError::has_code`]:
+///
+/// ```no_run
+/// # async fn demo(atlas: &atlasauth::backend::BackendClient) {
+/// use atlasauth::backend::{codes, BackendError};
+/// if let Err(BackendError::Api(e)) = atlas.instance().preflight().await {
+///     if e.has_code(codes::WRONG_KEY_SURFACE) { /* a psk_ was sent to an instance route */ }
+/// }
+/// # }
+/// ```
+pub mod codes {
+    /// The instance has no email provider configured, so the email could not be sent.
+    pub const EMAIL_DELIVERY_NOT_CONFIGURED: &str = "EMAIL_DELIVERY_NOT_CONFIGURED";
+    /// The action needs an email provider to be configured first.
+    pub const EMAIL_PROVIDER_REQUIRED: &str = "EMAIL_PROVIDER_REQUIRED";
+    /// Strict request bodies refused a field the endpoint does not accept.
+    pub const UNKNOWN_FIELD: &str = "UNKNOWN_FIELD";
+    /// A billing plan still has subscribers and cannot be removed.
+    pub const PLAN_IN_USE: &str = "PLAN_IN_USE";
+    /// The key was sent to the wrong API surface (a `psk_` platform key on an
+    /// instance route, or an `sk_` secret key on `/v1/platform/*`).
+    pub const WRONG_KEY_SURFACE: &str = "WRONG_KEY_SURFACE";
+    /// The key is unknown, revoked, or malformed.
+    pub const INVALID_KEY: &str = "INVALID_KEY";
+    /// The resource does not exist (or is not visible to this key).
+    pub const NOT_FOUND: &str = "NOT_FOUND";
+    /// A request field failed validation; the error's `param` names it.
+    pub const VALIDATION_FAILED: &str = "VALIDATION_FAILED";
+    /// The key lacks a scope this route needs.
+    pub const SCOPE_MISSING: &str = "SCOPE_MISSING";
+    /// Too many requests; retry after the indicated delay.
+    pub const RATE_LIMITED: &str = "RATE_LIMITED";
+    /// The same idempotency key was reused with a different request.
+    pub const IDEMPOTENCY_CONFLICT: &str = "IDEMPOTENCY_CONFLICT";
+    /// The feature this call needs is not configured on the instance.
+    pub const NOT_CONFIGURED: &str = "NOT_CONFIGURED";
+}
