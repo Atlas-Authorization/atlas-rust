@@ -3977,6 +3977,8 @@ impl InstanceUpdateBodyAuthConfigExternalJwtIssuersItem {
 pub struct InstanceSetCaptchaSecretBody {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -3991,6 +3993,11 @@ impl InstanceSetCaptchaSecretBody {
     /// Set `secret`.
     pub fn with_secret(mut self, v: impl Into<String>) -> Self {
         self.secret = Some(v.into());
+        self
+    }
+    /// Set `provider`.
+    pub fn with_provider(mut self, v: impl Into<String>) -> Self {
+        self.provider = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -5382,12 +5389,22 @@ pub struct OAuthClientsImportBodyClientsItem {
     pub name: String,
     #[serde(default)]
     pub redirect_uris: Vec<String>,
+    /// The client's scope set, preserved verbatim. Default: openid, profile, email.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub allowed_scopes: Option<Vec<String>>,
+    pub scopes: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub grant_types: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// The operator's own app (no consent screen). An import row is canonical: absent means false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_party: Option<bool>,
+    /// RP-initiated logout skips the confirmation page (first-party clients only; otherwise the row
+    /// fails with a validation error). Absent means false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -5433,9 +5450,9 @@ impl OAuthClientsImportBodyClientsItem {
         self.redirect_uris = v.into();
         self
     }
-    /// Set `allowed_scopes`.
-    pub fn with_allowed_scopes(mut self, v: impl Into<Vec<String>>) -> Self {
-        self.allowed_scopes = Some(v.into());
+    /// Set `scopes`.
+    pub fn with_scopes(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.scopes = Some(v.into());
         self
     }
     /// Set `grant_types`.
@@ -5446,6 +5463,21 @@ impl OAuthClientsImportBodyClientsItem {
     /// Set `token_endpoint_auth_method`.
     pub fn with_token_endpoint_auth_method(mut self, v: impl Into<String>) -> Self {
         self.token_endpoint_auth_method = Some(v.into());
+        self
+    }
+    /// Set `logo_url`.
+    pub fn with_logo_url(mut self, v: impl Into<String>) -> Self {
+        self.logo_url = Some(v.into());
+        self
+    }
+    /// Set `first_party`.
+    pub fn with_first_party(mut self, v: impl Into<bool>) -> Self {
+        self.first_party = Some(v.into());
+        self
+    }
+    /// Set `skip_logout_confirmation`.
+    pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
+        self.skip_logout_confirmation = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.

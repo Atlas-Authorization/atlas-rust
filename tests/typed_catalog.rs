@@ -34,7 +34,7 @@ async fn nested_request_uses_the_wire_names() {
         .with_require_number(true);
     let body = types::InstanceUpdateBody::new()
         .with_auth_config(types::InstanceUpdateBodyAuthConfig::new().with_password_policy(policy));
-    c.instance().update(&body).await.unwrap();
+    c.instance().update(&body, &Query::new()).await.unwrap();
     assert_eq!(
         sent_body(&fake),
         json!({"auth_config": {"passwordPolicy": {"minLength": 12, "requireNumber": true}}})

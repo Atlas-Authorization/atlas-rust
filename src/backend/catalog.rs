@@ -1530,22 +1530,40 @@ impl Instance<'_> {
     /// Turning email code or email link sign-in ON while the instance cannot deliver email (a
     /// production instance with no email provider) returns 422 EMAIL_PROVIDER_REQUIRED naming the
     /// field; configure one first with PUT /v1/messaging_providers/email. Methods that are already
-    /// on are left alone. Setting the retired raw branding fields (branding.customCss /
-    /// customHtmlHeader / customHtmlFooter) returns 422 naming the field — use the design settings
-    /// (PUT /v1/instance/design) instead; clearing them (null or "") is accepted. The response
-    /// echoes auth_config_resolved so you can confirm the change took effect.
+    /// on are left alone. Captcha always runs on your own provider keys: turning a captcha ON for a
+    /// flow (or changing its provider) before both the provider site key
+    /// (auth_config.captcha.siteKey) and its secret (PUT /v1/instance/captcha_secret) are set
+    /// returns 422 CAPTCHA_KEYS_REQUIRED with param naming the missing one — store the secret
+    /// first, then enable. Removing the site key while a flow uses it returns 409 CAPTCHA_IN_USE
+    /// unless force=true, which also turns the captcha off on those flows. Setting the retired raw
+    /// branding fields (branding.customCss / customHtmlHeader / customHtmlFooter) returns 422
+    /// naming the field — use the design settings (PUT /v1/instance/design) instead; clearing them
+    /// (null or "") is accepted. The response echoes auth_config_resolved so you can confirm the
+    /// change took effect.
+    ///
+    /// Query parameters: `force`.
     ///
     /// Takes [`types::InstanceUpdateBody`]. Returns [`types::InstanceUpdateResponse`].
     pub async fn update(
         &self,
         body: &types::InstanceUpdateBody,
+        query: &Query,
     ) -> Result<types::InstanceUpdateResponse, BackendError> {
         self.client
-            .request(HttpMethod::Patch, "/v1/instance", &[], body_of(body)?, None)
+            .request(
+                HttpMethod::Patch,
+                "/v1/instance",
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
             .await
     }
-    /// `PUT /v1/instance/captcha_secret` — Store the captcha provider secret (write-only,
-    /// encrypted; never read back). Refused while the captcha provider is none.
+    /// `PUT /v1/instance/captcha_secret` — Store a captcha provider secret (write-only, encrypted;
+    /// never read back). Captcha always runs on your own provider keys, so store the secret first:
+    /// `provider` names the provider it belongs to (default: the configured
+    /// auth_config.captcha.provider), so it can be stored before the captcha is turned on. Without
+    /// a provider in the body or the config, the call is refused.
     ///
     /// Takes [`types::InstanceSetCaptchaSecretBody`]. Returns [`types::InstanceSetCaptchaSecretResponse`].
     pub async fn set_captcha_secret(
@@ -1562,18 +1580,23 @@ impl Instance<'_> {
             )
             .await
     }
-    /// `DELETE /v1/instance/captcha_secret` — Clear the stored captcha provider secret for the
-    /// current provider.
+    /// `DELETE /v1/instance/captcha_secret` — Clear a stored captcha provider secret (default: the
+    /// configured provider). Refused with 409 CAPTCHA_IN_USE (meta.flows names them) while a flow
+    /// runs a captcha on that provider; pass force=true to remove it anyway, which also turns the
+    /// captcha off on those flows (flows_turned_off in the response).
+    ///
+    /// Query parameters: `provider`, `force`.
     ///
     /// Returns [`types::InstanceDeleteCaptchaSecretResponse`].
     pub async fn delete_captcha_secret(
         &self,
+        query: &Query,
     ) -> Result<types::InstanceDeleteCaptchaSecretResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Delete,
                 "/v1/instance/captcha_secret",
-                &[],
+                &query.as_pairs(),
                 None,
                 None,
             )

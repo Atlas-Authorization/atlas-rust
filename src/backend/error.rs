@@ -93,6 +93,12 @@ pub mod codes {
     /// on (`meta.features` lists them); force the removal with
     /// `messaging_providers().delete_with(.., &DeleteMessagingProviderParams { force: true })`.
     pub const EMAIL_PROVIDER_IN_USE: &str = "EMAIL_PROVIDER_IN_USE";
+    /// Captcha is bring-your-own-keys: turning it on (or switching provider) needs
+    /// that provider's site key and secret stored first.
+    pub const CAPTCHA_KEYS_REQUIRED: &str = "CAPTCHA_KEYS_REQUIRED";
+    /// A captcha key a live flow uses cannot be removed (`meta.flows`); delete it
+    /// with the `force=true` query to remove it anyway and turn those flows off.
+    pub const CAPTCHA_IN_USE: &str = "CAPTCHA_IN_USE";
     /// Strict request bodies refused a field the endpoint does not accept.
     pub const UNKNOWN_FIELD: &str = "UNKNOWN_FIELD";
     /// A billing plan still has subscribers and cannot be removed.

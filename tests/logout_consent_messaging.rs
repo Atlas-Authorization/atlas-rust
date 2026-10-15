@@ -202,3 +202,29 @@ async fn user_sessions_carry_idle_org_and_impersonation_fields() {
     assert_eq!(s.last_active_organization_id.as_deref(), Some("org_1"));
     assert_eq!(s.impersonated_by.as_deref(), Some("user_admin"));
 }
+
+#[tokio::test]
+async fn captcha_secret_is_bring_your_own_keys() {
+    let (c, t) = client_with(
+        r#"{"object":"captcha_secret","provider":"hcaptcha","deleted":true,"flows_turned_off":["signUp"]}"#,
+    );
+    c.instance()
+        .set_captcha_secret(&types::InstanceSetCaptchaSecretBody::new().with_secret("s3cret").with_provider("turnstile"))
+        .await
+        .unwrap();
+    c.instance()
+        .delete_captcha_secret(&Query::new().set("provider", "hcaptcha").set("force", true))
+        .await
+        .unwrap();
+    c.instance().delete_captcha_secret(&Query::new()).await.unwrap();
+    let reqs = t.requests();
+    assert_eq!((reqs[0].method, path(&reqs[0])), (HttpMethod::Put, "/v1/instance/captcha_secret".into()));
+    assert_eq!(body_json(&reqs[0]), json!({"secret": "s3cret", "provider": "turnstile"}));
+    assert_eq!(
+        (reqs[1].method, path(&reqs[1])),
+        (HttpMethod::Delete, "/v1/instance/captcha_secret?provider=hcaptcha&force=true".into())
+    );
+    assert_eq!(path(&reqs[2]), "/v1/instance/captcha_secret");
+    assert_eq!(codes::CAPTCHA_KEYS_REQUIRED, "CAPTCHA_KEYS_REQUIRED");
+    assert_eq!(codes::CAPTCHA_IN_USE, "CAPTCHA_IN_USE");
+}

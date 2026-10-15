@@ -2,6 +2,18 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.11.0
+
+### Added
+- **Captcha is bring-your-own-keys.** `codes::CAPTCHA_KEYS_REQUIRED` (422) and `codes::CAPTCHA_IN_USE` (409, `meta.flows`).
+- `InstanceSetCaptchaSecretBody::with_provider` stores the secret for a named provider before captcha is turned on.
+- Bulk OAuth client import rows gain `logo_url`, `first_party` and `skip_logout_confirmation`.
+
+### Changed (breaking)
+- `instance().delete_captcha_secret(&Query)` and `instance().update(&body, &Query)` take a query (`provider` / `force`;
+  `force`). Pass `&Query::new()` for the previous behaviour.
+- The bulk import row's `allowed_scopes` is now `scopes`, the field the API actually reads (the old name was ignored).
+
 ## 0.10.0
 
 - **OAuth clients.** `types::OAuthClientsCreateBody` and

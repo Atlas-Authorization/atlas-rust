@@ -632,10 +632,15 @@ async fn every_catalog_operation_hits_its_route() {
     c.instance().get().await.unwrap();
     expected.push((HttpMethod::Get, "/v1/instance".into(), B::None, false));
     c.instance()
-        .update(&types::InstanceUpdateBody::default())
+        .update(&types::InstanceUpdateBody::default(), &q)
         .await
         .unwrap();
-    expected.push((HttpMethod::Patch, "/v1/instance".into(), B::Obj, false));
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/instance?limit=2".into(),
+        B::Obj,
+        false,
+    ));
     c.instance()
         .set_captcha_secret(&types::InstanceSetCaptchaSecretBody::default())
         .await
@@ -646,10 +651,10 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.instance().delete_captcha_secret().await.unwrap();
+    c.instance().delete_captcha_secret(&q).await.unwrap();
     expected.push((
         HttpMethod::Delete,
-        "/v1/instance/captcha_secret".into(),
+        "/v1/instance/captcha_secret?limit=2".into(),
         B::None,
         false,
     ));
