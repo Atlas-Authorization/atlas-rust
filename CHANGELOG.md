@@ -2,6 +2,39 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.10.0
+
+- **OAuth clients.** `types::OAuthClientsCreateBody` and
+  `types::OAuthClientsUpdateBody` gain `skip_logout_confirmation`
+  (`with_skip_logout_confirmation`); the OAuth client responses
+  (`types::OAuthClientsGetResponse`, `OAuthClientsCreateResponse`,
+  `OAuthClientsUpdateResponse`, `OAuthClientsRotateSecretResponse`, the list
+  and import items) gain `skip_logout_confirmation: Option<bool>`. First-party
+  clients only (`422 VALIDATION_FAILED` on a third-party client); when true,
+  RP-initiated logout with an exactly registered `post_logout_redirect_uri`
+  redirects straight back without the confirmation page.
+- **Cookie consent.** `SetCookieConsentBody::settings_link`
+  (`Option<CookieSettingsLinkInput>`: `label`, `preset`, `attributes`) adds a
+  footer "Cookie settings" link to the hosted pages. `CookieConsent` gains
+  `settings_link: Option<CookieSettingsLink>` (`label`, `preset`,
+  `attributes`, `rendered_attributes`). Preset names are in
+  `cookie_settings_link_presets` (`COOKIEMUNCH`, `COOKIEBOT`, `ONETRUST`,
+  `CUSTOM`); `preset` stays a `String`, so new values still decode.
+- **Email provider removal.** `messaging_providers().delete_with(channel,
+  &DeleteMessagingProviderParams { force })` sends `?force=true` to remove the
+  email provider while email-dependent features are on. `delete(channel)` is
+  unchanged.
+- **Error codes.** `codes::EMAIL_PROVIDER_IN_USE` (409; `meta.features` lists
+  the features that need email).
+- **Sessions.** `Session` (from `sessions().get` / `list`) gains
+  `last_active_organization_id` and `impersonated_by`. `types::Session` (from
+  `users().list_sessions`) already carried them and `idle_expires_at`, which
+  stays an `Option<i64>`.
+- **Regenerated** from the current API reference (no new operations).
+- **Breaking (struct literals only).** `CookieConsent`, `SetCookieConsentBody`
+  and `Session` have new fields; code that builds `SetCookieConsentBody` with
+  `..Default::default()` is unaffected.
+
 ## 0.9.0
 
 - **API key spend caps.** `CreateApiKeyBody::limits` and

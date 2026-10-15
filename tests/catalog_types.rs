@@ -80,13 +80,13 @@ fn decode_allowlist_identifiers() {
 
 #[test]
 fn decode_api_keys() {
-    // GET /v1/api_keys/{id}/usage
-    round_trip::<types::ApiKeyUsage>(
-        r#"{"counters":[{"period":"day","resets_at":7,"unit":"x","used":7,"window_start":7}],"key_id":"x","limits":[{"amount":7,"period":"request","unit":"x"}],"object":"api_key_usage","usage":[{"amount":7,"period":"request","remaining":7,"resets_at":7,"unit":"x","used":7,"window_start":7}]}"#,
-    );
     // POST /v1/api_keys/{id}/usage
     round_trip::<types::ApiKeyUsageDebit>(
         r#"{"allowed":true,"amount":7,"code":"LIMIT_EXCEEDED","counters":[{"period":"day","resets_at":7,"unit":"x","used":7,"window_start":7}],"exceeded":[{"amount":7,"period":"request","remaining":7,"resets_at":7,"unit":"x","used":7,"window_start":7}],"idempotent_replay":true,"key_id":"x","object":"api_key_usage_debit","unit":"x","usage":[{"amount":7,"period":"request","remaining":7,"resets_at":7,"unit":"x","used":7,"window_start":7}]}"#,
+    );
+    // GET /v1/api_keys/{id}/usage
+    round_trip::<types::ApiKeyUsage>(
+        r#"{"counters":[{"period":"day","resets_at":7,"unit":"x","used":7,"window_start":7}],"key_id":"x","limits":[{"amount":7,"period":"request","unit":"x"}],"object":"api_key_usage","usage":[{"amount":7,"period":"request","remaining":7,"resets_at":7,"unit":"x","used":7,"window_start":7}]}"#,
     );
 }
 
@@ -542,15 +542,15 @@ fn decode_network_acls() {
 fn decode_oauth_clients() {
     // GET /v1/oauth_clients
     round_trip::<types::OAuthClientsListResponse>(
-        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/oauth_clients
     round_trip::<types::OAuthClientsCreateResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // POST /v1/oauth_clients/import
     round_trip::<types::OAuthClientsImportResponse>(
-        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // GET /v1/oauth_clients/{clientId}/grants
     round_trip::<types::OAuthClientsListGrantsResponse>(
@@ -566,11 +566,11 @@ fn decode_oauth_clients() {
     );
     // GET /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsGetResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // PATCH /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsUpdateResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // DELETE /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsDeleteResponse>(
@@ -578,7 +578,7 @@ fn decode_oauth_clients() {
     );
     // POST /v1/oauth_clients/{id}/rotate_secret
     round_trip::<types::OAuthClientsRotateSecretResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
 }
 

@@ -508,17 +508,6 @@ impl ApiKeys<'_> {
             )
             .await
     }
-    /// `GET /v1/api_keys/{id}/usage` — A key's current-window usage: each cap with
-    /// used/remaining/resets_at, plus the day, month and total counters of every unit the key has
-    /// been debited in.
-    ///
-    /// Returns [`types::ApiKeyUsage`].
-    pub async fn get_usage(&self, id: &str) -> Result<types::ApiKeyUsage, BackendError> {
-        let path = format!("/v1/api_keys/{}/usage", seg(id));
-        self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
-            .await
-    }
     /// `POST /v1/api_keys/{id}/usage` — Meter usage against a key's spend caps, atomically. Body:
     /// amount (positive integer), unit (app-defined, e.g. requests or usd_cents), optional
     /// idempotency_key. When the debit fits every cap for that unit it is recorded (day, month and
@@ -541,6 +530,17 @@ impl ApiKeys<'_> {
         let path = format!("/v1/api_keys/{}/usage", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/api_keys/{id}/usage` — A key's current-window usage: each cap with
+    /// used/remaining/resets_at, plus the day, month and total counters of every unit the key has
+    /// been debited in.
+    ///
+    /// Returns [`types::ApiKeyUsage`].
+    pub async fn get_usage(&self, id: &str) -> Result<types::ApiKeyUsage, BackendError> {
+        let path = format!("/v1/api_keys/{}/usage", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
 }

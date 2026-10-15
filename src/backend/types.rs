@@ -5230,6 +5230,12 @@ pub struct OAuthClientsCreateBody {
     pub frontchannel_logout_uri: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// First-party clients only (422 otherwise). When true, RP-initiated logout (/oauth2/logout)
+    /// with this client_id and an exactly registered post_logout_redirect_uri ends the browser
+    /// session (with back- and front-channel logout) and redirects straight back with state,
+    /// without the "Sign out?" page. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -5313,6 +5319,11 @@ impl OAuthClientsCreateBody {
     /// Set `frontchannel_logout_session_required`.
     pub fn with_frontchannel_logout_session_required(mut self, v: impl Into<bool>) -> Self {
         self.frontchannel_logout_session_required = Some(v.into());
+        self
+    }
+    /// Set `skip_logout_confirmation`.
+    pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
+        self.skip_logout_confirmation = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -5520,6 +5531,12 @@ pub struct OAuthClientsUpdateBody {
     pub frontchannel_logout_uri: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// First-party clients only (422 otherwise). When true, RP-initiated logout (/oauth2/logout)
+    /// with this client_id and an exactly registered post_logout_redirect_uri ends the browser
+    /// session (with back- and front-channel logout) and redirects straight back with state,
+    /// without the "Sign out?" page. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -5599,6 +5616,11 @@ impl OAuthClientsUpdateBody {
     /// Set `frontchannel_logout_session_required`.
     pub fn with_frontchannel_logout_session_required(mut self, v: impl Into<bool>) -> Self {
         self.frontchannel_logout_session_required = Some(v.into());
+        self
+    }
+    /// Set `skip_logout_confirmation`.
+    pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
+        self.skip_logout_confirmation = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -10155,43 +10177,40 @@ pub struct AllowlistIdentifiersDeleteResponse {
     pub extra: Map<String, Value>,
 }
 
-/// The `ApiKeyUsage` object.
+/// The `ApiKeyUsageDebit` object.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct ApiKeyUsage {
-    /// Always `api_key_usage`.
+pub struct ApiKeyUsageDebit {
+    /// Always `api_key_usage_debit`.
     #[serde(default)]
     pub object: String,
     #[serde(default)]
     pub key_id: String,
     #[serde(default)]
-    pub limits: Option<Vec<ApiKeyLimit>>,
-    #[serde(default)]
-    pub usage: Vec<ApiKeyLimitState>,
-    /// Current-window counters for every unit the key has been debited in, capped or not.
-    #[serde(default)]
-    pub counters: Vec<ApiKeyUsageCounter>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The `ApiKeyLimit` object.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct ApiKeyLimit {
-    /// App-defined unit, e.g. "requests" or "usd_cents".
-    #[serde(default)]
     pub unit: String,
-    /// The cap, in `unit`.
     #[serde(default)]
     pub amount: i64,
-    /// `request` caps a single debit; `day`/`month` are UTC calendar windows; `total` never resets.
-    ///
-    /// Known values: `request`, `day`, `month`, `total`.
+    /// true when the debit was recorded; false when it would exceed a cap (nothing was recorded).
     #[serde(default)]
-    pub period: String,
+    pub allowed: bool,
+    /// Present only when allowed is false.
+    ///
+    /// Always `LIMIT_EXCEEDED`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// The caps that refused the debit (empty when allowed).
+    #[serde(default)]
+    pub exceeded: Vec<ApiKeyLimitState>,
+    /// Every cap on the key after this call, with remaining.
+    #[serde(default)]
+    pub usage: Vec<ApiKeyLimitState>,
+    /// The debited unit's day, month and total counters after this call.
+    #[serde(default)]
+    pub counters: Vec<ApiKeyUsageCounter>,
+    /// true when this is the stored outcome of an earlier call with the same idempotency_key
+    /// (nothing was counted again).
+    #[serde(default)]
+    pub idempotent_replay: bool,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -10250,40 +10269,43 @@ pub struct ApiKeyUsageCounter {
     pub extra: Map<String, Value>,
 }
 
-/// The `ApiKeyUsageDebit` object.
+/// The `ApiKeyUsage` object.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct ApiKeyUsageDebit {
-    /// Always `api_key_usage_debit`.
+pub struct ApiKeyUsage {
+    /// Always `api_key_usage`.
     #[serde(default)]
     pub object: String,
     #[serde(default)]
     pub key_id: String,
     #[serde(default)]
-    pub unit: String,
-    #[serde(default)]
-    pub amount: i64,
-    /// true when the debit was recorded; false when it would exceed a cap (nothing was recorded).
-    #[serde(default)]
-    pub allowed: bool,
-    /// Present only when allowed is false.
-    ///
-    /// Always `LIMIT_EXCEEDED`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub code: Option<String>,
-    /// The caps that refused the debit (empty when allowed).
-    #[serde(default)]
-    pub exceeded: Vec<ApiKeyLimitState>,
-    /// Every cap on the key after this call, with remaining.
+    pub limits: Option<Vec<ApiKeyLimit>>,
     #[serde(default)]
     pub usage: Vec<ApiKeyLimitState>,
-    /// The debited unit's day, month and total counters after this call.
+    /// Current-window counters for every unit the key has been debited in, capped or not.
     #[serde(default)]
     pub counters: Vec<ApiKeyUsageCounter>,
-    /// true when this is the stored outcome of an earlier call with the same idempotency_key
-    /// (nothing was counted again).
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ApiKeyLimit` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ApiKeyLimit {
+    /// App-defined unit, e.g. "requests" or "usd_cents".
     #[serde(default)]
-    pub idempotent_replay: bool,
+    pub unit: String,
+    /// The cap, in `unit`.
+    #[serde(default)]
+    pub amount: i64,
+    /// `request` caps a single debit; `day`/`month` are UTC calendar windows; `total` never resets.
+    ///
+    /// Known values: `request`, `day`, `month`, `total`.
+    #[serde(default)]
+    pub period: String,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -14399,6 +14421,9 @@ pub struct OAuthClientsListResponseDataItem {
     pub frontchannel_logout_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// RP-initiated logout skips the confirmation page (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// The client secret — returned ONCE on create (absent when auth method is `none`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
@@ -14453,6 +14478,9 @@ pub struct OAuthClientsCreateResponse {
     pub frontchannel_logout_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// RP-initiated logout skips the confirmation page (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// The client secret — returned ONCE on create (absent when auth method is `none`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
@@ -14528,6 +14556,9 @@ pub struct OAuthClientsImportResponseDataItem {
     pub frontchannel_logout_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// RP-initiated logout skips the confirmation page (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// The client secret — returned ONCE on create (absent when auth method is `none`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
@@ -14648,6 +14679,9 @@ pub struct OAuthClientsGetResponse {
     pub frontchannel_logout_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// RP-initiated logout skips the confirmation page (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// The client secret — returned ONCE on create (absent when auth method is `none`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
@@ -14702,6 +14736,9 @@ pub struct OAuthClientsUpdateResponse {
     pub frontchannel_logout_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// RP-initiated logout skips the confirmation page (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// The client secret — returned ONCE on create (absent when auth method is `none`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
@@ -14773,6 +14810,9 @@ pub struct OAuthClientsRotateSecretResponse {
     pub frontchannel_logout_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontchannel_logout_session_required: Option<bool>,
+    /// RP-initiated logout skips the confirmation page (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_logout_confirmation: Option<bool>,
     /// The client secret — returned ONCE on create (absent when auth method is `none`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,

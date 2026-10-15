@@ -140,13 +140,6 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.api_keys().get_usage("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/api_keys/p0_id/usage".into(),
-        B::None,
-        false,
-    ));
     c.api_keys()
         .record_usage("p0_id", &types::ApiKeysRecordUsageBody::default())
         .await
@@ -155,6 +148,13 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/api_keys/p0_id/usage".into(),
         B::Obj,
+        false,
+    ));
+    c.api_keys().get_usage("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/api_keys/p0_id/usage".into(),
+        B::None,
         false,
     ));
     c.attack_protection().get().await.unwrap();

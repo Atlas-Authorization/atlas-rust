@@ -2,6 +2,8 @@
 //! cookie-consent script, BYOK email/SMS delivery providers, social sign-in
 //! (OAuth) providers, and webhook endpoints.
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -75,8 +77,62 @@ pub struct CookieConsent {
     pub blocking_mode: Option<String>,
     #[serde(default)]
     pub extra_origins: Vec<String>,
+    /// The footer "Cookie settings" link; `None` when there is none.
+    #[serde(default)]
+    pub settings_link: Option<CookieSettingsLink>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// Known `settings_link.preset` values. A response's `preset` stays a plain
+/// string, so a value added later still parses.
+pub mod cookie_settings_link_presets {
+    /// Adds `data-cc="show-settings"`.
+    pub const COOKIEMUNCH: &str = "cookiemunch";
+    /// Calls `Cookiebot.renew()`.
+    pub const COOKIEBOT: &str = "cookiebot";
+    /// Calls `OneTrust.ToggleInfoDisplay()`.
+    pub const ONETRUST: &str = "onetrust";
+    /// Adds nothing: set the trigger through `attributes`.
+    pub const CUSTOM: &str = "custom";
+}
+
+/// The "Cookie settings" link rendered in the footer of the hosted sign-in,
+/// sign-up and account pages and Sign in with Atlas pages, as returned on a
+/// [`CookieConsent`].
+#[derive(Debug, Clone, Deserialize)]
+pub struct CookieSettingsLink {
+    #[serde(default)]
+    pub label: String,
+    /// One of [`cookie_settings_link_presets`], or `None`.
+    #[serde(default)]
+    pub preset: Option<String>,
+    /// The attributes you set.
+    #[serde(default)]
+    pub attributes: HashMap<String, String>,
+    /// The attributes the rendered link carries: yours plus the preset's
+    /// trigger.
+    #[serde(default)]
+    pub rendered_attributes: HashMap<String, String>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// `settings_link` on [`SetCookieConsentBody`]: a footer "Cookie settings"
+/// link that reopens the consent preferences. Needs a `preset` or at least one
+/// attribute (400 otherwise).
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct CookieSettingsLinkInput {
+    /// The link text, 1-60 characters, e.g. "Cookie settings".
+    pub label: String,
+    /// One of [`cookie_settings_link_presets`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// Extra attributes: `data-*`, `aria-*`, `id`, `class` and `href` (an https
+    /// URL or a `#fragment`); at most 10, values up to 200 characters. Event
+    /// handlers, `style` and `data-atlas-*` are refused with a 400.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attributes: Option<HashMap<String, String>>,
 }
 
 /// Body for `PUT /v1/instance/cookie_consent` (replaces the whole setting).
@@ -92,6 +148,9 @@ pub struct SetCookieConsentBody {
     pub blocking_mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extra_origins: Option<Vec<String>>,
+    /// A footer "Cookie settings" link; `None` (omitted) means no link.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settings_link: Option<CookieSettingsLinkInput>,
 }
 
 /// The `/v1/instance` namespace. Reached via [`BackendClient::instance`].
@@ -436,6 +495,14 @@ impl MessagingChannel {
     }
 }
 
+/// Options for [`MessagingProvidersApi::delete_with`].
+#[derive(Debug, Clone, Default)]
+pub struct DeleteMessagingProviderParams {
+    /// Send `?force=true`: remove the email provider even while
+    /// email-dependent features are on.
+    pub force: bool,
+}
+
 /// The `/v1/messaging_providers` namespace (bring-your-own email and SMS
 /// delivery). Reached via [`BackendClient::messaging_providers`].
 pub struct MessagingProvidersApi<'a> {
@@ -459,10 +526,31 @@ impl MessagingProvidersApi<'_> {
             .request(HttpMethod::Put, "/v1/messaging_providers/sms", &[], body_of(provider)?, None)
             .await
     }
-    /// `DELETE /v1/messaging_providers/:channel`.
+    /// `DELETE /v1/messaging_providers/:channel`. Use
+    /// [`delete_with`](Self::delete_with) to force the removal of an email
+    /// provider that email-dependent features still need.
     pub async fn delete(&self, channel: MessagingChannel) -> Result<Value, BackendError> {
+        self.delete_with(channel, &DeleteMessagingProviderParams::default()).await
+    }
+    /// `DELETE /v1/messaging_providers/:channel` with options.
+    ///
+    /// Removing the email provider is refused with `409`
+    /// [`codes::EMAIL_PROVIDER_IN_USE`](crate::backend::codes::EMAIL_PROVIDER_IN_USE)
+    /// while email-dependent features are on and nothing else would deliver
+    /// email; the error's `meta.features` lists them (e.g. `emailCode`,
+    /// `emailLink`, `emailVerification`, `passwordReset`). `force: true`
+    /// removes it anyway.
+    pub async fn delete_with(
+        &self,
+        channel: MessagingChannel,
+        params: &DeleteMessagingProviderParams,
+    ) -> Result<Value, BackendError> {
         let path = format!("/v1/messaging_providers/{}", channel.as_str());
-        self.client.request(HttpMethod::Delete, &path, &[], None, None).await
+        let mut q = Vec::new();
+        if params.force {
+            q.push(("force", "true".to_string()));
+        }
+        self.client.request(HttpMethod::Delete, &path, &q, None, None).await
     }
     /// `POST /v1/messaging_providers/:channel/test` — send a test message to
     /// `to` (an email address or phone number).

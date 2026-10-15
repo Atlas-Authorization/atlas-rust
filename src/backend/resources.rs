@@ -1020,6 +1020,12 @@ pub struct Session {
     /// [`Sessions::touch`].
     #[serde(default)]
     pub idle_expires_at: Option<i64>,
+    /// The organization the session last switched to, if any.
+    #[serde(default)]
+    pub last_active_organization_id: Option<String>,
+    /// The actor's id when this session is an impersonation.
+    #[serde(default)]
+    pub impersonated_by: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }

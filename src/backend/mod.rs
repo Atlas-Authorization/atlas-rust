@@ -43,8 +43,9 @@ pub use design::{
 };
 pub use error::{codes, AtlasApiError, AtlasErrorItem, BackendError};
 pub use instance::{
-    AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig, CookieConsent, EmailProviderConfig,
-    InfobipConfig, Instance, MailgunConfig, MessagebirdConfig, MessagingChannel, MessagingProvider,
+    cookie_settings_link_presets, AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig,
+    CookieConsent, CookieSettingsLink, CookieSettingsLinkInput, DeleteMessagingProviderParams,
+    EmailProviderConfig, InfobipConfig, Instance, MailgunConfig, MessagebirdConfig, MessagingChannel, MessagingProvider,
     MessagingProviders, MessagingProvidersApi, OAuthProvider, OAuthProviderFilter, OAuthProviderUpdate,
     OAuthProviders, PlivoConfig, Preflight, PreflightFinding, ResendConfig, SesConfig,
     SetCookieConsentBody, SinchConfig, SmsProviderConfig, SmtpConfig, TelnyxConfig, TwilioConfig,

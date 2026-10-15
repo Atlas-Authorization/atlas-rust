@@ -24,7 +24,7 @@ On [crates.io](https://crates.io/crates/atlasauth):
 ```toml
 # Cargo.toml
 [dependencies]
-atlasauth = "0.9"
+atlasauth = "0.10"
 ```
 
 Requires Rust 1.70+. The default `reqwest-transport` feature pulls in `reqwest`
@@ -237,7 +237,7 @@ token is refused. It covers one process; with several instances, record the
 ## Management API (`backend` feature)
 
 ```toml
-atlasauth = { version = "0.9", features = ["backend"] }
+atlasauth = { version = "0.10", features = ["backend"] }
 ```
 
 `BackendClient` covers the whole Backend API with your secret key, and the
@@ -316,7 +316,7 @@ let lenient = atlas.with_strict(Some(false));
 
 Error codes worth branching on are in `atlasauth::backend::codes`
 (`UNKNOWN_FIELD`, `WRONG_KEY_SURFACE`, `INVALID_KEY`, `PLAN_IN_USE`,
-`EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, …):
+`EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, `EMAIL_PROVIDER_IN_USE`, …):
 `err.has_code(codes::UNKNOWN_FIELD)`.
 
 ### API key spend caps
@@ -388,6 +388,59 @@ ended session (409 `SESSION_REVOKED`, `SESSION_IDLE_EXPIRED` or
 `SESSION_EXPIRED`). It writes at most once a minute, so calling it on every
 request is safe.
 
+### Cookie settings link
+
+With cookie consent on, the hosted pages can show a "Cookie settings" link in
+their footer that reopens your consent tool. Pick a preset (`cookiemunch`,
+`cookiebot`, `onetrust`, or `custom` with your own attributes):
+
+```rust
+use atlasauth::backend::{cookie_settings_link_presets, BackendClient, CookieSettingsLinkInput, SetCookieConsentBody};
+
+# async fn demo(atlas: &BackendClient) -> Result<(), Box<dyn std::error::Error>> {
+let cc = atlas
+    .instance()
+    .set_cookie_consent(&SetCookieConsentBody {
+        script_url: "https://consent.cookiebot.com/uc.js".into(),
+        settings_link: Some(CookieSettingsLinkInput {
+            label: "Cookie settings".into(),
+            preset: Some(cookie_settings_link_presets::COOKIEBOT.into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    })
+    .await?;
+// cc.settings_link.rendered_attributes: your attributes plus the preset's trigger
+# let _ = cc; Ok(()) }
+```
+
+### Removing the email provider
+
+Removing the email provider is refused with `409 EMAIL_PROVIDER_IN_USE` while
+features that need email (email code or link sign-in, sign-up email
+verification, password reset) are on and nothing else would send email. The
+error's `meta.features` names them. To remove it anyway:
+
+```rust
+use atlasauth::backend::{BackendClient, DeleteMessagingProviderParams, MessagingChannel};
+
+# async fn demo(atlas: &BackendClient) -> Result<(), Box<dyn std::error::Error>> {
+atlas
+    .messaging_providers()
+    .delete_with(MessagingChannel::Email, &DeleteMessagingProviderParams { force: true })
+    .await?;
+# Ok(()) }
+```
+
+### Logout without a confirmation page
+
+For a first-party OAuth client, `skip_logout_confirmation` makes RP-initiated
+logout with the client's `client_id` and an exactly registered
+`post_logout_redirect_uri` end the session and redirect straight back, without
+the "Sign out?" page:
+`types::OAuthClientsUpdateBody::new().with_skip_logout_confirmation(true)`.
+On a third-party client the API answers `422 VALIDATION_FAILED`.
+
 ### Sign-in page design and image uploads
 
 The design is fully typed (`AtlasDesign`: preset, palettes, typography, shape,
@@ -440,7 +493,7 @@ own transport by implementing `JwksSource` (for session verification) and/or
 `HttpPost` (for API-key verification):
 
 ```toml
-atlasauth = { version = "0.9", default-features = false }
+atlasauth = { version = "0.10", default-features = false }
 ```
 
 ```rust

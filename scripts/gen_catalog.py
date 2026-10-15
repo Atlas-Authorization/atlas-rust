@@ -148,6 +148,13 @@ NS = [
     ('/v1/waitlist_entries', 'Waitlist', 'waitlist', 'The waitlist'),
 ]
 
+# (struct, json field) pairs that stay Option<T> although the spec now marks
+# them required: they shipped optional, and making them plain would break
+# callers that match on the Option.
+KEEP_OPTIONAL = {
+    ('Session', 'idle_expires_at'),
+}
+
 # Exact (METHOD, template-path) -> method name overrides.
 OVR = {
     ('GET', '/v1/api_keys/{id}/usage'): 'get_usage',
@@ -586,7 +593,7 @@ class TypeGen:
                             if isinstance(v, dict) and 'enum' in v:
                                 enum = [x for x in v['enum'] if isinstance(x, str)]
             st['fields'].append(dict(json=pn, ident=ident, ty=ty, nullable=nullable,
-                                     required=pn in required, doc=doc, enum=enum, schema=ps))
+                                     required=pn in required and (name, pn) not in KEEP_OPTIONAL, doc=doc, enum=enum, schema=ps))
         self.in_progress.discard(name)
         return name
 

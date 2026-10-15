@@ -89,6 +89,10 @@ pub mod codes {
     pub const EMAIL_DELIVERY_NOT_CONFIGURED: &str = "EMAIL_DELIVERY_NOT_CONFIGURED";
     /// The action needs an email provider to be configured first.
     pub const EMAIL_PROVIDER_REQUIRED: &str = "EMAIL_PROVIDER_REQUIRED";
+    /// The email provider cannot be removed while email-dependent features are
+    /// on (`meta.features` lists them); force the removal with
+    /// `messaging_providers().delete_with(.., &DeleteMessagingProviderParams { force: true })`.
+    pub const EMAIL_PROVIDER_IN_USE: &str = "EMAIL_PROVIDER_IN_USE";
     /// Strict request bodies refused a field the endpoint does not accept.
     pub const UNKNOWN_FIELD: &str = "UNKNOWN_FIELD";
     /// A billing plan still has subscribers and cannot be removed.
