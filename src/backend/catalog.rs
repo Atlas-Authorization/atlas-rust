@@ -33,7 +33,8 @@ use super::resources::{body_of, seg};
 use super::types;
 #[allow(unused_imports)]
 use super::{
-    ApiKeys, Billing, Instance, Invitations, OrgSettingsSchemaApi, Organizations, Sessions, Users,
+    ApiKeys, AtlasIdApps, AtlasIdPublisherApi, Billing, Instance, Invitations,
+    MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PlatformApi, Sessions, Users,
 };
 
 /// Actions: custom code run on auth triggers. Reached via [`BackendClient::actions`].
@@ -148,6 +149,11 @@ pub struct Localizations<'a> {
 
 /// Log streams. Reached via [`BackendClient::log_streams`].
 pub struct LogStreams<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Logout fan-out endpoints: services that get the same logout_token as your OIDC apps. Reached via [`BackendClient::logout_notify_endpoints`].
+pub struct LogoutNotifyEndpoints<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -857,9 +863,14 @@ impl Captcha<'_> {
 
 impl ConfigChangelog<'_> {
     /// `GET /v1/config_changelog` — Config change history for this instance — who changed which
-    /// config, when, with the per-section before/after diff where the source recorded one (else the
-    /// changed field names). A normalized view over the audit log across every config-mutation
-    /// action. Filter with `action`, page with `limit`/`starting_after`, bound with `since`.
+    /// config, when, with the per-field before/after diff where the source recorded one (else the
+    /// changed field names). Covers the instance, auth_config, branding, OAuth clients, custom
+    /// domains, webhook endpoints, messaging providers, cookie consent, captcha and other secrets,
+    /// and origin moves. Secrets never appear: a secret field reads "set", "cleared" or "rotated".
+    /// `target` names the object changed. A normalized view over the audit log across every
+    /// config-mutation action. Filter with `action`, page with `limit`/`starting_after`, bound with
+    /// `since`. Sign in with Atlas apps belong to the account: see GET
+    /// /v1/platform/config_changelog.
     ///
     /// Query parameters: `action`, `limit`, `starting_after`, `since`.
     ///
@@ -1602,6 +1613,141 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/connections` — This instance's links to other platforms and their health,
+    /// one row per link in the shared shape {check, ok, severity, subject, fix_hint,
+    /// last_checked_at} plus kind and details: privacy-request (data subject request) webhook
+    /// endpoints with their last verified delivery, the consent-management platform on the hosted
+    /// pages (with the Cookie Munch site check), Sign in with Atlas apps tied to the instance, and
+    /// JWT templates that mint tokens for another service's audience. Only what Atlas can observe
+    /// itself. ok is false when any warning or error row fails. Read-only.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::InstanceConnectionsResponse`].
+    pub async fn connections(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceConnectionsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/connections",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/integrations/chatly` — Read the Chatly connection: the channel, and the
+    /// issuer / JWKS / audience the channel's identity verification uses for getToken({ template:
+    /// 'chatly' }) tokens.
+    ///
+    /// Returns [`types::InstanceGetChatlyIntegrationResponse`].
+    pub async fn get_chatly_integration(
+        &self,
+    ) -> Result<types::InstanceGetChatlyIntegrationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/integrations/chatly",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/integrations/chatly` — Connect a Chatly channel: getToken({ template:
+    /// 'chatly' }) then mints a 120-second RS256 token with aud chatly:&lt;channel&gt;, sub (the
+    /// Atlas user id), email, email_verified and name, verifiable against the instance JWKS. A
+    /// stored jwt template named chatly takes precedence.
+    ///
+    /// Takes [`types::InstanceSetChatlyIntegrationBody`]. Returns [`types::InstanceSetChatlyIntegrationResponse`].
+    pub async fn set_chatly_integration(
+        &self,
+        body: &types::InstanceSetChatlyIntegrationBody,
+    ) -> Result<types::InstanceSetChatlyIntegrationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/integrations/chatly",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/integrations/chatly` — Remove the Chatly connection; getToken({
+    /// template: 'chatly' }) answers 404 unless a stored template has that name.
+    ///
+    /// Returns [`types::InstanceDeleteChatlyIntegrationResponse`].
+    pub async fn delete_chatly_integration(
+        &self,
+    ) -> Result<types::InstanceDeleteChatlyIntegrationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/integrations/chatly",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/integrations/forumulate` — Read the Forumulate connection: the org and
+    /// spaces whose readers Atlas signs in, the token audience/issuer/JWKS, and the external_jwt
+    /// provider config to store on each space.
+    ///
+    /// Returns [`types::InstanceGetForumulateIntegrationResponse`].
+    pub async fn get_forumulate_integration(
+        &self,
+    ) -> Result<types::InstanceGetForumulateIntegrationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/integrations/forumulate",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/integrations/forumulate` — Connect Forumulate spaces: Atlas then mints
+    /// reader tokens for the signed-in user (GET /v1/client/forumulate/reader_token), so your app
+    /// needs no reader hand-off route. Store the returned reader_auth_provider on each space in
+    /// Forumulate. Replaces the whole connection.
+    ///
+    /// Takes [`types::InstanceSetForumulateIntegrationBody`]. Returns [`types::InstanceSetForumulateIntegrationResponse`].
+    pub async fn set_forumulate_integration(
+        &self,
+        body: &types::InstanceSetForumulateIntegrationBody,
+    ) -> Result<types::InstanceSetForumulateIntegrationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/integrations/forumulate",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/integrations/forumulate` — Remove the Forumulate connection;
+    /// reader_token answers 404 from then on.
+    ///
+    /// Returns [`types::InstanceDeleteForumulateIntegrationResponse`].
+    pub async fn delete_forumulate_integration(
+        &self,
+    ) -> Result<types::InstanceDeleteForumulateIntegrationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/integrations/forumulate",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `PUT /v1/instance/kerberos_secret` — Store the per-instance Kerberos/IWA trusted-proxy
     /// secret (write-only, encrypted; never read back). Refused while the kerberos strategy is off.
     ///
@@ -1669,6 +1815,32 @@ impl Instance<'_> {
         );
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/instance/move_origin` — Move the instance from one origin to another in one call
+    /// (a domain move). Rewrites every field that points at `from` (scheme + host + port) to `to`,
+    /// keeping each URL's path: allowed_origins; the branding logo, font, background and legal
+    /// URLs; every OAuth client's redirect_uris, post_logout_redirect_uris, backchannel_logout_uri,
+    /// frontchannel_logout_uri, homepage_url, logo_url, jwks_uri and legal links; webhook endpoint
+    /// URLs; the redirect-URL allowlist; and the same fields on this account's Sign in with Atlas
+    /// apps. Returns the before → after diff. dry_run: true writes nothing. A rewritten value the
+    /// field would refuse (e.g. a webhook moving to a loopback host) is listed in problems, and a
+    /// real run then answers 422 without writing. A second run returns an empty diff. Each changed
+    /// object gets a config-changelog entry (instance.origin_moved).
+    ///
+    /// Takes [`types::OriginMoveRequest`]. Returns [`types::OriginMove`].
+    pub async fn move_origin(
+        &self,
+        body: &types::OriginMoveRequest,
+    ) -> Result<types::OriginMove, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/move_origin",
+                &[],
+                body_of(body)?,
+                None,
+            )
             .await
     }
     /// `GET /v1/instance/security` — Read the instance kill switches (per-flow on/off) and the
@@ -2056,6 +2228,119 @@ impl LogStreams<'_> {
     }
 }
 
+impl LogoutNotifyEndpoints<'_> {
+    /// `GET /v1/logout_notify_endpoints` — List the logout fan-out ("also notify") endpoints:
+    /// downstream services that receive the same signed logout_token as your OIDC apps whenever a
+    /// session ends, and a subject-wide one on ban or deletion.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::LogoutNotifyEndpointsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::LogoutNotifyEndpointsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/logout_notify_endpoints",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/logout_notify_endpoints` — Register a logout fan-out endpoint. It is POSTed
+    /// `logout_token=&lt;jwt&gt;` (application/x-www-form-urlencoded; OIDC Back-Channel Logout:
+    /// iss, sub, sid, events, signed with the instance JWKS) whenever an Atlas session ends, plus
+    /// one with sub and no sid when the user is banned, deleted or deprovisioned. With
+    /// oauth_client_id it follows one OAuth client instead (that client's sign-in ending, incl.
+    /// /oauth2/session/end and grant revocation). Retried on network errors, 5xx, 408 and 429;
+    /// redirects are not followed. The URL must be public https.
+    ///
+    /// Takes [`types::LogoutNotifyEndpointsCreateBody`]. Returns [`types::LogoutNotifyEndpointsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::LogoutNotifyEndpointsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::LogoutNotifyEndpointsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/logout_notify_endpoints",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/logout_notify_endpoints/{id}` — Fetch one logout fan-out endpoint. Another instance
+    /// id is 404.
+    ///
+    /// Returns [`types::LogoutNotifyEndpointsGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+    ) -> Result<types::LogoutNotifyEndpointsGetResponse, BackendError> {
+        let path = format!("/v1/logout_notify_endpoints/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/logout_notify_endpoints/{id}` — Change a logout fan-out endpoint's url, audience
+    /// or description.
+    ///
+    /// Takes [`types::LogoutNotifyEndpointsUpdateBody`]. Returns [`types::LogoutNotifyEndpointsUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::LogoutNotifyEndpointsUpdateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::LogoutNotifyEndpointsUpdateResponse, BackendError> {
+        let path = format!("/v1/logout_notify_endpoints/{}", seg(id));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/logout_notify_endpoints/{id}` — Delete a logout fan-out endpoint; its queued
+    /// deliveries go with it.
+    ///
+    /// Returns [`types::LogoutNotifyEndpointsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::LogoutNotifyEndpointsDeleteResponse, BackendError> {
+        let path = format!("/v1/logout_notify_endpoints/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `GET /v1/logout_notify_endpoints/{id}/deliveries` — The endpoint's delivery log, newest
+    /// first: each logout_token sent (sub, sid — null for a subject-wide logout), status, HTTP
+    /// status and the next retry.
+    ///
+    /// Query parameters: `limit`.
+    ///
+    /// Returns [`types::LogoutNotifyEndpointsListDeliveriesResponse`].
+    pub async fn list_deliveries(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::LogoutNotifyEndpointsListDeliveriesResponse, BackendError> {
+        let path = format!("/v1/logout_notify_endpoints/{}/deliveries", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
 impl LtiPlatforms<'_> {
     /// `GET /v1/lti_platforms` — List the LTI 1.3 platform registrations allowed to launch this
     /// instance.
@@ -2273,6 +2558,91 @@ impl McpConnector<'_> {
                 &[],
                 None,
                 idempotency_key,
+            )
+            .await
+    }
+}
+
+impl MessagingProvidersApi<'_> {
+    /// `GET /v1/messaging_providers/email/managed` — Read the managed sending domain: status
+    /// (refreshed from the provider while unverified), the records to publish, the hourly and daily
+    /// limits, and sent / bounce / complaint counts. 404 when none is configured. Never returns a
+    /// DNS token.
+    ///
+    /// Returns [`types::ManagedEmail`].
+    pub async fn get_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/messaging_providers/email/managed",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/messaging_providers/email/managed` — Use Atlas-managed email: register your own
+    /// sending domain (the domain of `from_address`) on Atlas's email account. Returns 201 with the
+    /// DKIM, SPF and return-path `records` to publish. Email sends from `from_address` only once
+    /// the domain is verified; until then email delivery stays unavailable and preflight warns
+    /// `managed_email_unverified`. Pass `dns: {provider: "cloudflare", api_token}` and Atlas writes
+    /// the records itself (DNS-only; the token is write-only) and verifies in the same call when
+    /// DNS propagates in time. Sending is capped per instance (`limits`), and reputation is shared
+    /// on Atlas's sending account: isolation is the per-domain DKIM signature plus those limits.
+    /// Your own email provider (PUT /v1/messaging_providers/email), when set, takes precedence. 503
+    /// MANAGED_EMAIL_UNAVAILABLE when the deployment has no managed email; 409 when the domain is
+    /// registered elsewhere.
+    ///
+    /// Takes [`types::MessagingProvidersCreateManagedEmailBody`]. Returns [`types::ManagedEmail`].
+    pub async fn create_managed_email(
+        &self,
+        body: &types::MessagingProvidersCreateManagedEmailBody,
+    ) -> Result<types::ManagedEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/messaging_providers/email/managed",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/messaging_providers/email/managed` — Stop using managed email and release the
+    /// sending domain. DNS records are left in place. Refused with 409 EMAIL_PROVIDER_IN_USE while
+    /// it is the only way the instance can send email and email-dependent features are on; pass
+    /// force=true to remove it anyway.
+    ///
+    /// Query parameters: `force`.
+    ///
+    /// Returns [`types::MessagingProvidersDeleteManagedEmailResponse`].
+    pub async fn delete_managed_email(
+        &self,
+        query: &Query,
+    ) -> Result<types::MessagingProvidersDeleteManagedEmailResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/messaging_providers/email/managed",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/messaging_providers/email/managed/verify` — Re-check the managed sending domain's
+    /// DNS records now (and, with DNS automation, re-write any that are missing). Returns the
+    /// managed_email object; `verified` is true once email can be sent.
+    ///
+    /// Returns [`types::ManagedEmail`].
+    pub async fn verify_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/messaging_providers/email/managed/verify",
+                &[],
+                None,
+                None,
             )
             .await
     }
@@ -2503,6 +2873,42 @@ impl OAuthClients<'_> {
         let path = format!("/v1/oauth_clients/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `GET /v1/oauth_clients/{id}/backchannel_deliveries` — List the back-channel logout
+    /// deliveries to a client's backchannel_logout_uri, newest first: status, http_status,
+    /// latency_ms, attempt_number, a named error and timestamps. Atlas never follows redirects: a
+    /// 3xx answer is recorded as error `backchannel_redirect_not_followed` with its `location`.
+    /// 5xx, 408, 429 and no answer are retried with backoff; other 4xx answers are final. Test
+    /// sends are included with test: true. Cursor-paginated (starting_after).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::BackchannelLogoutDeliveryList`].
+    pub async fn list_backchannel_deliveries(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::BackchannelLogoutDeliveryList, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/backchannel_deliveries", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/oauth_clients/{id}/backchannel_logout/test` — Send a test back-channel logout now:
+    /// a correctly signed logout_token for a synthetic session (sid `sid_test_…`) with the extra
+    /// claim `atlas_test: true`. Returns the receiver's status, latency_ms, location (for a 3xx,
+    /// which is not followed), error and a short body_excerpt, and records the attempt in the
+    /// delivery log (test: true, never retried). 409 when the client has no backchannel_logout_uri.
+    ///
+    /// Returns [`types::BackchannelLogoutTest`].
+    pub async fn test_backchannel_logout(
+        &self,
+        id: &str,
+    ) -> Result<types::BackchannelLogoutTest, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/backchannel_logout/test", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
     /// `POST /v1/oauth_clients/{id}/rotate_secret` — Rotate a confidential client's secret; the new
@@ -3273,6 +3679,256 @@ impl Permissions<'_> {
         let path = format!("/v1/permissions/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
+impl AtlasIdApps<'_> {
+    /// `GET /v1/platform/atlas_id_apps/{id}/backchannel_deliveries` — List the back-channel logout
+    /// deliveries to the app's backchannel_logout_uri, newest first: status, http_status,
+    /// latency_ms, attempt_number, a named error and timestamps. A 3xx answer is recorded as error
+    /// `backchannel_redirect_not_followed` with its `location` (Atlas never follows redirects).
+    /// Test sends are included with test: true. Cursor-paginated (starting_after).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::BackchannelLogoutDeliveryList`].
+    pub async fn list_backchannel_deliveries(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::BackchannelLogoutDeliveryList, BackendError> {
+        let path = format!(
+            "/v1/platform/atlas_id_apps/{}/backchannel_deliveries",
+            seg(id)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/platform/atlas_id_apps/{id}/backchannel_logout/test` — Send a test back-channel
+    /// logout to the app now: a correctly signed logout_token for a synthetic session (sid
+    /// `sid_test_…`) with the extra claim `atlas_test: true`. Returns status, latency_ms, location
+    /// (3xx, not followed), error and a short body_excerpt; recorded in the delivery log with test:
+    /// true. 409 when the app has no backchannel_logout_uri.
+    ///
+    /// Returns [`types::BackchannelLogoutTest`].
+    pub async fn test_backchannel_logout(
+        &self,
+        id: &str,
+    ) -> Result<types::BackchannelLogoutTest, BackendError> {
+        let path = format!(
+            "/v1/platform/atlas_id_apps/{}/backchannel_logout/test",
+            seg(id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+    /// `DELETE /v1/platform/atlas_id_apps/{id}/grants/{grantId}` — Revoke one user's grant to this
+    /// app (grant_id from the users lookup): the approval is forgotten, so the next sign-in shows
+    /// the consent screen again; the app's refresh tokens for the user stop working; a back-channel
+    /// logout goes to the app (and its logout fan-out endpoints) for each live sign-in, and the
+    /// app's webhook gets grant.revoked. The person's Atlas account and other apps are untouched.
+    ///
+    /// Returns [`types::AtlasIdAppsRevokeGrantResponse`].
+    pub async fn revoke_grant(
+        &self,
+        id: &str,
+        grant_id: &str,
+    ) -> Result<types::AtlasIdAppsRevokeGrantResponse, BackendError> {
+        let path = format!(
+            "/v1/platform/atlas_id_apps/{}/grants/{}",
+            seg(id),
+            seg(grant_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/platform/atlas_id_apps/{id}/move_origin` — Move one Sign in with Atlas app from
+    /// one origin to another: rewrites every field that points at `from` (scheme + host + port) to
+    /// `to`, keeping each URL's path: redirect_uris, post_logout_redirect_uris,
+    /// backchannel_logout_uri, frontchannel_logout_uri, homepage_url, logo_url, jwks_uri and the
+    /// branding privacy_policy_url / terms_of_service_url. Returns the before → after diff and the
+    /// app. dry_run: true writes nothing; a value the field would refuse makes a real run a 422
+    /// without writing; a second run returns an empty diff. Logged on GET
+    /// /v1/platform/config_changelog. Apps managed by an instance toggle are 409.
+    ///
+    /// Takes [`types::OriginMoveRequest`]. Returns [`types::OriginMove`].
+    pub async fn move_origin(
+        &self,
+        id: &str,
+        body: &types::OriginMoveRequest,
+    ) -> Result<types::OriginMove, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/move_origin", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/platform/atlas_id_apps/{id}/preflight` — Check one Sign in with Atlas app's setup,
+    /// in the instance preflight's finding shape: redirect and post-logout URIs present and https,
+    /// the back-channel logout URI set and recently delivered (oauth_client_backchannel_failing
+    /// after 3 consecutive failed deliveries or one redirect), homepage_url on a redirect_uris host
+    /// (homepage_url_not_in_redirect_hosts), privacy and terms links once the app has users
+    /// (legal_urls_missing), and the client secret's age. ok is true when there are no errors.
+    /// Read-only.
+    ///
+    /// Returns [`types::AtlasIdAppPreflight`].
+    pub async fn preflight(&self, id: &str) -> Result<types::AtlasIdAppPreflight, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/preflight", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/platform/atlas_id_apps/{id}/users` — Privacy requests: is this person one of the
+    /// app's users? Exact match on a verified email of an Atlas account that has approved this app;
+    /// returns `{atlas_id_user: true, sub, grant_id, scopes, granted_at}`. Anyone else (no account,
+    /// unverified address, never approved this app) gets the same empty list, so the call reveals
+    /// nothing about who has an Atlas account.
+    ///
+    /// Query parameters: `email`.
+    ///
+    /// Returns [`types::AtlasIdAppsFindUsersResponse`].
+    pub async fn find_users(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::AtlasIdAppsFindUsersResponse, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/users", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret` — Rotate the app's webhook
+    /// signing secret. The new `webhook_secret` is returned once and signs every delivery from now
+    /// on. 409 when the app has no webhook.
+    ///
+    /// Returns [`types::AtlasIdAppsRotateWebhookSecretResponse`].
+    pub async fn rotate_webhook_secret(
+        &self,
+        id: &str,
+    ) -> Result<types::AtlasIdAppsRotateWebhookSecretResponse, BackendError> {
+        let path = format!(
+            "/v1/platform/atlas_id_apps/{}/webhook/rotate_secret",
+            seg(id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+}
+
+impl AtlasIdPublisherApi<'_> {
+    /// `GET /v1/platform/atlas_id_publisher` — The account's Sign in with Atlas publisher: name,
+    /// domain, whether it is verified, the DNS TXT record to publish, and skip_consent. 404 until
+    /// claimed.
+    ///
+    /// Returns [`types::AtlasIdPublisherGetResponse`].
+    pub async fn get(&self) -> Result<types::AtlasIdPublisherGetResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/platform/atlas_id_publisher",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/platform/atlas_id_publisher` — Claim a publisher name and domain for the account's
+    /// Sign in with Atlas apps. Returns the TXT record (record_name
+    /// `_atlas-publisher.&lt;domain&gt;`) to publish; then call verify. Changing the domain resets
+    /// verification. Once verified, the consent screen of each app whose homepage_url is on that
+    /// domain shows "Published by &lt;name&gt; · verified".
+    ///
+    /// Takes [`types::AtlasIdPublisherSetBody`]. Returns [`types::AtlasIdPublisherSetResponse`].
+    pub async fn set(
+        &self,
+        body: &types::AtlasIdPublisherSetBody,
+    ) -> Result<types::AtlasIdPublisherSetResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/platform/atlas_id_publisher",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `PATCH /v1/platform/atlas_id_publisher` — Turn publisher-wide consent (skip_consent) on or
+    /// off. Off by default; applies only to verified apps and only to openid / email / profile.
+    ///
+    /// Takes [`types::AtlasIdPublisherUpdateBody`]. Returns [`types::AtlasIdPublisherUpdateResponse`].
+    pub async fn update(
+        &self,
+        body: &types::AtlasIdPublisherUpdateBody,
+    ) -> Result<types::AtlasIdPublisherUpdateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Patch,
+                "/v1/platform/atlas_id_publisher",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/platform/atlas_id_publisher` — Remove the publisher claim. Consent screens stop
+    /// naming the publisher and publisher-wide consent stops.
+    ///
+    /// Returns [`types::AtlasIdPublisherDeleteResponse`].
+    pub async fn delete(&self) -> Result<types::AtlasIdPublisherDeleteResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/platform/atlas_id_publisher",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/platform/atlas_id_publisher/verify` — Look up the publisher TXT record now.
+    /// `record_found` says whether it matched; `verified` stays true once proved.
+    ///
+    /// Returns [`types::AtlasIdPublisherVerifyResponse`].
+    pub async fn verify(&self) -> Result<types::AtlasIdPublisherVerifyResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/platform/atlas_id_publisher/verify",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+}
+
+impl PlatformApi<'_> {
+    /// `GET /v1/platform/config_changelog` — Config change history for this platform's account:
+    /// creates, updates, secret rotations, deletes and origin moves of its Sign in with Atlas apps,
+    /// with the actor and the per-field before/after (a secret reads "set", "cleared" or "rotated",
+    /// never its value). The same entry shape as GET /v1/config_changelog. Filter with action, page
+    /// with limit/starting_after, bound with since.
+    ///
+    /// Query parameters: `action`, `limit`, `starting_after`, `since`.
+    ///
+    /// Returns [`types::PlatformConfigChangelogResponse`].
+    pub async fn config_changelog(
+        &self,
+        query: &Query,
+    ) -> Result<types::PlatformConfigChangelogResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/platform/config_changelog",
+                &query.as_pairs(),
+                None,
+                None,
+            )
             .await
     }
 }
@@ -4959,7 +5615,11 @@ impl Users<'_> {
             .await
     }
     /// `POST /v1/users/{id}/sessions/revoke` — Revoke every session a user holds and bump
-    /// sessions_version.
+    /// sessions_version. Every session is always revoked, whatever the body says; the body only
+    /// decides whether the user's OAuth app grants (Sign in with Atlas and other OAuth client
+    /// sign-ins) are revoked too. No body, {}, or both flags false: sessions only. revoke_grants:
+    /// true (or the deprecated alias all: true): sessions and every active grant, each grant
+    /// emitting grant.revoked; the response then carries grants_revoked.
     ///
     /// Takes [`types::UsersRevokeSessionsBody`]. Returns [`types::UsersRevokeSessionsResponse`].
     pub async fn revoke_sessions(
@@ -5186,6 +5846,10 @@ impl BackendClient {
     /// Log streams.
     pub fn log_streams(&self) -> LogStreams<'_> {
         LogStreams { client: self }
+    }
+    /// Logout fan-out endpoints: services that get the same logout_token as your OIDC apps.
+    pub fn logout_notify_endpoints(&self) -> LogoutNotifyEndpoints<'_> {
+        LogoutNotifyEndpoints { client: self }
     }
     /// LTI platforms.
     pub fn lti_platforms(&self) -> LtiPlatforms<'_> {

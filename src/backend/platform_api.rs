@@ -152,6 +152,18 @@ pub struct AtlasIdApp {
     pub client_secret: Option<String>,
     #[serde(default)]
     pub note: Option<String>,
+    /// The per-app webhook URL, or `None`.
+    #[serde(default)]
+    pub webhook_url: Option<String>,
+    /// The events the per-app webhook gets.
+    #[serde(default)]
+    pub webhook_events: Vec<String>,
+    /// `Some(false)` once auto-disabled after repeated failures; `None` without a webhook.
+    #[serde(default)]
+    pub webhook_active: Option<bool>,
+    /// The per-app webhook signing secret, returned exactly once (first set, or rotated).
+    #[serde(default)]
+    pub webhook_secret: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -230,6 +242,11 @@ pub struct UpdateAtlasIdAppBody {
     pub homepage_url: Option<Option<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branding: Option<Option<AtlasIdAppBrandingInput>>,
+    /// Per-app webhook (public https): user.updated, user.deleted and
+    /// grant.revoked for this app's users. The first set returns
+    /// `webhook_secret` once; `Some(None)` removes it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub webhook_url: Option<Option<String>>,
 }
 
 /// `/v1/platform/atlas_id_apps`.
@@ -471,10 +488,20 @@ pub struct PlatformApi<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// `/v1/platform/atlas_id_publisher` — the account's Sign in with Atlas
+/// publisher. Reached via [`PlatformApi::atlas_id_publisher`].
+pub struct AtlasIdPublisherApi<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 impl<'a> PlatformApi<'a> {
     /// Sign in with Atlas apps.
     pub fn atlas_id_apps(&self) -> AtlasIdApps<'a> {
         AtlasIdApps { client: self.client }
+    }
+    /// The account's Sign in with Atlas publisher name and DNS-verified domain.
+    pub fn atlas_id_publisher(&self) -> AtlasIdPublisherApi<'a> {
+        AtlasIdPublisherApi { client: self.client }
     }
     /// The apps (instances) the platform owns.
     pub fn apps(&self) -> PlatformApps<'a> {

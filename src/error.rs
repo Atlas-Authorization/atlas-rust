@@ -27,6 +27,17 @@ pub enum VerifyError {
     UnauthorizedParty,
 }
 
+impl VerifyError {
+    /// True when the failure is temporary and on the verifier's side:
+    /// [`VerifyError::NoKeys`], the issuer's keys could not be fetched (a
+    /// network error or a JWKS outage). A back-channel logout endpoint should
+    /// answer `503` with `Retry-After` then, so Atlas retries the delivery, and
+    /// `400` for every other error, which Atlas never retries.
+    pub fn is_retryable(&self) -> bool {
+        matches!(self, VerifyError::NoKeys)
+    }
+}
+
 /// A configuration error raised when building an [`crate::AtlasBackend`] or
 /// [`crate::ApiKeyVerifier`] with an impossible combination of options.
 #[derive(Debug, Clone, Error)]

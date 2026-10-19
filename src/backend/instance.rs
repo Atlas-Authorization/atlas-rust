@@ -56,8 +56,48 @@ pub struct Preflight {
     pub checked_at: i64,
     #[serde(default)]
     pub findings: Vec<PreflightFinding>,
+    /// Atlas browser SDK versions seen in the last 7 days (newest first), each
+    /// with the advisories that apply to it.
+    #[serde(default)]
+    pub sdk_versions_seen: Vec<SdkVersionSeen>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// An Atlas browser SDK version that called the instance recently.
+#[derive(Debug, Clone, Deserialize)]
+pub struct SdkVersionSeen {
+    #[serde(default)]
+    pub package: String,
+    #[serde(default)]
+    pub version: String,
+    /// Epoch milliseconds.
+    #[serde(default)]
+    pub last_seen_at: i64,
+    #[serde(default)]
+    pub advisories: Vec<SdkAdvisory>,
+}
+
+/// An advisory published for an Atlas browser SDK version range.
+#[derive(Debug, Clone, Deserialize)]
+pub struct SdkAdvisory {
+    #[serde(default)]
+    pub package: String,
+    /// The affected range, e.g. `<0.8.1`.
+    #[serde(default)]
+    pub affected: String,
+    #[serde(default)]
+    pub fixed_in: String,
+    /// A stable code, e.g. `email_code_sign_in`.
+    #[serde(default)]
+    pub reason: String,
+    /// `critical`, `high`, `medium` or `low`.
+    #[serde(default)]
+    pub severity: String,
+    #[serde(default)]
+    pub summary: String,
+    #[serde(default)]
+    pub published_at: String,
 }
 
 /// The cookie-consent script injected into the hosted sign-in, sign-up and
@@ -80,6 +120,47 @@ pub struct CookieConsent {
     /// The footer "Cookie settings" link; `None` when there is none.
     #[serde(default)]
     pub settings_link: Option<CookieSettingsLink>,
+    /// `page` (the script tag carries the page language) or `browser`.
+    #[serde(default)]
+    pub culture: Option<String>,
+    /// Every cookie and browser-storage key Atlas writes for this instance,
+    /// for your cookie policy (all strictly necessary).
+    #[serde(default)]
+    pub declared_cookies: Vec<DeclaredCookie>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// A cookie or browser-storage key Atlas writes for the instance.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeclaredCookie {
+    /// The exact name, or `None` when `pattern` describes a family of keys.
+    #[serde(default)]
+    pub name: Option<String>,
+    /// A `*` wildcard for keys with an id suffix, e.g. `atlasid:*`.
+    #[serde(default)]
+    pub pattern: Option<String>,
+    /// `cookie`, `localStorage`, `sessionStorage` or `indexedDB`.
+    #[serde(default)]
+    pub store: String,
+    #[serde(default)]
+    pub domain: String,
+    /// `None` = browser session (cookie) or until cleared (storage).
+    #[serde(default)]
+    pub lifetime_seconds: Option<i64>,
+    #[serde(default)]
+    pub lifetime: String,
+    #[serde(default)]
+    pub http_only: bool,
+    #[serde(default)]
+    pub category: String,
+    #[serde(default)]
+    pub purpose: String,
+    #[serde(default)]
+    pub written_when: String,
+    /// `atlas_frontend_api` or `atlas_sdk`.
+    #[serde(default)]
+    pub set_by: String,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -151,6 +232,9 @@ pub struct SetCookieConsentBody {
     /// A footer "Cookie settings" link; `None` (omitted) means no link.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub settings_link: Option<CookieSettingsLinkInput>,
+    /// `page` (default: the script tag carries the page language) or `browser`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub culture: Option<String>,
 }
 
 /// The `/v1/instance` namespace. Reached via [`BackendClient::instance`].
@@ -475,6 +559,10 @@ pub struct MessagingProviders {
     pub email: Option<MessagingProvider>,
     #[serde(default)]
     pub sms: Option<MessagingProvider>,
+    /// The Atlas-managed sending domain summary (`from_address`, `domain`,
+    /// `status`, `verified`), when one is set up.
+    #[serde(default)]
+    pub managed_email: Option<Value>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -823,6 +911,13 @@ pub struct WebhookEndpointList {
     /// Every event type an endpoint can subscribe to.
     #[serde(default)]
     pub available_events: Vec<String>,
+    /// The same events as `available_events`, each described: what it means
+    /// and who should act on it (`relevant_for`).
+    #[serde(default)]
+    pub event_catalog: Vec<Value>,
+    /// Every value `relevant_for` can hold.
+    #[serde(default)]
+    pub event_audiences: Vec<String>,
     #[serde(default)]
     pub retry_schedule_ms: Vec<u64>,
     #[serde(default)]
@@ -862,6 +957,14 @@ pub struct WebhookDelivery {
     pub status: String,
     #[serde(default)]
     pub http_status: Option<u16>,
+    /// Why the attempt failed: `webhook_redirect_not_followed` (see
+    /// `location`), `webhook_http_error`, `webhook_timeout`,
+    /// `webhook_network_error` or `webhook_url_blocked`.
+    #[serde(default)]
+    pub error: Option<String>,
+    /// The absolute `Location` of a 3xx answer. Not followed.
+    #[serde(default)]
+    pub location: Option<String>,
     #[serde(default)]
     pub response_snippet: Option<String>,
     #[serde(default)]

@@ -44,7 +44,7 @@ pub use design::{
 pub use error::{codes, AtlasApiError, AtlasErrorItem, BackendError};
 pub use instance::{
     cookie_settings_link_presets, AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig,
-    CookieConsent, CookieSettingsLink, CookieSettingsLinkInput, DeleteMessagingProviderParams,
+    CookieConsent, CookieSettingsLink, DeclaredCookie, SdkAdvisory, SdkVersionSeen, CookieSettingsLinkInput, DeleteMessagingProviderParams,
     EmailProviderConfig, InfobipConfig, Instance, MailgunConfig, MessagebirdConfig, MessagingChannel, MessagingProvider,
     MessagingProviders, MessagingProvidersApi, OAuthProvider, OAuthProviderFilter, OAuthProviderUpdate,
     OAuthProviders, PlivoConfig, Preflight, PreflightFinding, ResendConfig, SesConfig,
@@ -55,7 +55,7 @@ pub use instance::{
 pub use pagination::{collect, CursorPage, CursorParams, Query};
 pub use platform_api::{
     AtlasIdApp, AtlasIdAppBranding, AtlasIdAppBrandingInput, AtlasIdAppCopy, AtlasIdAppList,
-    AtlasIdApps, CreateAtlasIdAppBody, CreatePlatformAppBody, PlatformApi, PlatformApp, PlatformApps,
+    AtlasIdApps, AtlasIdPublisherApi, CreateAtlasIdAppBody, CreatePlatformAppBody, PlatformApi, PlatformApp, PlatformApps,
     UpdateAtlasIdAppBody, UpdatePlatformAppBody,
 };
 pub use machines::{
@@ -84,6 +84,6 @@ pub use platform::{
 };
 pub use testing::FakeTransport;
 pub use webhook::{
-    Event, EventType, Webhook, WebhookError, WebhookHeaders, HEADER_ID, HEADER_SIGNATURE,
-    HEADER_TIMESTAMP,
+    Event, EventType, VerifiedDelivery, Webhook, WebhookError, WebhookHeaders, HEADER_ID,
+    HEADER_SIGNATURE, HEADER_TIMESTAMP,
 };

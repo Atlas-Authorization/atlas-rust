@@ -463,6 +463,23 @@ atlas.design().patch_organization("org_123", serde_json::json!({ "palette": { "p
 # let _ = preview; Ok(()) }
 ```
 
+### Domain moves, logout fan-out and managed email
+
+```rust,no_run
+# async fn demo(atlas: &atlasauth::backend::BackendClient) -> Result<(), atlasauth::backend::BackendError> {
+use atlasauth::backend::types;
+// Move every URL from the old origin to the new one; `dry_run` first shows the diff.
+let body = types::OriginMoveRequest::new("https://old.example.com", "https://example.com").with_dry_run(true);
+let preview = atlas.instance().move_origin(&body).await?;
+println!("{} fields move", preview.changes.len());
+# Ok(()) }
+```
+
+`logout_notify_endpoints()` registers services that get the same `logout_token` as your OIDC apps,
+`messaging_providers().create_managed_email(..)` sends email from your own domain through Atlas, and with a platform
+key `platform().atlas_id_apps().find_users(..)` answers a privacy request for one app and
+`platform().atlas_id_publisher()` claims the publisher name shown on consent screens.
+
 ### Platform API: Sign in with Atlas apps
 
 Build the client with a platform key (`psk_…`) and use `platform()`:

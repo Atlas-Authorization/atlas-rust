@@ -53,6 +53,14 @@ def load_spec():
         return json.load(f)
 
 d = load_spec()
+# Schemas the spec renamed while keeping the same shape: generate against the
+# earlier name so existing method signatures stay source-compatible
+# (e.g. branding().update(&types::BrandingSettings)).
+REF_ALIAS = {'BrandingPatch': 'BrandingSettings'}
+_raw = json.dumps(d)
+for _new, _old in REF_ALIAS.items():
+    _raw = _raw.replace(f'"#/components/schemas/{_new}"', f'"#/components/schemas/{_old}"')
+d = json.loads(_raw)
 comps = d['components']
 
 # ── which operations ─────────────────────────────────────────────────────────
@@ -78,6 +86,7 @@ missing = spec_ops - handwritten
 EXISTING = {
     'Users': None, 'Organizations': None, 'Instance': None, 'Billing': None, 'ApiKeys': None,
     'Sessions': None, 'Invitations': None, 'OrgSettingsSchemaApi': None,
+    'MessagingProvidersApi': None, 'AtlasIdApps': None, 'AtlasIdPublisherApi': None, 'PlatformApi': None,
 }
 
 # prefix -> (Struct, accessor, doc). Longest prefix wins.
@@ -90,6 +99,11 @@ NS = [
     ('/v1/sessions', 'Sessions', None, None),
     ('/v1/invitations', 'Invitations', None, None),
     ('/v1/organization_settings_schema', 'OrgSettingsSchemaApi', None, None),
+    ('/v1/messaging_providers', 'MessagingProvidersApi', None, None),
+    ('/v1/platform/atlas_id_apps', 'AtlasIdApps', None, None),
+    ('/v1/platform/atlas_id_publisher', 'AtlasIdPublisherApi', None, None),
+    ('/v1/platform/config_changelog', 'PlatformApi', None, None),
+    ('/v1/logout_notify_endpoints', 'LogoutNotifyEndpoints', 'logout_notify_endpoints', 'Logout fan-out endpoints: services that get the same logout_token as your OIDC apps'),
     ('/v1/actions', 'Actions', 'actions', 'Actions: custom code run on auth triggers'),
     ('/v1/actor_tokens', 'ActorTokens', 'actor_tokens', 'Actor (impersonation) tokens'),
     ('/v1/allowlist_identifiers', 'AllowlistIdentifiers', 'allowlist_identifiers', 'Sign-up allowlist'),
@@ -318,6 +332,29 @@ OVR = {
     ('POST', '/v1/managed_waf/provision'): 'provision',
     ('POST', '/v1/managed_waf/deprovision'): 'deprovision',
     ('POST', '/v1/oauth_clients/{id}/rotate_secret'): 'rotate_secret',
+    ('GET', '/v1/instance/integrations/chatly'): 'get_chatly_integration',
+    ('PUT', '/v1/instance/integrations/chatly'): 'set_chatly_integration',
+    ('DELETE', '/v1/instance/integrations/chatly'): 'delete_chatly_integration',
+    ('GET', '/v1/instance/integrations/forumulate'): 'get_forumulate_integration',
+    ('PUT', '/v1/instance/integrations/forumulate'): 'set_forumulate_integration',
+    ('DELETE', '/v1/instance/integrations/forumulate'): 'delete_forumulate_integration',
+    ('GET', '/v1/logout_notify_endpoints/{id}/deliveries'): 'list_deliveries',
+    ('GET', '/v1/messaging_providers/email/managed'): 'get_managed_email',
+    ('POST', '/v1/messaging_providers/email/managed'): 'create_managed_email',
+    ('DELETE', '/v1/messaging_providers/email/managed'): 'delete_managed_email',
+    ('POST', '/v1/messaging_providers/email/managed/verify'): 'verify_managed_email',
+    ('GET', '/v1/oauth_clients/{id}/backchannel_deliveries'): 'list_backchannel_deliveries',
+    ('POST', '/v1/oauth_clients/{id}/backchannel_logout/test'): 'test_backchannel_logout',
+    ('GET', '/v1/platform/atlas_id_apps/{id}/backchannel_deliveries'): 'list_backchannel_deliveries',
+    ('POST', '/v1/platform/atlas_id_apps/{id}/backchannel_logout/test'): 'test_backchannel_logout',
+    ('GET', '/v1/platform/atlas_id_apps/{id}/users'): 'find_users',
+    ('DELETE', '/v1/platform/atlas_id_apps/{id}/grants/{grantId}'): 'revoke_grant',
+    ('POST', '/v1/platform/atlas_id_apps/{id}/webhook/rotate_secret'): 'rotate_webhook_secret',
+    ('GET', '/v1/platform/atlas_id_publisher'): 'get',
+    ('PUT', '/v1/platform/atlas_id_publisher'): 'set',
+    ('PATCH', '/v1/platform/atlas_id_publisher'): 'update',
+    ('DELETE', '/v1/platform/atlas_id_publisher'): 'delete',
+    ('GET', '/v1/platform/config_changelog'): 'config_changelog',
 }
 
 # ── naming helpers ──────────────────────────────────────────────────────────
@@ -914,7 +951,8 @@ use super::resources::{body_of, seg};
 use super::types;
 #[allow(unused_imports)]
 use super::{
-    ApiKeys, Billing, Instance, Invitations, OrgSettingsSchemaApi, Organizations, Sessions, Users,
+    ApiKeys, AtlasIdApps, AtlasIdPublisherApi, Billing, Instance, Invitations, MessagingProvidersApi,
+    OrgSettingsSchemaApi, Organizations, PlatformApi, Sessions, Users,
 };
 ''']
 
@@ -997,7 +1035,9 @@ open(os.path.join(ROOT, 'src/backend/catalog.rs'), 'w').write('\n'.join(lines) +
 # ── emit tests/catalog.rs ───────────────────────────────────────────────────
 ACCESSOR = {'Users': 'users', 'Organizations': 'organizations', 'Instance': 'instance', 'Billing': 'billing',
             'ApiKeys': 'api_keys', 'Sessions': 'sessions', 'Invitations': 'invitations',
-            'OrgSettingsSchemaApi': 'org_settings_schema'}
+            'OrgSettingsSchemaApi': 'org_settings_schema', 'MessagingProvidersApi': 'messaging_providers',
+            'AtlasIdApps': 'platform().atlas_id_apps', 'AtlasIdPublisherApi': 'platform().atlas_id_publisher',
+            'PlatformApi': 'platform'}
 t = ['''// @generated by scripts/gen_catalog.py — do not edit.
 //! Every catalog operation sends the documented method and path (and its query, body, and idempotency
 //! key) through the request core.

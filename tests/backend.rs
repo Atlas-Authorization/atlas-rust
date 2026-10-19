@@ -47,6 +47,22 @@ fn webhook_accepts_a_correctly_signed_delivery() {
 }
 
 #[test]
+fn webhook_verify_delivery_returns_the_signed_id_and_timestamp() {
+    let now = 1_757_937_600_000i64;
+    let body = r#"{"id":"evt_1","type":"user.updated","data":{"id":"user_1"}}"#;
+    let headers = sign("evt_1", now - 1_000, body, SECRET);
+
+    let delivery = Webhook::new(SECRET)
+        .now_ms(now)
+        .verify_delivery(body.as_bytes(), headers.as_slice())
+        .expect("should verify");
+
+    assert_eq!(delivery.delivery_id, "evt_1");
+    assert_eq!(delivery.timestamp, now - 1_000);
+    assert_eq!(delivery.event.event_type, EventType::UserUpdated);
+}
+
+#[test]
 fn webhook_rejects_a_tampered_body() {
     let now = 1_757_937_600_000i64;
     let body = r#"{"id":"evt_1","type":"user.created","data":{"id":"user_1"}}"#;

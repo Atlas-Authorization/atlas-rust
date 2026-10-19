@@ -4007,6 +4007,100 @@ impl InstanceSetCaptchaSecretBody {
     }
 }
 
+/// The request body of `PUT /v1/instance/integrations/chatly`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetChatlyIntegrationBody {
+    /// The chat channel public id (letters, digits, _ and -).
+    #[serde(default)]
+    pub channel: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceSetChatlyIntegrationBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(channel: impl Into<String>) -> Self {
+        Self {
+            channel: channel.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `channel`.
+    pub fn with_channel(mut self, v: impl Into<String>) -> Self {
+        self.channel = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `PUT /v1/instance/integrations/forumulate`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetForumulateIntegrationBody {
+    /// Your Forumulate organization id.
+    #[serde(default)]
+    pub org_id: String,
+    /// The spaces readers sign in to: space ids, or { id, redeem_url } where redeem_url is the
+    /// space's jwtRedeemUrl on the host your readers read (its readerEndpoints in Forumulate).
+    /// Without redeem_url the platform address is used, whose cookies only work on forumulate.com.
+    #[serde(default)]
+    pub spaces: Vec<Value>,
+    /// The token aud (Forumulate clientId). Default forumulate:&lt;org_id&gt;.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub audience: Option<Option<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceSetForumulateIntegrationBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(org_id: impl Into<String>, spaces: impl Into<Vec<Value>>) -> Self {
+        Self {
+            org_id: org_id.into(),
+            spaces: spaces.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `org_id`.
+    pub fn with_org_id(mut self, v: impl Into<String>) -> Self {
+        self.org_id = v.into();
+        self
+    }
+    /// Set `spaces`.
+    pub fn with_spaces(mut self, v: impl Into<Vec<Value>>) -> Self {
+        self.spaces = v.into();
+        self
+    }
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
+        self.audience = Some(Some(v.into()));
+        self
+    }
+    /// Send `audience: null` to clear it.
+    pub fn clear_audience(mut self) -> Self {
+        self.audience = Some(None);
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `PUT /v1/instance/kerberos_secret`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -4056,6 +4150,57 @@ impl InstanceSetLdapBindPasswordBody {
     /// Set `bind_password`.
     pub fn with_bind_password(mut self, v: impl Into<String>) -> Self {
         self.bind_password = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The `OriginMoveRequest` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OriginMoveRequest {
+    /// The old origin, scheme://host\[:port\] (e.g. https://old.example.com). Origins compare as
+    /// scheme + host + port.
+    #[serde(default)]
+    pub from: String,
+    /// The new origin. https, or http only for localhost.
+    #[serde(default)]
+    pub to: String,
+    /// true: report the diff and any problems, write nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dry_run: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl OriginMoveRequest {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(from: impl Into<String>, to: impl Into<String>) -> Self {
+        Self {
+            from: from.into(),
+            to: to.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `from`.
+    pub fn with_from(mut self, v: impl Into<String>) -> Self {
+        self.from = v.into();
+        self
+    }
+    /// Set `to`.
+    pub fn with_to(mut self, v: impl Into<String>) -> Self {
+        self.to = v.into();
+        self
+    }
+    /// Set `dry_run`.
+    pub fn with_dry_run(mut self, v: impl Into<bool>) -> Self {
+        self.dry_run = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -4623,6 +4768,151 @@ impl LogStreamsUpdateBody {
     }
 }
 
+/// The request body of `POST /v1/logout_notify_endpoints`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsCreateBody {
+    /// Public https endpoint.
+    #[serde(default)]
+    pub url: String,
+    /// A client_id of this instance to follow; omit for instance-wide.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub oauth_client_id: Option<Option<String>>,
+    /// The logout_token `aud`. Default: the client_id when following a client, else the instance
+    /// id.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub audience: Option<Option<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub description: Option<Option<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl LogoutNotifyEndpointsCreateBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(url: impl Into<String>) -> Self {
+        Self {
+            url: url.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `url`.
+    pub fn with_url(mut self, v: impl Into<String>) -> Self {
+        self.url = v.into();
+        self
+    }
+    /// Set `oauth_client_id`.
+    pub fn with_oauth_client_id(mut self, v: impl Into<String>) -> Self {
+        self.oauth_client_id = Some(Some(v.into()));
+        self
+    }
+    /// Send `oauth_client_id: null` to clear it.
+    pub fn clear_oauth_client_id(mut self) -> Self {
+        self.oauth_client_id = Some(None);
+        self
+    }
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
+        self.audience = Some(Some(v.into()));
+        self
+    }
+    /// Send `audience: null` to clear it.
+    pub fn clear_audience(mut self) -> Self {
+        self.audience = Some(None);
+        self
+    }
+    /// Set `description`.
+    pub fn with_description(mut self, v: impl Into<String>) -> Self {
+        self.description = Some(Some(v.into()));
+        self
+    }
+    /// Send `description: null` to clear it.
+    pub fn clear_description(mut self) -> Self {
+        self.description = Some(None);
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `PATCH /v1/logout_notify_endpoints/{id}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsUpdateBody {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub audience: Option<Option<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub description: Option<Option<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl LogoutNotifyEndpointsUpdateBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `url`.
+    pub fn with_url(mut self, v: impl Into<String>) -> Self {
+        self.url = Some(v.into());
+        self
+    }
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
+        self.audience = Some(Some(v.into()));
+        self
+    }
+    /// Send `audience: null` to clear it.
+    pub fn clear_audience(mut self) -> Self {
+        self.audience = Some(None);
+        self
+    }
+    /// Set `description`.
+    pub fn with_description(mut self, v: impl Into<String>) -> Self {
+        self.description = Some(Some(v.into()));
+        self
+    }
+    /// Send `description: null` to clear it.
+    pub fn clear_description(mut self) -> Self {
+        self.description = Some(None);
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `POST /v1/lti_platforms`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -5054,6 +5344,105 @@ impl McpConnectorSetBody {
     /// Set `allowed_redirect_hosts`.
     pub fn with_allowed_redirect_hosts(mut self, v: impl Into<Vec<String>>) -> Self {
         self.allowed_redirect_hosts = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/messaging_providers/email/managed`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MessagingProvidersCreateManagedEmailBody {
+    /// The From address, bare or "Name &lt;address&gt;". Its domain becomes the sending domain.
+    #[serde(default)]
+    pub from_address: String,
+    /// Known values: `us-east-1`, `eu-west-1`, `sa-east-1`, `ap-northeast-1`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    /// Let Atlas write the DNS records. The token is write-only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dns: Option<MessagingProvidersCreateManagedEmailBodyDns>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl MessagingProvidersCreateManagedEmailBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(from_address: impl Into<String>) -> Self {
+        Self {
+            from_address: from_address.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `from_address`.
+    pub fn with_from_address(mut self, v: impl Into<String>) -> Self {
+        self.from_address = v.into();
+        self
+    }
+    /// Set `region`.
+    pub fn with_region(mut self, v: impl Into<String>) -> Self {
+        self.region = Some(v.into());
+        self
+    }
+    /// Set `dns`.
+    pub fn with_dns(mut self, v: impl Into<MessagingProvidersCreateManagedEmailBodyDns>) -> Self {
+        self.dns = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Let Atlas write the DNS records. The token is write-only.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MessagingProvidersCreateManagedEmailBodyDns {
+    /// Always `cloudflare`.
+    #[serde(default)]
+    pub provider: String,
+    /// A DNS API token with Zone Read and DNS Edit on the zone.
+    #[serde(default)]
+    pub api_token: String,
+    /// Replace a conflicting existing record.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overwrite: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl MessagingProvidersCreateManagedEmailBodyDns {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(provider: impl Into<String>, api_token: impl Into<String>) -> Self {
+        Self {
+            provider: provider.into(),
+            api_token: api_token.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `provider`.
+    pub fn with_provider(mut self, v: impl Into<String>) -> Self {
+        self.provider = v.into();
+        self
+    }
+    /// Set `api_token`.
+    pub fn with_api_token(mut self, v: impl Into<String>) -> Self {
+        self.api_token = v.into();
+        self
+    }
+    /// Set `overwrite`.
+    pub fn with_overwrite(mut self, v: impl Into<bool>) -> Self {
+        self.overwrite = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -7195,6 +7584,89 @@ impl PermissionsUpdateBody {
     /// Set `key`.
     pub fn with_key(mut self, v: impl Into<String>) -> Self {
         self.key = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `PUT /v1/platform/atlas_id_publisher`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherSetBody {
+    /// Publisher name shown on consent screens once verified.
+    #[serde(default)]
+    pub name: String,
+    /// Host name your apps' homepage_url lives on (e.g. example.com). Proved with a DNS TXT record.
+    #[serde(default)]
+    pub domain: String,
+    /// Let a user who approved one of your verified apps skip the consent screen on the others, for
+    /// openid / email / profile only. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_consent: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AtlasIdPublisherSetBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(name: impl Into<String>, domain: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            domain: domain.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set `domain`.
+    pub fn with_domain(mut self, v: impl Into<String>) -> Self {
+        self.domain = v.into();
+        self
+    }
+    /// Set `skip_consent`.
+    pub fn with_skip_consent(mut self, v: impl Into<bool>) -> Self {
+        self.skip_consent = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `PATCH /v1/platform/atlas_id_publisher`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherUpdateBody {
+    #[serde(default)]
+    pub skip_consent: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AtlasIdPublisherUpdateBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(skip_consent: impl Into<bool>) -> Self {
+        Self {
+            skip_consent: skip_consent.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `skip_consent`.
+    pub fn with_skip_consent(mut self, v: impl Into<bool>) -> Self {
+        self.skip_consent = v.into();
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -9836,10 +10308,15 @@ impl UsersRecordProgressionEventBody {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct UsersRevokeSessionsBody {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub all: Option<bool>,
+    /// Also revoke every active OAuth access grant the user holds, so app refresh tokens stop
+    /// minting access tokens. Each revoked grant emits grant.revoked. Sessions are revoked either
+    /// way.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revoke_grants: Option<bool>,
+    /// Deprecated alias of revoke_grants (true has exactly the same effect). It does NOT select
+    /// between "all sessions" and "some sessions": every session is always revoked. Still accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub all: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -9851,14 +10328,14 @@ impl UsersRevokeSessionsBody {
     pub fn new() -> Self {
         Self::default()
     }
-    /// Set `all`.
-    pub fn with_all(mut self, v: impl Into<bool>) -> Self {
-        self.all = Some(v.into());
-        self
-    }
     /// Set `revoke_grants`.
     pub fn with_revoke_grants(mut self, v: impl Into<bool>) -> Self {
         self.revoke_grants = Some(v.into());
+        self
+    }
+    /// Set `all`.
+    pub fn with_all(mut self, v: impl Into<bool>) -> Self {
+        self.all = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -11265,6 +11742,13 @@ pub struct Branding {
     /// Always `branding`.
     #[serde(default)]
     pub object: String,
+    /// What the renderers use, after dropping anything unsafe or invalid. Every writable field
+    /// appears here under the same name and shape you write it (fontFamily, providers, copy, legal,
+    /// theme, layout, card, interaction, …), holding the value in force: compare your desired state
+    /// against this object alone. A field you did not set shows its default. Also carries derived
+    /// renderer values (escapedName, fontStack, providerOrder, providerHidden, eyebrow, headline,
+    /// subheadline, footer). The retired raw fields customCss / customHtmlHeader / customHtmlFooter
+    /// resolve to "" unless set on Atlas's own instance.
     #[serde(default)]
     pub resolved: BrandingResolved,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -11510,6 +11994,13 @@ pub struct BrandingSignUpFieldsItem {
     pub extra: Map<String, Value>,
 }
 
+/// What the renderers use, after dropping anything unsafe or invalid. Every writable field
+/// appears here under the same name and shape you write it (fontFamily, providers, copy, legal,
+/// theme, layout, card, interaction, …), holding the value in force: compare your desired state
+/// against this object alone. A field you did not set shows its default. Also carries derived
+/// renderer values (escapedName, fontStack, providerOrder, providerHidden, eyebrow, headline,
+/// subheadline, footer). The retired raw fields customCss / customHtmlHeader / customHtmlFooter
+/// resolve to "" unless set on Atlas's own instance.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct BrandingResolved {
@@ -11528,6 +12019,189 @@ pub struct BrandingResolved {
     pub color_text: String,
     #[serde(rename = "supportEmail", default)]
     pub support_email: Option<String>,
+    #[serde(
+        rename = "colorAccent",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub color_accent: Option<String>,
+    #[serde(rename = "colorCard", default, skip_serializing_if = "Option::is_none")]
+    pub color_card: Option<String>,
+    #[serde(
+        rename = "colorBorder",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub color_border: Option<String>,
+    #[serde(
+        rename = "borderRadius",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub border_radius: Option<String>,
+    /// Known values: `light`, `dark`, `auto`.
+    #[serde(default)]
+    pub theme: String,
+    /// The font stack name in force (system when unset or unknown).
+    #[serde(rename = "fontFamily", default)]
+    pub font_family: String,
+    /// The CSS font-family list fontFamily resolves to.
+    #[serde(rename = "fontStack", default, skip_serializing_if = "Option::is_none")]
+    pub font_stack: Option<String>,
+    #[serde(rename = "fontUrl", default, skip_serializing_if = "Option::is_none")]
+    pub font_url: Option<String>,
+    /// Known values: `centered`, `split`, `wall`.
+    #[serde(default)]
+    pub layout: String,
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub background: Map<String, Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub providers: Option<BrandingResolvedProviders>,
+    #[serde(
+        rename = "providerOrder",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub provider_order: Vec<String>,
+    #[serde(
+        rename = "providerHidden",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub provider_hidden: Vec<String>,
+    #[serde(
+        rename = "socialButtons",
+        default,
+        skip_serializing_if = "Map::is_empty"
+    )]
+    pub social_buttons: Map<String, Value>,
+    /// Known values: `boxes`, `single`.
+    #[serde(rename = "codeInput", default, skip_serializing_if = "Option::is_none")]
+    pub code_input: Option<String>,
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub card: Map<String, Value>,
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub typography: Map<String, Value>,
+    #[serde(
+        rename = "buttonShape",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub button_shape: Option<String>,
+    #[serde(
+        rename = "cardBorder",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub card_border: Option<String>,
+    #[serde(rename = "inputSize", default, skip_serializing_if = "Option::is_none")]
+    pub input_size: Option<String>,
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub interaction: Map<String, Value>,
+    #[serde(
+        rename = "backgroundPattern",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub background_pattern: Option<String>,
+    #[serde(rename = "cardStyle", default, skip_serializing_if = "Option::is_none")]
+    pub card_style: Option<String>,
+    #[serde(rename = "textScale", default, skip_serializing_if = "Option::is_none")]
+    pub text_scale: Option<String>,
+    /// Known values: `top`, `bottom`.
+    #[serde(
+        rename = "socialPlacement",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub social_placement: Option<String>,
+    #[serde(
+        rename = "sectionOrder",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub section_order: Vec<String>,
+    #[serde(default)]
+    pub legal: BrandingResolvedLegal,
+    #[serde(
+        rename = "signUpFields",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub sign_up_fields: Vec<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub copy: Option<BrandingResolvedCopy>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub eyebrow: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headline: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheadline: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub footer: Option<String>,
+    #[serde(rename = "customCss", default, skip_serializing_if = "Option::is_none")]
+    pub custom_css: Option<String>,
+    #[serde(
+        rename = "customHtmlHeader",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub custom_html_header: Option<String>,
+    #[serde(
+        rename = "customHtmlFooter",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub custom_html_footer: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BrandingResolvedProviders {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub order: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hidden: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BrandingResolvedLegal {
+    #[serde(rename = "termsUrl", default, skip_serializing_if = "Option::is_none")]
+    pub terms_url: Option<String>,
+    #[serde(
+        rename = "privacyUrl",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub privacy_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BrandingResolvedCopy {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub eyebrow: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headline: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheadline: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub footer: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -11611,6 +12285,13 @@ pub struct ConfigChangelogEntry {
     pub action: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ip: Option<String>,
+    /// The object that changed (e.g. oauth_client / oac_…, webhook_endpoint / wh_…, custom_domain /
+    /// dom_…, instance).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<ConfigChangelogEntryTarget>,
+    /// The fields that changed, each with its value before and after. On a create `before` is null;
+    /// on a delete `after` is null. A secret field reads "set", "cleared" or "rotated", never its
+    /// value.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub changes: Vec<ConfigChangelogEntryChangesItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -11624,6 +12305,21 @@ pub struct ConfigChangelogEntry {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ConfigChangelogEntryActor {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The object that changed (e.g. oauth_client / oac_…, webhook_endpoint / wh_…, custom_domain /
+/// dom_…, instance).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ConfigChangelogEntryTarget {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -13183,6 +13879,485 @@ pub struct InstanceDeleteCaptchaSecretResponse {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `GET /v1/instance/connections`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceConnectionsResponse {
+    /// Always `instance_connections`.
+    #[serde(default)]
+    pub object: String,
+    /// False when any warning- or error-severity row is not ok.
+    #[serde(default)]
+    pub ok: bool,
+    /// When the view was built (epoch ms).
+    #[serde(default)]
+    pub checked_at: i64,
+    #[serde(default)]
+    pub data: Vec<InstanceConnection>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One cross-platform link and its health, in the shared integration-health row shape.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceConnection {
+    /// Always `connection`.
+    #[serde(default)]
+    pub object: String,
+    /// Known values: `privacy_webhook`, `cmp`, `atlas_id_app`, `jwt_template`.
+    #[serde(default)]
+    pub kind: String,
+    /// What was checked: privacy_webhook_delivery, cmp_enabled, cmp_site, atlas_id_app_config or
+    /// jwt_template_audience.
+    #[serde(default)]
+    pub check: String,
+    #[serde(default)]
+    pub ok: bool,
+    /// How much a failing row matters (info rows never make the response not ok).
+    ///
+    /// Known values: `error`, `warning`, `info`.
+    #[serde(default)]
+    pub severity: String,
+    /// Ids of what the row is about.
+    #[serde(default)]
+    pub subject: HashMap<String, String>,
+    /// What to do when ok is false.
+    #[serde(default)]
+    pub fix_hint: Option<String>,
+    /// When this row was observed (epoch ms).
+    #[serde(default)]
+    pub last_checked_at: i64,
+    /// Kind-specific facts. privacy_webhook: url, events, active, failing_since,
+    /// last_verified_delivery {id, status, http_status, at} (the last delivery the endpoint
+    /// accepted with a 2xx), last_delivery. cmp: enabled, site_checked, status (ok | unknown |
+    /// domain_mismatch | unavailable), code, message, site_domain, other_site_id. atlas_id_app:
+    /// name, managed_by_instance, redirect_uris, homepage_url, backchannel_logout_uri.
+    /// jwt_template: algorithm, audience_host.
+    #[serde(default)]
+    pub details: Map<String, Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// enabled:false and nothing else when no Chatly connection is set.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetChatlyIntegrationResponse {
+    /// Always `chatly_integration`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<String>,
+    /// The name to pass to getToken({ template: 'chatly' }).
+    ///
+    /// Always `chatly`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template: Option<String>,
+    /// chatly:&lt;channel&gt;
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// The iss of every token (your Frontend API origin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The JWKS to verify the tokens with (RS256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_ttl_seconds: Option<i64>,
+    /// What the chat channel's identity verification needs (no shared secret).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity_verification: Option<InstanceGetChatlyIntegrationResponseIdentityVerification>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the chat channel's identity verification needs (no shared secret).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetChatlyIntegrationResponseIdentityVerification {
+    /// Always `oidc`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// enabled:false and nothing else when no Chatly connection is set.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetChatlyIntegrationResponse {
+    /// Always `chatly_integration`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<String>,
+    /// The name to pass to getToken({ template: 'chatly' }).
+    ///
+    /// Always `chatly`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template: Option<String>,
+    /// chatly:&lt;channel&gt;
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// The iss of every token (your Frontend API origin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The JWKS to verify the tokens with (RS256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_ttl_seconds: Option<i64>,
+    /// What the chat channel's identity verification needs (no shared secret).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity_verification: Option<InstanceSetChatlyIntegrationResponseIdentityVerification>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the chat channel's identity verification needs (no shared secret).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetChatlyIntegrationResponseIdentityVerification {
+    /// Always `oidc`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// enabled:false and nothing else when no Chatly connection is set.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteChatlyIntegrationResponse {
+    /// Always `chatly_integration`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<String>,
+    /// The name to pass to getToken({ template: 'chatly' }).
+    ///
+    /// Always `chatly`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template: Option<String>,
+    /// chatly:&lt;channel&gt;
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// The iss of every token (your Frontend API origin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The JWKS to verify the tokens with (RS256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_ttl_seconds: Option<i64>,
+    /// What the chat channel's identity verification needs (no shared secret).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity_verification: Option<InstanceDeleteChatlyIntegrationResponseIdentityVerification>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the chat channel's identity verification needs (no shared secret).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteChatlyIntegrationResponseIdentityVerification {
+    /// Always `oidc`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// enabled:false and nothing else when no Forumulate connection is set.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetForumulateIntegrationResponse {
+    /// Always `forumulate_integration`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub spaces: Vec<InstanceGetForumulateIntegrationResponseSpacesItem>,
+    /// The aud of every reader token.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// The iss of every token (your Frontend API origin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The JWKS to verify the tokens with (RS256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_ttl_seconds: Option<i64>,
+    /// The external_jwt provider to store on each space in Forumulate (PUT
+    /// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
+    /// no shared secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reader_auth_provider: Option<InstanceGetForumulateIntegrationResponseReaderAuthProvider>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetForumulateIntegrationResponseSpacesItem {
+    #[serde(default)]
+    pub id: String,
+    /// Where the reader's browser redeems the token.
+    #[serde(default)]
+    pub redeem_url: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The external_jwt provider to store on each space in Forumulate (PUT
+/// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
+/// no shared secret.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetForumulateIntegrationResponseReaderAuthProvider {
+    /// Always `external_jwt`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config: Option<InstanceGetForumulateIntegrationResponseReaderAuthProviderConfig>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetForumulateIntegrationResponseReaderAuthProviderConfig {
+    #[serde(rename = "jwksUrl", default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// enabled:false and nothing else when no Forumulate connection is set.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetForumulateIntegrationResponse {
+    /// Always `forumulate_integration`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub spaces: Vec<InstanceSetForumulateIntegrationResponseSpacesItem>,
+    /// The aud of every reader token.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// The iss of every token (your Frontend API origin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The JWKS to verify the tokens with (RS256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_ttl_seconds: Option<i64>,
+    /// The external_jwt provider to store on each space in Forumulate (PUT
+    /// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
+    /// no shared secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reader_auth_provider: Option<InstanceSetForumulateIntegrationResponseReaderAuthProvider>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetForumulateIntegrationResponseSpacesItem {
+    #[serde(default)]
+    pub id: String,
+    /// Where the reader's browser redeems the token.
+    #[serde(default)]
+    pub redeem_url: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The external_jwt provider to store on each space in Forumulate (PUT
+/// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
+/// no shared secret.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetForumulateIntegrationResponseReaderAuthProvider {
+    /// Always `external_jwt`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config: Option<InstanceSetForumulateIntegrationResponseReaderAuthProviderConfig>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetForumulateIntegrationResponseReaderAuthProviderConfig {
+    #[serde(rename = "jwksUrl", default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// enabled:false and nothing else when no Forumulate connection is set.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteForumulateIntegrationResponse {
+    /// Always `forumulate_integration`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub spaces: Vec<InstanceDeleteForumulateIntegrationResponseSpacesItem>,
+    /// The aud of every reader token.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// The iss of every token (your Frontend API origin).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The JWKS to verify the tokens with (RS256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_ttl_seconds: Option<i64>,
+    /// The external_jwt provider to store on each space in Forumulate (PUT
+    /// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
+    /// no shared secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reader_auth_provider: Option<InstanceDeleteForumulateIntegrationResponseReaderAuthProvider>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteForumulateIntegrationResponseSpacesItem {
+    #[serde(default)]
+    pub id: String,
+    /// Where the reader's browser redeems the token.
+    #[serde(default)]
+    pub redeem_url: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The external_jwt provider to store on each space in Forumulate (PUT
+/// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
+/// no shared secret.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteForumulateIntegrationResponseReaderAuthProvider {
+    /// Always `external_jwt`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config: Option<InstanceDeleteForumulateIntegrationResponseReaderAuthProviderConfig>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteForumulateIntegrationResponseReaderAuthProviderConfig {
+    #[serde(rename = "jwksUrl", default, skip_serializing_if = "Option::is_none")]
+    pub jwks_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `PUT /v1/instance/kerberos_secret`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -13241,6 +14416,82 @@ pub struct InstanceDeleteLdapBindPasswordResponse {
     pub connection_id: String,
     #[serde(default)]
     pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `OriginMove` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OriginMove {
+    /// Always `origin_move`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub from: String,
+    #[serde(default)]
+    pub to: String,
+    #[serde(default)]
+    pub dry_run: bool,
+    /// True when this run wrote changes (never on a dry run, or when nothing was on `from`).
+    #[serde(default)]
+    pub applied: bool,
+    /// Every field that moves (or moved), before → after. Empty when nothing references `from`, so
+    /// a repeated run returns \[\].
+    #[serde(default)]
+    pub changes: Vec<OriginMoveChangesItem>,
+    /// Rewritten values the field would refuse (e.g. a webhook moving to a loopback host). A real
+    /// run with problems is a 422 and writes nothing.
+    #[serde(default)]
+    pub problems: Vec<OriginMoveProblemsItem>,
+    /// Platform twin only: the app after the move.
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub app: Map<String, Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OriginMoveChangesItem {
+    /// Known values: `instance`, `oauth_client`, `atlas_id_app`, `webhook_endpoint`, `redirect_url`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    /// The field, e.g. allowed_origins, redirect_uris, backchannel_logout_uri, homepage_url, url,
+    /// branding.legal.privacyUrl.
+    #[serde(default)]
+    pub field: String,
+    /// The value now: a URL, a list of URLs, or null.
+    #[serde(default)]
+    pub before: Value,
+    /// The value after the move: a URL, a list of URLs, or null.
+    #[serde(default)]
+    pub after: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OriginMoveProblemsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub field: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -13447,6 +14698,10 @@ pub struct User {
     /// Last updated (epoch ms).
     #[serde(default)]
     pub updated_at: i64,
+    /// Strictly increases with every change to the user. Webhook payloads carry the same value:
+    /// apply an update only if its version is higher than the one you hold.
+    #[serde(default)]
+    pub version: i64,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -13826,6 +15081,216 @@ pub struct LogStreamsTestResponse {
     pub status: Option<i64>,
     #[serde(default)]
     pub error: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/logout_notify_endpoints`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsListResponse {
+    /// Always `list`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data: Vec<LogoutNotifyEndpointsListResponseDataItem>,
+    /// Whether another page follows the cursor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// The cursor to pass as `starting_after` for the next page on a keyset-paginated list; null on
+    /// the last page (and absent on lists that are not cursor-paginated).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsListResponseDataItem {
+    /// Always `logout_notify_endpoint`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub url: String,
+    /// The client_id this endpoint follows; null = instance-wide.
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
+    /// The `aud` its logout_tokens carry.
+    #[serde(default)]
+    pub audience: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/logout_notify_endpoints`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsCreateResponse {
+    /// Always `logout_notify_endpoint`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub url: String,
+    /// The client_id this endpoint follows; null = instance-wide.
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
+    /// The `aud` its logout_tokens carry.
+    #[serde(default)]
+    pub audience: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/logout_notify_endpoints/{id}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsGetResponse {
+    /// Always `logout_notify_endpoint`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub url: String,
+    /// The client_id this endpoint follows; null = instance-wide.
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
+    /// The `aud` its logout_tokens carry.
+    #[serde(default)]
+    pub audience: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `PATCH /v1/logout_notify_endpoints/{id}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsUpdateResponse {
+    /// Always `logout_notify_endpoint`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub url: String,
+    /// The client_id this endpoint follows; null = instance-wide.
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
+    /// The `aud` its logout_tokens carry.
+    #[serde(default)]
+    pub audience: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/logout_notify_endpoints/{id}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsDeleteResponse {
+    /// Always `logout_notify_endpoint`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/logout_notify_endpoints/{id}/deliveries`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsListDeliveriesResponse {
+    /// Always `list`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data: Vec<LogoutNotifyEndpointsListDeliveriesResponseDataItem>,
+    /// Whether another page follows the cursor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// The cursor to pass as `starting_after` for the next page on a keyset-paginated list; null on
+    /// the last page (and absent on lists that are not cursor-paginated).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LogoutNotifyEndpointsListDeliveriesResponseDataItem {
+    /// Always `logout_notify_delivery`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub sub: String,
+    /// null = a subject-wide logout (ban / deletion).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sid: Option<String>,
+    /// Known values: `pending`, `success`, `failed`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub attempt_number: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response_snippet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_retry_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivered_at: Option<i64>,
+    #[serde(default)]
+    pub created_at: i64,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -14318,6 +15783,151 @@ pub struct McpConnectorDeleteResponse {
     pub extra: Map<String, Value>,
 }
 
+/// The `ManagedEmail` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ManagedEmail {
+    /// Always `managed_email`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub from_address: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub provider: String,
+    #[serde(default)]
+    pub region: Option<String>,
+    /// not_started | pending | verified | failed | temporary_failure. Email sends only when
+    /// verified.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub verified: bool,
+    #[serde(default)]
+    pub records: Vec<ManagedEmailRecord>,
+    #[serde(default)]
+    pub limits: ManagedEmailLimits,
+    #[serde(default)]
+    pub usage: ManagedEmailUsage,
+    /// Mail goes out through Atlas's sending account; isolation is the per-domain DKIM signature
+    /// plus per-instance limits.
+    ///
+    /// Always `shared_platform_account`.
+    #[serde(default)]
+    pub reputation: String,
+    #[serde(default)]
+    pub dns: Option<ManagedEmailDns>,
+    #[serde(default)]
+    pub failure_reason: Option<String>,
+    #[serde(default)]
+    pub last_checked_at: Option<i64>,
+    #[serde(default)]
+    pub verified_at: Option<i64>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Create only, with dns: the zone and the records Atlas wrote.
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub dns_result: Map<String, Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_step: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ManagedEmailRecord` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ManagedEmailRecord {
+    /// Known values: `dkim`, `spf`, `return_path`, `other`.
+    #[serde(default)]
+    pub purpose: String,
+    /// Known values: `TXT`, `MX`, `CNAME`.
+    #[serde(default)]
+    pub r#type: String,
+    /// Fully-qualified record name.
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub value: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ManagedEmailLimits {
+    #[serde(default)]
+    pub hourly: i64,
+    #[serde(default)]
+    pub daily: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ManagedEmailUsage {
+    #[serde(default)]
+    pub sent: i64,
+    #[serde(default)]
+    pub bounces: i64,
+    #[serde(default)]
+    pub complaints: i64,
+    #[serde(default)]
+    pub last_bounce_at: Option<i64>,
+    #[serde(default)]
+    pub last_complaint_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ManagedEmailDns {
+    #[serde(default)]
+    pub provider: String,
+    #[serde(default)]
+    pub token_set: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/messaging_providers/email/managed`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MessagingProvidersDeleteManagedEmailResponse {
+    /// Always `managed_email`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `GET /v1/network_acls`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -14797,6 +16407,124 @@ pub struct OAuthClientsDeleteResponse {
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `BackchannelLogoutDeliveryList` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BackchannelLogoutDeliveryList {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
+    /// Newest first.
+    #[serde(default)]
+    pub data: Vec<BackchannelLogoutDelivery>,
+    #[serde(default)]
+    pub has_more: bool,
+    /// Pass as starting_after for the next page.
+    #[serde(default)]
+    pub next_cursor: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One back-channel logout attempt to an OAuth client's or Sign in with Atlas app's
+/// backchannel_logout_uri. Atlas never follows redirects: a 3xx answer fails with error
+/// `backchannel_redirect_not_followed` and the `location` it pointed at. A 5xx, 408, 429 or no
+/// answer is retried on the webhook schedule (5 s, 5 min, 30 min, 2 h, 5 h, 10 h); any other
+/// 4xx is final.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BackchannelLogoutDelivery {
+    /// Always `backchannel_logout_delivery`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub oauth_client_id: Option<String>,
+    /// The ended session (`sid_test_…` for a test). Null for "sign out everywhere".
+    #[serde(default)]
+    pub sid: Option<String>,
+    /// Sent by the test call; never retried.
+    #[serde(default)]
+    pub test: bool,
+    /// Known values: `pending`, `success`, `failed`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub attempt_number: i64,
+    #[serde(default)]
+    pub max_attempts: i64,
+    #[serde(default)]
+    pub http_status: Option<i64>,
+    #[serde(default)]
+    pub latency_ms: Option<i64>,
+    /// `backchannel_redirect_not_followed`, `backchannel_http_error`, `backchannel_timeout`,
+    /// `backchannel_network_error` or `backchannel_url_blocked`. Null on success or while pending.
+    #[serde(default)]
+    pub error: Option<String>,
+    /// The absolute `Location` of a 3xx answer. Not followed.
+    #[serde(default)]
+    pub location: Option<String>,
+    /// First 1 KB of the response.
+    #[serde(default)]
+    pub response_snippet: Option<String>,
+    #[serde(default)]
+    pub next_retry_at: Option<i64>,
+    #[serde(default)]
+    pub attempted_at: Option<i64>,
+    #[serde(default)]
+    pub delivered_at: Option<i64>,
+    /// Created (epoch ms).
+    #[serde(default)]
+    pub created_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The result of a test back-channel logout: a correctly signed logout_token for a synthetic
+/// session (`sid_test_…`) with the extra claim `atlas_test: true`, POSTed now. Recorded in the
+/// delivery log with `test: true`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BackchannelLogoutTest {
+    /// Always `backchannel_logout_test`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub delivery_id: String,
+    /// True when the receiver answered 2xx.
+    #[serde(default)]
+    pub ok: bool,
+    #[serde(default)]
+    pub sid: String,
+    /// The HTTP status the receiver answered with; null when nothing came back.
+    #[serde(default)]
+    pub status: Option<i64>,
+    #[serde(default)]
+    pub latency_ms: Option<i64>,
+    /// Same codes as BackchannelLogoutDelivery.error.
+    #[serde(default)]
+    pub error: Option<String>,
+    /// The `Location` of a 3xx answer. Not followed.
+    #[serde(default)]
+    pub location: Option<String>,
+    /// Set when nothing was sent because the URI points at a private, loopback or non-https
+    /// address.
+    #[serde(default)]
+    pub blocked_reason: Option<String>,
+    /// The first 512 characters of the response body, control characters removed.
+    #[serde(default)]
+    pub body_excerpt: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -16247,6 +17975,995 @@ pub struct PermissionsDeleteResponse {
     pub id: String,
     #[serde(default)]
     pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/platform/atlas_id_apps/{id}/grants/{grantId}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsRevokeGrantResponse {
+    /// Always `atlas_id_grant`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub sub: String,
+    #[serde(default)]
+    pub revoked: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens_revoked: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backchannel_logouts: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `AtlasIdAppPreflight` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppPreflight {
+    /// Always `preflight`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub app_id: String,
+    /// True when there are no error-severity findings.
+    #[serde(default)]
+    pub ok: bool,
+    #[serde(default)]
+    pub checked_at: i64,
+    /// People who have approved the app.
+    #[serde(default)]
+    pub user_count: i64,
+    /// Ordered error, then warning, then info.
+    #[serde(default)]
+    pub findings: Vec<PreflightFinding>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `PreflightFinding` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PreflightFinding {
+    /// Known values: `error`, `warning`, `info`.
+    #[serde(default)]
+    pub severity: String,
+    /// Stable snake_case identifier. Every code is listed by GET /v1/instance/preflight/codes.
+    #[serde(default)]
+    pub code: String,
+    /// What is wrong, in a plain sentence.
+    #[serde(default)]
+    pub message: String,
+    /// What to do about it, in a plain sentence.
+    #[serde(default)]
+    pub fix: String,
+    /// Ids of what the finding is about (provider, id/client_id, origin, domain_id/host, site_id,
+    /// …).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub subject: HashMap<String, String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/platform/atlas_id_apps/{id}/users`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsFindUsersResponse {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub data: Vec<AtlasIdAppsFindUsersResponseDataItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsFindUsersResponseDataItem {
+    /// Always `atlas_id_user`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub atlas_id_user: Value,
+    /// The user id as this app sees it (the id_token `sub`).
+    #[serde(default)]
+    pub sub: String,
+    #[serde(default)]
+    pub grant_id: String,
+    #[serde(default)]
+    pub scopes: Vec<String>,
+    #[serde(default)]
+    pub granted_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsRotateWebhookSecretResponse {
+    /// Always `atlas_id_app`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub client_id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub homepage_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<AtlasIdAppsRotateWebhookSecretResponseBranding>,
+    #[serde(default)]
+    pub redirect_uris: Vec<String>,
+    #[serde(default)]
+    pub post_logout_redirect_uris: Vec<String>,
+    #[serde(default)]
+    pub backchannel_logout_uri: Option<String>,
+    #[serde(default)]
+    pub backchannel_logout_session_required: bool,
+    #[serde(default)]
+    pub frontchannel_logout_uri: Option<String>,
+    #[serde(default)]
+    pub frontchannel_logout_session_required: bool,
+    #[serde(default)]
+    pub allowed_scopes: Vec<String>,
+    /// Known values: `confidential`, `public`.
+    #[serde(default)]
+    pub r#type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_prefix: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_by_instance_id: Option<String>,
+    /// The per-app webhook URL, or null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub webhook_events: Vec<String>,
+    /// false once auto-disabled after repeated failures; null without a webhook.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_active: Option<bool>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Returned exactly once.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_secret: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsRotateWebhookSecretResponseBranding {
+    /// Known values: `auto`, `light`, `dark`.
+    #[serde(default)]
+    pub theme: String,
+    #[serde(default)]
+    pub accent_color: Option<String>,
+    #[serde(default)]
+    pub background_color: Option<String>,
+    #[serde(default)]
+    pub privacy_policy_url: Option<String>,
+    #[serde(default)]
+    pub terms_of_service_url: Option<String>,
+    /// The stored design overrides (null = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub design: Option<AtlasDesign>,
+    /// The fully-resolved design every surface renders (defaults ← preset ← overrides): the same
+    /// shape as AtlasDesign with every field present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_design: Option<ResolvedDesign>,
+    #[serde(default)]
+    pub copy: AtlasIdAppsRotateWebhookSecretResponseBrandingCopy,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// A structured sign-in page design: OVERRIDES on top of a preset (every field optional; unset
+/// fields come from the preset, then the defaults). Unknown keys are refused. Colours are
+/// #RRGGBB; images are uploaded design asset ids (dasset_…), never URLs; fonts are ids from GET
+/// /v1/design/catalog. There is no field for raw CSS or HTML.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesign {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<Value>,
+    /// Known values: `minimal`, `atlas`, `glass`, `midnight`, `editorial`, `terminal`, `sunrise`, `forest`, `grape`, `slate`, `split-photo`, `bold`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// Known values: `auto`, `light`, `dark`.
+    #[serde(
+        rename = "colorScheme",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub color_scheme: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub palette: Option<AtlasDesignPalette>,
+    #[serde(
+        rename = "paletteDark",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub palette_dark: Option<AtlasDesignPaletteDark>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub typography: Option<AtlasDesignTypography>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shape: Option<AtlasDesignShape>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elevation: Option<AtlasDesignElevation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<AtlasDesignSpacing>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub card: Option<AtlasDesignCard>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layout: Option<AtlasDesignLayout>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub buttons: Option<AtlasDesignButtons>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inputs: Option<AtlasDesignInputs>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<AtlasDesignBackground>,
+    #[serde(
+        rename = "backgroundDark",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub background_dark: Option<AtlasDesignBackgroundDark>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo: Option<AtlasDesignLogo>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignPalette {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary: Option<String>,
+    #[serde(
+        rename = "primaryInk",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_ink: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub surface: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub muted: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub border: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub danger: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success: Option<String>,
+    #[serde(
+        rename = "inputBackground",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub input_background: Option<String>,
+    #[serde(rename = "inputText", default, skip_serializing_if = "Option::is_none")]
+    pub input_text: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignPaletteDark {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary: Option<String>,
+    #[serde(
+        rename = "primaryInk",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_ink: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub surface: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub muted: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub border: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub danger: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub success: Option<String>,
+    #[serde(
+        rename = "inputBackground",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub input_background: Option<String>,
+    #[serde(rename = "inputText", default, skip_serializing_if = "Option::is_none")]
+    pub input_text: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignTypography {
+    /// Known values: `system`, `system-serif`, `system-mono`, `inter`, `roboto`, `open-sans`, `lato`, `montserrat`, `poppins`, `nunito`, `work-sans`, `dm-sans`, `manrope`, `source-serif`, `merriweather`, `playfair-display`, `jetbrains-mono`, `ibm-plex-mono`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font: Option<String>,
+    /// Known values: `system`, `system-serif`, `system-mono`, `inter`, `roboto`, `open-sans`, `lato`, `montserrat`, `poppins`, `nunito`, `work-sans`, `dm-sans`, `manrope`, `source-serif`, `merriweather`, `playfair-display`, `jetbrains-mono`, `ibm-plex-mono`.
+    #[serde(
+        rename = "headingFont",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub heading_font: Option<String>,
+    #[serde(rename = "baseSize", default, skip_serializing_if = "Option::is_none")]
+    pub base_size: Option<i64>,
+    #[serde(
+        rename = "headingWeight",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub heading_weight: Option<i64>,
+    #[serde(
+        rename = "bodyWeight",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub body_weight: Option<i64>,
+    /// Known values: `none`, `uppercase`.
+    #[serde(
+        rename = "letterCase",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub letter_case: Option<String>,
+    /// Known values: `minor-second`, `major-second`, `minor-third`, `major-third`, `perfect-fourth`, `augmented-fourth`, `perfect-fifth`, `golden`, `minor-seventh`, `octave`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignShape {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radius: Option<i64>,
+    #[serde(
+        rename = "controlRadius",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub control_radius: Option<i64>,
+    #[serde(
+        rename = "borderWidth",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub border_width: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignElevation {
+    /// Known values: `none`, `sm`, `md`, `lg`, `xl`.
+    #[serde(
+        rename = "cardShadow",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub card_shadow: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignSpacing {
+    /// Known values: `compact`, `comfortable`, `spacious`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub density: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignCard {
+    /// Known values: `solid`, `glass`, `outline`, `none`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blur: Option<i64>,
+    /// Known values: `narrow`, `normal`, `wide`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignLayout {
+    /// Known values: `center`, `left`, `right`, `split`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<String>,
+    /// Known values: `left`, `right`.
+    #[serde(
+        rename = "splitImageSide",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub split_image_side: Option<String>,
+    /// Known values: `card`, `page`, `hidden`.
+    #[serde(
+        rename = "logoPlacement",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub logo_placement: Option<String>,
+    /// Known values: `sm`, `md`, `lg`.
+    #[serde(rename = "logoSize", default, skip_serializing_if = "Option::is_none")]
+    pub logo_size: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignButtons {
+    /// Known values: `solid`, `outline`, `soft`, `gradient`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style: Option<String>,
+    /// Known values: `list`, `grid`, `icons`.
+    #[serde(
+        rename = "socialLayout",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub social_layout: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignInputs {
+    /// Known values: `outline`, `filled`, `underline`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub style: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackground {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gradient: Option<AtlasDesignBackgroundGradient>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<AtlasDesignBackgroundImage>,
+    /// Known values: `none`, `dots`, `grid`, `noise`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundGradient {
+    /// Known values: `linear`, `radial`.
+    #[serde(default)]
+    pub r#type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub angle: Option<i64>,
+    #[serde(default)]
+    pub stops: Vec<AtlasDesignBackgroundGradientStopsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundGradientStopsItem {
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub at: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundImage {
+    #[serde(rename = "assetId", default)]
+    pub asset_id: String,
+    /// Known values: `cover`, `contain`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fit: Option<String>,
+    /// Known values: `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overlay: Option<AtlasDesignBackgroundImageOverlay>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blur: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundImageOverlay {
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub opacity: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundDark {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gradient: Option<AtlasDesignBackgroundDarkGradient>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<AtlasDesignBackgroundDarkImage>,
+    /// Known values: `none`, `dots`, `grid`, `noise`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundDarkGradient {
+    /// Known values: `linear`, `radial`.
+    #[serde(default)]
+    pub r#type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub angle: Option<i64>,
+    #[serde(default)]
+    pub stops: Vec<AtlasDesignBackgroundDarkGradientStopsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundDarkGradientStopsItem {
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub at: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundDarkImage {
+    #[serde(rename = "assetId", default)]
+    pub asset_id: String,
+    /// Known values: `cover`, `contain`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fit: Option<String>,
+    /// Known values: `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overlay: Option<AtlasDesignBackgroundDarkImageOverlay>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blur: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignBackgroundDarkImageOverlay {
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub opacity: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasDesignLogo {
+    #[serde(rename = "assetId", default, skip_serializing_if = "Option::is_none")]
+    pub asset_id: Option<String>,
+    #[serde(
+        rename = "darkAssetId",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dark_asset_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The fully-resolved design every surface renders (defaults ← preset ← overrides): the same
+/// shape as AtlasDesign with every field present.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ResolvedDesign {
+    #[serde(default)]
+    pub version: Value,
+    #[serde(default)]
+    pub preset: String,
+    /// Known values: `auto`, `light`, `dark`.
+    #[serde(rename = "colorScheme", default)]
+    pub color_scheme: String,
+    /// Every palette slot, as #rrggbb.
+    #[serde(default)]
+    pub palette: HashMap<String, String>,
+    /// Every palette slot, as #rrggbb.
+    #[serde(rename = "paletteDark", default)]
+    pub palette_dark: HashMap<String, String>,
+    #[serde(default)]
+    pub typography: Map<String, Value>,
+    #[serde(default)]
+    pub shape: Map<String, Value>,
+    #[serde(default)]
+    pub elevation: Map<String, Value>,
+    #[serde(default)]
+    pub spacing: Map<String, Value>,
+    #[serde(default)]
+    pub card: Map<String, Value>,
+    #[serde(default)]
+    pub layout: Map<String, Value>,
+    #[serde(default)]
+    pub buttons: Map<String, Value>,
+    #[serde(default)]
+    pub inputs: Map<String, Value>,
+    #[serde(default)]
+    pub background: Map<String, Value>,
+    #[serde(rename = "backgroundDark", default)]
+    pub background_dark: Map<String, Value>,
+    #[serde(default)]
+    pub logo: Map<String, Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsRotateWebhookSecretResponseBrandingCopy {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_in_title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_in_subtitle: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_up_title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_up_subtitle: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_label: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/platform/atlas_id_publisher`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherGetResponse {
+    /// Always `atlas_id_publisher`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub verified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verified_at: Option<i64>,
+    #[serde(default)]
+    pub skip_consent: bool,
+    #[serde(default)]
+    pub verification: AtlasIdPublisherGetResponseVerification,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_checked_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherGetResponseVerification {
+    #[serde(default)]
+    pub record_name: String,
+    /// Always `TXT`.
+    #[serde(default)]
+    pub record_type: String,
+    #[serde(default)]
+    pub record_value: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `PUT /v1/platform/atlas_id_publisher`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherSetResponse {
+    /// Always `atlas_id_publisher`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub verified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verified_at: Option<i64>,
+    #[serde(default)]
+    pub skip_consent: bool,
+    #[serde(default)]
+    pub verification: AtlasIdPublisherSetResponseVerification,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_checked_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherSetResponseVerification {
+    #[serde(default)]
+    pub record_name: String,
+    /// Always `TXT`.
+    #[serde(default)]
+    pub record_type: String,
+    #[serde(default)]
+    pub record_value: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `PATCH /v1/platform/atlas_id_publisher`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherUpdateResponse {
+    /// Always `atlas_id_publisher`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub verified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verified_at: Option<i64>,
+    #[serde(default)]
+    pub skip_consent: bool,
+    #[serde(default)]
+    pub verification: AtlasIdPublisherUpdateResponseVerification,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_checked_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherUpdateResponseVerification {
+    #[serde(default)]
+    pub record_name: String,
+    /// Always `TXT`.
+    #[serde(default)]
+    pub record_type: String,
+    #[serde(default)]
+    pub record_value: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/platform/atlas_id_publisher`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherDeleteResponse {
+    /// Always `atlas_id_publisher`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/platform/atlas_id_publisher/verify`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherVerifyResponse {
+    /// Always `atlas_id_publisher`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub verified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verified_at: Option<i64>,
+    #[serde(default)]
+    pub skip_consent: bool,
+    #[serde(default)]
+    pub verification: AtlasIdPublisherVerifyResponseVerification,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_checked_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_found: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherVerifyResponseVerification {
+    #[serde(default)]
+    pub record_name: String,
+    /// Always `TXT`.
+    #[serde(default)]
+    pub record_type: String,
+    #[serde(default)]
+    pub record_value: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/platform/config_changelog`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PlatformConfigChangelogResponse {
+    /// Always `config_changelog`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub data: Vec<ConfigChangelogEntry>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -18660,12 +21377,17 @@ pub struct Session {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct UsersRevokeSessionsResponse {
+    /// Always `user`.
     #[serde(default)]
     pub object: String,
     #[serde(default)]
     pub id: String,
+    /// How many sessions were revoked.
     #[serde(default)]
     pub sessions_revoked: i64,
+    /// How many OAuth grants were revoked. Present only when revoke_grants (or all) was true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grants_revoked: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

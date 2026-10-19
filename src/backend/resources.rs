@@ -95,6 +95,11 @@ pub struct User {
     pub created_at: Option<i64>,
     #[serde(default)]
     pub updated_at: Option<i64>,
+    /// Strictly increases with every change to the user; webhook payloads carry
+    /// the same value. Apply an update only if its version is higher than the
+    /// one you hold.
+    #[serde(default)]
+    pub version: Option<i64>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -1090,6 +1095,9 @@ pub struct CustomDomain {
     pub status: String,
     #[serde(default)]
     pub live: bool,
+    /// DNS automation (`provider`, `token_set`; the token is never returned).
+    #[serde(default)]
+    pub dns: Option<Value>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }

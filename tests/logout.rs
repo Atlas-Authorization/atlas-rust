@@ -12,8 +12,8 @@ use rsa::{RsaPrivateKey, RsaPublicKey};
 use serde_json::{json, Value};
 
 use atlasauth::{
-    AtlasBackend, Jwks, LogoutTokenReplayCache, VerifyError, BACKCHANNEL_LOGOUT_EVENT,
-    LOGOUT_TOKEN_TYPE,
+    AtlasBackend, BoxFuture, Jwks, JwksSource, LogoutTokenReplayCache, TransportError, VerifyError,
+    BACKCHANNEL_LOGOUT_EVENT, LOGOUT_TOKEN_TYPE,
 };
 
 const ISSUER: &str = "https://atlasauth.net";
@@ -219,4 +219,35 @@ fn replay_cache_refuses_a_repeat_until_it_expires() {
     assert!(cache.check_and_remember("c", NOW + 3));
     // After the TTL the id is forgotten.
     assert!(cache.check_and_remember("b", NOW + 500));
+}
+
+/// A JWKS endpoint that is down.
+struct Unreachable;
+
+impl JwksSource for Unreachable {
+    fn fetch<'a>(&'a self, _url: &'a str) -> BoxFuture<'a, Result<Jwks, TransportError>> {
+        Box::pin(async { Err(TransportError::new("connection refused")) })
+    }
+}
+
+#[tokio::test]
+async fn an_unreachable_jwks_is_no_keys_and_retryable() {
+    let atlas = AtlasBackend::builder(ISSUER)
+        .jwks_url("https://keys.example.com/jwks")
+        .jwks_source(Arc::new(Unreachable))
+        .clock(Arc::new(|| (NOW as u64) * 1000))
+        .build()
+        .unwrap();
+    let err = atlas.verify_logout_token(&sign(&claims()), CLIENT_ID).await.unwrap_err();
+    assert_eq!(err, VerifyError::NoKeys);
+    assert!(err.is_retryable());
+}
+
+#[tokio::test]
+async fn a_bad_token_is_not_retryable() {
+    let mut c = claims();
+    c["aud"] = json!("someone-else");
+    let err = verifier().verify_logout_token(&sign(&c), CLIENT_ID).await.unwrap_err();
+    assert!(!err.is_retryable());
+    assert!(!VerifyError::Malformed.is_retryable());
 }

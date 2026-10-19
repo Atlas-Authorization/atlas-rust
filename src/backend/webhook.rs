@@ -133,6 +133,17 @@ impl Webhook {
         raw: &[u8],
         headers: &H,
     ) -> Result<Event, WebhookError> {
+        self.verify_delivery(raw, headers).map(|d| d.event)
+    }
+
+    /// Verify a delivery and return the envelope together with the signed
+    /// `atlas-id` (`delivery_id`, the same on every retry of one event: the
+    /// key to deduplicate on) and `atlas-timestamp` (epoch ms of this attempt).
+    pub fn verify_delivery<H: WebhookHeaders + ?Sized>(
+        &self,
+        raw: &[u8],
+        headers: &H,
+    ) -> Result<VerifiedDelivery, WebhookError> {
         let id = headers.get_header(HEADER_ID).ok_or(WebhookError::MissingHeaders)?;
         let ts_raw = headers
             .get_header(HEADER_TIMESTAMP)
@@ -169,8 +180,24 @@ impl Webhook {
         mac.verify_slice(&provided_mac)
             .map_err(|_| WebhookError::SignatureMismatch)?;
 
-        parse_event(raw).ok_or(WebhookError::MalformedBody)
+        let event = parse_event(raw).ok_or(WebhookError::MalformedBody)?;
+        Ok(VerifiedDelivery {
+            event,
+            delivery_id: id.to_string(),
+            timestamp,
+        })
     }
+}
+
+/// A verified delivery: the envelope plus the signed headers that identify it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VerifiedDelivery {
+    pub event: Event,
+    /// The signed `atlas-id` header. Stable across retries of one event, so
+    /// store it to drop a delivery you have already handled.
+    pub delivery_id: String,
+    /// The signed `atlas-timestamp` header (epoch milliseconds) of this attempt.
+    pub timestamp: i64,
 }
 
 /// A verified event envelope: `{ id, type, timestamp, instance_id, data }`.

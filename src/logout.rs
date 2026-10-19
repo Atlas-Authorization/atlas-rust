@@ -16,6 +16,7 @@ use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde_json::Value;
 
 use crate::error::VerifyError;
+use crate::jwks::FetchOutcome;
 use crate::verify::{AtlasBackend, CLOCK_SKEW_SECONDS};
 
 /// The `events` member a logout token must carry.
@@ -48,13 +49,16 @@ impl AtlasBackend {
     /// in with Atlas apps, `https://atlasauth.net`; for your instance's own
     /// OAuth clients, your instance issuer).
     ///
-    /// Every failure is a [`VerifyError`] (`Malformed`, `Invalid`, or `NoKeys`);
-    /// answer it with `400`.
+    /// Every failure is a [`VerifyError`] (`Malformed`, `Invalid`, or `NoKeys`).
+    /// Answer `503` with `Retry-After` when [`VerifyError::is_retryable`] is
+    /// true (the issuer's keys could not be fetched; Atlas retries), and `400`
+    /// otherwise (Atlas never retries a `400`).
     ///
     /// ```no_run
     /// # async fn demo(atlas: &atlasauth::AtlasBackend, form_logout_token: &str) {
     /// match atlas.verify_logout_token(form_logout_token, "my_client_id").await {
     ///     Ok(claims) => { /* end sessions by claims.sid or claims.sub; reply 200 */ }
+    ///     Err(e) if e.is_retryable() => { /* reply 503 + Retry-After */ }
     ///     Err(_) => { /* reply 400 */ }
     /// }
     /// # }
@@ -79,6 +83,14 @@ impl AtlasBackend {
             Some(s) if !s.keys.is_empty() => s,
             _ => return Err(VerifyError::NoKeys),
         };
+        // A key Atlas just rotated to, whose refetch failed: temporary.
+        if let Some(want) = kid {
+            if self.jwks.last_outcome() == FetchOutcome::Failed
+                && !set.keys.iter().any(|k| k.kid.as_deref() == Some(want))
+            {
+                return Err(VerifyError::NoKeys);
+            }
+        }
 
         // Signature + issuer here; time and the logout-specific claims below,
         // against this verifier's clock.

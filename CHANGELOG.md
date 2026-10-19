@@ -2,6 +2,30 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.12.0
+
+### Added
+- **Back-channel logout, retryable failures.** `VerifyError::is_retryable()` is true for `NoKeys`: the issuer's keys could not be fetched (a network error, a JWKS outage, or a just-rotated key whose refetch failed). Answer `503` with `Retry-After` then, so Atlas retries the delivery, and `400` otherwise. A logout token whose `kid` is unknown after a failed JWKS refetch is now `NoKeys` (was `Invalid`).
+- `Webhook::verify_delivery(raw, headers)` returns `VerifiedDelivery { event, delivery_id, timestamp }`:
+  the envelope plus the signed `atlas-id` (stable across retries of one event; deduplicate on it) and
+  `atlas-timestamp` (epoch ms). `Webhook::verify` is unchanged.
+- **Full API coverage again.** Every Backend API and Platform API operation in the current public API has a
+  method. New: `instance().move_origin` (domain moves), `instance().connections`,
+  `instance().get_ / set_ / delete_chatly_integration` and `..._forumulate_integration`;
+  `logout_notify_endpoints()` (`list`, `create`, `get`, `update`, `delete`, `list_deliveries`);
+  `messaging_providers().get_ / create_ / verify_ / delete_managed_email`;
+  `oauth_clients().list_backchannel_deliveries` / `test_backchannel_logout`; on `platform().atlas_id_apps()`:
+  `list_backchannel_deliveries`, `test_backchannel_logout`, `preflight`, `find_users`, `revoke_grant`,
+  `move_origin`, `rotate_webhook_secret`; `platform().atlas_id_publisher()` (`get`, `set`, `update`,
+  `delete`, `verify`) and `platform().config_changelog`. Request and response types are in `types`.
+- **More fields.** `User::version`; `CookieConsent::culture` and `declared_cookies` (`DeclaredCookie`);
+  `SetCookieConsentBody::culture`; `Preflight::sdk_versions_seen` (`SdkVersionSeen`, `SdkAdvisory`);
+  `WebhookDelivery::error` and `location`; `WebhookEndpointList::event_catalog` and `event_audiences`;
+  `CustomDomain::dns`; `MessagingProviders::managed_email`; `AtlasIdApp::webhook_url`, `webhook_events`,
+  `webhook_active`, `webhook_secret`; `UpdateAtlasIdAppBody::webhook_url`. In `types`: `BrandingResolved`
+  gains every writable branding field plus the derived values, `ConfigChangelogEntry::target`,
+  `types::User::version` and `UsersRevokeSessionsResponse::grants_revoked`.
+
 ## 0.11.0
 
 ### Added
