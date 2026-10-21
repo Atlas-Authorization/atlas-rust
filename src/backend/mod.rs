@@ -50,13 +50,14 @@ pub use instance::{
     OAuthProviders, PlivoConfig, Preflight, PreflightFinding, ResendConfig, SesConfig,
     SetCookieConsentBody, SinchConfig, SmsProviderConfig, SmtpConfig, TelnyxConfig, TwilioConfig,
     UpdateWebhookEndpointBody, UpsertOAuthProviderBody, VonageConfig, WalletSettings, WebhookDelivery,
-    WebhookDeliveryReceipt, WebhookEndpoint, WebhookEndpointList, WebhookEndpoints, WebhookSecret,
+    RotateWebhookSecretBody, WebhookDeliveryReceipt, WebhookEndpoint, WebhookEndpointList, WebhookEndpoints,
+    WebhookSecret,
 };
 pub use pagination::{collect, CursorPage, CursorParams, Query};
 pub use platform_api::{
     AtlasIdApp, AtlasIdAppBranding, AtlasIdAppBrandingInput, AtlasIdAppCopy, AtlasIdAppList,
     AtlasIdApps, AtlasIdPublisherApi, CreateAtlasIdAppBody, CreatePlatformAppBody, PlatformApi, PlatformApp, PlatformApps,
-    UpdateAtlasIdAppBody, UpdatePlatformAppBody,
+    RotateAtlasIdAppSecretBody, RotatePlatformSecretBody, UpdateAtlasIdAppBody, UpdatePlatformAppBody,
 };
 pub use machines::{
     CreateEnrolmentTokenBody, CreateMachineBody, EnrolMachineBody, EnrolledMachine, EnrolmentToken,

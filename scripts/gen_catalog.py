@@ -346,6 +346,9 @@ OVR = {
     ('GET', '/v1/messaging_providers/email/development'): 'get_development_email',
     ('POST', '/v1/messaging_providers/email/development'): 'enable_development_email',
     ('DELETE', '/v1/messaging_providers/email/development'): 'disable_development_email',
+    ('GET', '/v1/instance/proxy_secret'): 'get_proxy_secret',
+    ('POST', '/v1/instance/proxy_secret'): 'create_proxy_secret',
+    ('DELETE', '/v1/instance/proxy_secret'): 'delete_proxy_secret',
     ('GET', '/v1/oauth_clients/{id}/backchannel_deliveries'): 'list_backchannel_deliveries',
     ('POST', '/v1/oauth_clients/{id}/backchannel_logout/test'): 'test_backchannel_logout',
     ('GET', '/v1/platform/atlas_id_apps/{id}/backchannel_deliveries'): 'list_backchannel_deliveries',
@@ -832,7 +835,10 @@ for p, pops in sorted(d['paths'].items()):
 # Operations that gained a request body after release: the method keeps its
 # bodyless signature (sending the default body) and `<name>_with` takes the body,
 # so existing callers compile unchanged.
-BODY_ADDED = {('POST', '/v1/oauth_clients/{id}/rotate_secret')}
+BODY_ADDED = {
+    ('POST', '/v1/oauth_clients/{id}/rotate_secret'),
+    ('POST', '/v1/platform/atlas_id_apps/{id}/webhook/rotate_secret'),
+}
 for op in ops:
     op['fn'] = op['name'] + '_with' if (op['M'], op['p']) in BODY_ADDED else op['name']
 

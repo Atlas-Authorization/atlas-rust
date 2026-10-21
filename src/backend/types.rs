@@ -4429,6 +4429,45 @@ impl OriginMoveRequest {
     }
 }
 
+/// The request body of `POST /v1/instance/proxy_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceCreateProxySecretBody {
+    /// On rotation: how long the replaced secret keeps working. Default 86400; 0 = stop now.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub overlap_seconds: Option<Option<i64>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceCreateProxySecretBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `overlap_seconds`.
+    pub fn with_overlap_seconds(mut self, v: impl Into<i64>) -> Self {
+        self.overlap_seconds = Some(Some(v.into()));
+        self
+    }
+    /// Send `overlap_seconds: null` to clear it.
+    pub fn clear_overlap_seconds(mut self) -> Self {
+        self.overlap_seconds = Some(None);
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `PATCH /v1/instance/security`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -7952,6 +7991,41 @@ impl PermissionsUpdateBody {
     /// Set `key`.
     pub fn with_key(mut self, v: impl Into<String>) -> Self {
         self.key = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsRotateWebhookSecretBody {
+    /// How long the previous secret keeps signing deliveries (as a second atlas-signature entry),
+    /// in seconds. Default 0: the old secret stops signing at once. At most 604800 (7 days). Set an
+    /// overlap only once every receiver verifies with an SDK that accepts several signatures
+    /// (@atlasauth/backend 0.9.1+, Python/Ruby/PHP/Go 0.7.0+, Java 1.5.0+, .NET 1.6.0+, Rust
+    /// 0.13.0+, Elixir 0.4.0+) or a verifier that splits the header on spaces: a verifier that
+    /// splits it on ',' rejects every delivery for the whole overlap, even with the new secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overlap_seconds: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AtlasIdAppsRotateWebhookSecretBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `overlap_seconds`.
+    pub fn with_overlap_seconds(mut self, v: impl Into<i64>) -> Self {
+        self.overlap_seconds = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -15139,6 +15213,91 @@ pub struct OriginMoveProblemsItem {
     pub extra: Map<String, Value>,
 }
 
+/// The `ProxySecret` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ProxySecret {
+    /// Always `proxy_secret`.
+    #[serde(default)]
+    pub object: String,
+    /// Whether a trusted reverse proxy secret is set.
+    #[serde(default)]
+    pub set: bool,
+    /// When the current secret was created (ms since epoch).
+    #[serde(default)]
+    pub created_at: Option<i64>,
+    /// After a rotation: when the replaced secret stops working. Null when none is still valid.
+    #[serde(default)]
+    pub previous_expires_at: Option<i64>,
+    /// The header your proxy sends the secret in.
+    ///
+    /// Always `X-Atlas-Proxy-Secret`.
+    #[serde(default)]
+    pub secret_header: String,
+    /// The header your proxy sends the browser's IP in.
+    ///
+    /// Always `X-Atlas-Client-IP`.
+    #[serde(default)]
+    pub client_ip_header: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ProxySecretCreated` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ProxySecretCreated {
+    /// Always `proxy_secret`.
+    #[serde(default)]
+    pub object: String,
+    /// Whether a trusted reverse proxy secret is set.
+    #[serde(default)]
+    pub set: bool,
+    /// When the current secret was created (ms since epoch).
+    #[serde(default)]
+    pub created_at: Option<i64>,
+    /// After a rotation: when the replaced secret stops working. Null when none is still valid.
+    #[serde(default)]
+    pub previous_expires_at: Option<i64>,
+    /// The header your proxy sends the secret in.
+    ///
+    /// Always `X-Atlas-Proxy-Secret`.
+    #[serde(default)]
+    pub secret_header: String,
+    /// The header your proxy sends the browser's IP in.
+    ///
+    /// Always `X-Atlas-Client-IP`.
+    #[serde(default)]
+    pub client_ip_header: String,
+    /// The secret (aps_…). Shown only in this response.
+    #[serde(default)]
+    pub secret: String,
+    /// true when an existing secret was replaced.
+    #[serde(default)]
+    pub rotated: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/instance/proxy_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteProxySecretResponse {
+    /// Always `proxy_secret`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The `InstanceSecurity` object.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -16526,8 +16685,9 @@ pub struct ManagedEmail {
     /// Your email provider (mode managed_domain) that holds the API key.
     #[serde(default)]
     pub provider_id: Option<String>,
-    /// Brevo only, on create: whether the bounce / complaint webhook was registered on your
-    /// account.
+    /// On create (Brevo and Resend) and on verify (Resend): whether the bounce / complaint webhook
+    /// was registered on your account. not_registered leaves sending unaffected; the counters in
+    /// usage then stay 0.
     ///
     /// Known values: `registered`, `not_registered`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -18894,6 +19054,17 @@ pub struct AtlasIdAppsRotateWebhookSecretResponse {
     /// false once auto-disabled after repeated failures; null without a webhook.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_active: Option<bool>,
+    /// While a webhook secret rotation overlap is open: when the previous secret stops signing
+    /// deliveries (epoch ms); else null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_previous_secret_expires_at: Option<i64>,
+    /// After a client secret rotation with overlap: when the previous secret stops working (epoch
+    /// ms); else null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_secret_expires_at: Option<i64>,
+    /// When the current client secret was issued (epoch ms); null for a public app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_issued_at: Option<i64>,
     #[serde(default)]
     pub created_at: i64,
     #[serde(default)]
@@ -18901,6 +19072,9 @@ pub struct AtlasIdAppsRotateWebhookSecretResponse {
     /// Returned exactly once.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_secret: Option<String>,
+    /// The overlap applied, in seconds (echoed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overlap_seconds: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.

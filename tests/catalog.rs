@@ -763,6 +763,30 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.instance().get_proxy_secret().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/proxy_secret".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .create_proxy_secret(&types::InstanceCreateProxySecretBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/proxy_secret".into(),
+        B::Obj,
+        false,
+    ));
+    c.instance().delete_proxy_secret().await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/proxy_secret".into(),
+        B::None,
+        false,
+    ));
     c.instance().get_security().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1810,13 +1834,16 @@ async fn every_catalog_operation_hits_its_route() {
     ));
     c.platform()
         .atlas_id_apps()
-        .rotate_webhook_secret("p0_id")
+        .rotate_webhook_secret_with(
+            "p0_id",
+            &types::AtlasIdAppsRotateWebhookSecretBody::default(),
+        )
         .await
         .unwrap();
     expected.push((
         HttpMethod::Post,
         "/v1/platform/atlas_id_apps/p0_id/webhook/rotate_secret".into(),
-        B::None,
+        B::Obj,
         false,
     ));
     c.platform().atlas_id_publisher().get().await.unwrap();
@@ -2838,4 +2865,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 324 operations, 324 typed; 324 calls.
+// 327 operations, 327 typed; 327 calls.

@@ -989,6 +989,11 @@ pub struct WebhookEndpoint {
     /// When Atlas disabled it after repeated failures (epoch ms).
     #[serde(default)]
     pub disabled_at: Option<i64>,
+    /// While a secret rotation overlap is open: when the previous secret stops
+    /// signing deliveries (epoch ms). Until then every delivery carries two
+    /// signatures.
+    #[serde(default)]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(default)]
     pub created_at: Option<i64>,
     /// The signing secret — present only on create.
@@ -1098,8 +1103,38 @@ pub struct WebhookSecret {
     pub secret: String,
     #[serde(default)]
     pub warning: Option<String>,
+    /// On a rotation: the overlap applied, in seconds.
+    #[serde(default)]
+    pub overlap_seconds: Option<u64>,
+    /// On a rotation: when the previous secret stops signing deliveries
+    /// (epoch ms), or `None` when it already has.
+    #[serde(default)]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// The body of `POST /v1/webhook_endpoints/:id/rotate_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct RotateWebhookSecretBody {
+    /// How long the previous secret keeps signing deliveries (as a second
+    /// `atlas-signature` entry), in seconds. `None` or `0`: it stops at once
+    /// (the default); at most 604800 (7 days). Set it only once every receiver
+    /// verifies with a verifier that accepts several signatures (0.13.0+).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overlap_seconds: Option<u64>,
+}
+
+impl RotateWebhookSecretBody {
+    /// A body with no overlap set (the server default applies).
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `overlap_seconds` (`0` stops the previous secret now).
+    pub fn with_overlap_seconds(mut self, seconds: u64) -> Self {
+        self.overlap_seconds = Some(seconds);
+        self
+    }
 }
 
 /// The `/v1/webhook_endpoints` namespace. Reached via
@@ -1151,6 +1186,14 @@ impl WebhookEndpoints<'_> {
     pub async fn rotate_secret(&self, id: &str) -> Result<WebhookSecret, BackendError> {
         let path = format!("/v1/webhook_endpoints/{}/rotate_secret", seg(id));
         self.client.request(HttpMethod::Post, &path, &[], None, None).await
+    }
+    /// `POST /v1/webhook_endpoints/:id/rotate_secret` with a chosen overlap:
+    /// for `overlap_seconds` every delivery is signed with both secrets, so a
+    /// verifier holding either passes. `previous_secret_expires_at` in the
+    /// response says when the old one stops.
+    pub async fn rotate_secret_with(&self, id: &str, body: &RotateWebhookSecretBody) -> Result<WebhookSecret, BackendError> {
+        let path = format!("/v1/webhook_endpoints/{}/rotate_secret", seg(id));
+        self.client.request(HttpMethod::Post, &path, &[], body_of(body)?, None).await
     }
     /// `POST /v1/webhook_endpoints/:id/test` — send a `webhook.test` event.
     pub async fn test(&self, id: &str) -> Result<WebhookDeliveryReceipt, BackendError> {

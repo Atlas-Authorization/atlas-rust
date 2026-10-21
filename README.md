@@ -501,6 +501,38 @@ atlas.messaging_providers().enable_development_email(&dev).await?;
 (`v1,<sig> v1,<sig>`). While an endpoint secret rotates, Atlas may sign each delivery with the old and the new
 secret; the delivery verifies when any one signature matches.
 
+### Webhook rotation overlaps and the trusted reverse proxy
+
+A webhook rotation stops the old secret at once by default. Pass an overlap (at most 7 days) to keep it signing
+each delivery next to the new one while you deploy; choose one only once every receiver accepts several
+signatures. If a reverse proxy serves the Frontend API from your own origin, give it a proxy secret: it sends the
+secret in `X-Atlas-Proxy-Secret` and the browser's IP in `X-Atlas-Client-IP`, and Atlas uses that IP for rate
+limits, lockout, risk signals and audit logs.
+
+```rust,no_run
+# async fn demo(atlas: &atlasauth::backend::BackendClient) -> Result<(), atlasauth::backend::BackendError> {
+use atlasauth::backend::{types, RotateWebhookSecretBody};
+let rotated = atlas
+    .webhook_endpoints()
+    .rotate_secret_with("whep_123", &RotateWebhookSecretBody::new().with_overlap_seconds(3600))
+    .await?;
+println!("old secret signs until {:?}", rotated.previous_secret_expires_at);
+
+let created = atlas.instance().create_proxy_secret(&types::InstanceCreateProxySecretBody::new()).await?;
+println!("store this in your proxy, shown once: {}", created.secret);
+let state = atlas.instance().get_proxy_secret().await?; // set, created_at, previous_expires_at
+let _ = state.set;
+// Rotate: the old secret keeps working for an hour.
+atlas.instance().create_proxy_secret(&types::InstanceCreateProxySecretBody::new().with_overlap_seconds(3600)).await?;
+atlas.instance().delete_proxy_secret().await?;
+# Ok(()) }
+```
+
+Platform rotations take an overlap too: `platform().apps().rotate_instance_secret_with(..,
+&RotatePlatformSecretBody::new().with_overlap_seconds(0), ..)` (default 72 hours),
+`platform().atlas_id_apps().rotate_secret_with(..)` (default 24 hours) and `rotate_webhook_secret_with(..)`
+(default 0).
+
 ### Platform API: Sign in with Atlas apps
 
 Build the client with a platform key (`psk_…`) and use `platform()`:

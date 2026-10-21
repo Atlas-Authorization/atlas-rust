@@ -167,8 +167,65 @@ pub struct AtlasIdApp {
     /// The per-app webhook signing secret, returned exactly once (first set, or rotated).
     #[serde(default)]
     pub webhook_secret: Option<String>,
+    /// While a webhook secret rotation overlap is open: when the previous
+    /// secret stops signing deliveries (epoch ms).
+    #[serde(default)]
+    pub webhook_previous_secret_expires_at: Option<i64>,
+    /// After a client secret rotation with an overlap: when the previous
+    /// secret stops working (epoch ms).
+    #[serde(default)]
+    pub previous_secret_expires_at: Option<i64>,
+    /// When the current client secret was issued (epoch ms); `None` for a
+    /// public app.
+    #[serde(default)]
+    pub secret_issued_at: Option<i64>,
+    /// On a rotation: the overlap applied, in seconds.
+    #[serde(default)]
+    pub overlap_seconds: Option<u64>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// The body of `POST /v1/platform/atlas_id_apps/:id/rotate_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct RotateAtlasIdAppSecretBody {
+    /// How long the previous client secret keeps working, in seconds. `None`
+    /// uses the default, 86400 (24 hours); `0` revokes it now; at most 604800.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overlap_seconds: Option<u64>,
+}
+
+impl RotateAtlasIdAppSecretBody {
+    /// A body with no overlap set (the server default applies).
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `overlap_seconds` (`0` stops the previous secret now).
+    pub fn with_overlap_seconds(mut self, seconds: u64) -> Self {
+        self.overlap_seconds = Some(seconds);
+        self
+    }
+}
+
+/// The body of `POST /v1/platform/apps/:id/instances/:instance_id/rotate_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct RotatePlatformSecretBody {
+    /// How long the prior keys keep working, in seconds. `None` uses the
+    /// default, 259200 (72 hours); `0` revokes them now; at most 604800.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overlap_seconds: Option<u64>,
+}
+
+impl RotatePlatformSecretBody {
+    /// A body with no overlap set (the server default applies).
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `overlap_seconds` (`0` stops the previous secret now).
+    pub fn with_overlap_seconds(mut self, seconds: u64) -> Self {
+        self.overlap_seconds = Some(seconds);
+        self
+    }
 }
 
 /// The app list, with the issuer and discovery URL your OIDC client uses.
@@ -293,6 +350,13 @@ impl AtlasIdApps<'_> {
     pub async fn rotate_secret(&self, id: &str) -> Result<AtlasIdApp, BackendError> {
         let path = format!("/v1/platform/atlas_id_apps/{}/rotate_secret", seg(id));
         self.client.request(HttpMethod::Post, &path, &[], None, None).await
+    }
+    /// `POST /v1/platform/atlas_id_apps/:id/rotate_secret` with a chosen
+    /// overlap (`0` revokes the previous secret now);
+    /// `previous_secret_expires_at` says when it stops.
+    pub async fn rotate_secret_with(&self, id: &str, body: &RotateAtlasIdAppSecretBody) -> Result<AtlasIdApp, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/rotate_secret", seg(id));
+        self.client.request(HttpMethod::Post, &path, &[], body_of(body)?, None).await
     }
     /// `POST /v1/platform/atlas_id_apps/design/preview` — preview an app design
     /// without saving it (includes the rendered page HTML).
@@ -469,7 +533,9 @@ impl PlatformApps<'_> {
         let path = format!("/v1/platform/apps/{}/instances", seg(id));
         self.client.request(HttpMethod::Get, &path, &[], None, None).await
     }
-    /// `POST /v1/platform/apps/:id/instances/:instance_id/rotate_secret`.
+    /// `POST /v1/platform/apps/:id/instances/:instance_id/rotate_secret` — the prior
+    /// keys stay valid for the default overlap (72 hours); see
+    /// [`rotate_instance_secret_with`](Self::rotate_instance_secret_with).
     pub async fn rotate_instance_secret(
         &self,
         id: &str,
@@ -482,6 +548,26 @@ impl PlatformApps<'_> {
             seg(instance_id)
         );
         self.client.request(HttpMethod::Post, &path, &[], None, idempotency_key).await
+    }
+    /// `POST /v1/platform/apps/:id/instances/:instance_id/rotate_secret` — the prior
+    /// keys stay valid for the default overlap (72 hours); see
+    /// [`rotate_instance_secret_with`](Self::rotate_instance_secret_with).with a
+    /// chosen overlap: the prior keys stay valid for `overlap_seconds` (`0`
+    /// revokes them now). The response carries `app_id`, `instance_id`,
+    /// `overlap_seconds` and `previous_keys_expire_at`.
+    pub async fn rotate_instance_secret_with(
+        &self,
+        id: &str,
+        instance_id: &str,
+        body: &RotatePlatformSecretBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!(
+            "/v1/platform/apps/{}/instances/{}/rotate_secret",
+            seg(id),
+            seg(instance_id)
+        );
+        self.client.request(HttpMethod::Post, &path, &[], body_of(body)?, idempotency_key).await
     }
     /// `POST /v1/platform/apps/:id/rotate_secret` — mint a new secret key while
     /// prior keys keep working for `overlap_seconds`.

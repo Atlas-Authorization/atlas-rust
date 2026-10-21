@@ -1850,6 +1850,62 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/proxy_secret` — Whether this instance has a trusted reverse proxy secret,
+    /// when it was created, and until when the previous one still works after a rotation. Never
+    /// returns the secret.
+    ///
+    /// Returns [`types::ProxySecret`].
+    pub async fn get_proxy_secret(&self) -> Result<types::ProxySecret, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/proxy_secret",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/proxy_secret` — Create (201) or rotate (200) the trusted reverse proxy
+    /// secret. The secret is returned once; Atlas stores only a hash. A Frontend API request
+    /// (`/v1/client*`, `/v1/appearance`, `/v1/oauth/*`) that carries it in `X-Atlas-Proxy-Secret`
+    /// may name the browser's IP in `X-Atlas-Client-IP` (IPv4 or IPv6); Atlas then uses that IP for
+    /// rate limits, lockout, risk signals, geo, audit logs and session metadata. Without a valid
+    /// secret both headers are ignored. On rotation the replaced secret keeps working for
+    /// `overlap_seconds` (default 86400, 0 = stop now, at most 604800).
+    ///
+    /// Takes [`types::InstanceCreateProxySecretBody`]. Returns [`types::ProxySecretCreated`].
+    pub async fn create_proxy_secret(
+        &self,
+        body: &types::InstanceCreateProxySecretBody,
+    ) -> Result<types::ProxySecretCreated, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/proxy_secret",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/proxy_secret` — Remove the trusted reverse proxy secret (current and
+    /// previous). X-Atlas-Client-IP is ignored again from then on. 404 when none is set.
+    ///
+    /// Returns [`types::InstanceDeleteProxySecretResponse`].
+    pub async fn delete_proxy_secret(
+        &self,
+    ) -> Result<types::InstanceDeleteProxySecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/proxy_secret",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/instance/security` — Read the instance kill switches (per-flow on/off) and the
     /// customer IP allowlist.
     ///
@@ -2663,11 +2719,11 @@ impl MessagingProvidersApi<'_> {
     /// Brevo). Until the domain is verified email delivery stays unavailable and preflight warns
     /// `managed_email_unverified`. Pass `dns: {provider: "cloudflare", api_token}` and Atlas writes
     /// the records itself (DNS-only; the token is write-only) and verifies in the same call when
-    /// DNS propagates in time. On Brevo, Atlas also registers a bounce / complaint webhook on your
-    /// account (`feedback_webhook`). No Atlas sending limits apply (`limits: null`): the account
-    /// and its limits are yours. Atlas never uses an email account of its own. 409 when the domain
-    /// is set up on another Atlas instance; 502 MANAGED_EMAIL_PROVIDER_ERROR when your provider
-    /// refuses.
+    /// DNS propagates in time. Atlas also registers a bounce / complaint webhook on your Resend or
+    /// Brevo account, for this instance only (`feedback_webhook`); the counts appear in `usage`. No
+    /// Atlas sending limits apply (`limits: null`): the account and its limits are yours. Atlas
+    /// never uses an email account of its own. 409 when the domain is set up on another Atlas
+    /// instance; 502 MANAGED_EMAIL_PROVIDER_ERROR when your provider refuses.
     ///
     /// Takes [`types::MessagingProvidersCreateManagedEmailBody`]. Returns [`types::ManagedEmail`].
     pub async fn create_managed_email(
@@ -2685,10 +2741,11 @@ impl MessagingProvidersApi<'_> {
             .await
     }
     /// `DELETE /v1/messaging_providers/email/managed` — Stop using managed email: removes the
-    /// domain from your provider account and the email provider (managed_domain mode) that held
-    /// your key (`provider_removed`). DNS records are left in place. Refused with 409
-    /// EMAIL_PROVIDER_IN_USE while it is the only way the instance can send email and
-    /// email-dependent features are on; pass force=true to remove it anyway.
+    /// domain from your provider account (and, on Resend, the bounce / complaint webhook Atlas
+    /// registered there) and the email provider (managed_domain mode) that held your key
+    /// (`provider_removed`). DNS records are left in place. Refused with 409 EMAIL_PROVIDER_IN_USE
+    /// while it is the only way the instance can send email and email-dependent features are on;
+    /// pass force=true to remove it anyway.
     ///
     /// Query parameters: `force`.
     ///
@@ -2708,8 +2765,9 @@ impl MessagingProvidersApi<'_> {
             .await
     }
     /// `POST /v1/messaging_providers/email/managed/verify` — Re-check the managed sending domain's
-    /// DNS records now (and, with DNS automation, re-write any that are missing). Returns the
-    /// managed_email object; `verified` is true once email can be sent.
+    /// DNS records now (and, with DNS automation, re-write any that are missing). On Resend it also
+    /// re-registers the bounce / complaint webhook if it is missing (`feedback_webhook`). Returns
+    /// the managed_email object; `verified` is true once email can be sent.
     ///
     /// Returns [`types::ManagedEmail`].
     pub async fn verify_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
@@ -3903,19 +3961,36 @@ impl AtlasIdApps<'_> {
     }
     /// `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret` — Rotate the app's webhook
     /// signing secret. The new `webhook_secret` is returned once and signs every delivery from now
-    /// on. 409 when the app has no webhook.
+    /// on. By default (`overlap_seconds` 0) the previous secret stops signing at once. With
+    /// `overlap_seconds` (at most 604800 = 7 days) it signs each delivery too, as a second `v1,`
+    /// entry in `atlas-signature` after the new one, so a verifier holding either secret passes.
+    /// Set an overlap only once every receiver verifies with an SDK that accepts several signatures
+    /// (@atlasauth/backend 0.9.1+, Python/Ruby/PHP/Go 0.7.0+, Java 1.5.0+, .NET 1.6.0+, Rust
+    /// 0.13.0+, Elixir 0.4.0+) or a verifier that splits the header on spaces: a verifier that
+    /// splits it on ',' rejects every delivery for the whole overlap, even with the new secret.
+    /// `webhook_previous_secret_expires_at` says when it stops (epoch ms), or null. 409 when the
+    /// app has no webhook.
     ///
-    /// Returns [`types::AtlasIdAppsRotateWebhookSecretResponse`].
-    pub async fn rotate_webhook_secret(
+    /// Takes [`types::AtlasIdAppsRotateWebhookSecretBody`]. Returns [`types::AtlasIdAppsRotateWebhookSecretResponse`].
+    pub async fn rotate_webhook_secret_with(
         &self,
         id: &str,
+        body: &types::AtlasIdAppsRotateWebhookSecretBody,
     ) -> Result<types::AtlasIdAppsRotateWebhookSecretResponse, BackendError> {
         let path = format!(
             "/v1/platform/atlas_id_apps/{}/webhook/rotate_secret",
             seg(id)
         );
         self.client
-            .request(HttpMethod::Post, &path, &[], None, None)
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret` with the default body; see [`rotate_webhook_secret_with`](Self::rotate_webhook_secret_with).
+    pub async fn rotate_webhook_secret(
+        &self,
+        id: &str,
+    ) -> Result<types::AtlasIdAppsRotateWebhookSecretResponse, BackendError> {
+        self.rotate_webhook_secret_with(id, &types::AtlasIdAppsRotateWebhookSecretBody::default())
             .await
     }
 }

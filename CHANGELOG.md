@@ -2,6 +2,19 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.14.0
+
+### Added
+- **Trusted reverse proxy secret.** `instance().get_proxy_secret()` (`types::ProxySecret`: `set`, `created_at`, `previous_expires_at`, `secret_header`, `client_ip_header`), `instance().create_proxy_secret(&types::InstanceCreateProxySecretBody)` (`overlap_seconds` on a rotation: default 86400, `0` stops the old secret now, at most 604800; returns `types::ProxySecretCreated` with `secret`, shown once, and `rotated`) and `instance().delete_proxy_secret()`.
+- **Webhook secret rotation with an overlap.** `webhook_endpoints().rotate_secret_with(id, &RotateWebhookSecretBody)` (`overlap_seconds`, default 0, at most 604800). `WebhookSecret` gains `overlap_seconds` and `previous_secret_expires_at`; `WebhookEndpoint` gains `previous_secret_expires_at`.
+- **Per-instance platform rotation with an overlap.** `platform().apps().rotate_instance_secret_with(id, instance_id, &RotatePlatformSecretBody, idempotency_key)` (`overlap_seconds`, default 259200, `0` revokes the prior keys now). The response carries `app_id`, `instance_id`, `overlap_seconds` and `previous_keys_expire_at`.
+- **Sign in with Atlas apps.** `platform().atlas_id_apps().rotate_secret_with(id, &RotateAtlasIdAppSecretBody)` (default 24 hours) and `rotate_webhook_secret_with(id, &types::AtlasIdAppsRotateWebhookSecretBody)` (default 0). `AtlasIdApp` and the webhook rotate response gain `previous_secret_expires_at`, `secret_issued_at`, `webhook_previous_secret_expires_at` and `overlap_seconds`.
+- Catalog regenerated from the current spec (doc text for managed email feedback on Resend).
+
+### Changed
+- `rotate_webhook_secret(id)` keeps its signature and now sends the default (empty) body; the server default is unchanged (no overlap).
+- `platform().apps().rotate_instance_secret(..)` without a body now keeps the prior keys valid for 72 hours (the server's new default). Use `rotate_instance_secret_with` with `overlap_seconds` 0 for the old behaviour.
+
 ## 0.13.0
 
 ### Added
