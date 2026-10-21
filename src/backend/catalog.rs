@@ -1906,6 +1906,90 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/referrals` — Read the instance's referral attribution settings: provider,
+    /// endpoint, capture parameters, consent, auto-enroll and link template, with the connection
+    /// status and the providers Atlas supports. Secrets are reported as *_set markers only.
+    ///
+    /// Returns [`types::InstanceGetReferralsResponse`].
+    pub async fn get_referrals(&self) -> Result<types::InstanceGetReferralsResponse, BackendError> {
+        self.client
+            .request(HttpMethod::Get, "/v1/instance/referrals", &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/instance/referrals` — Update the referral attribution settings. Only the fields
+    /// you send change; null clears. signing_secret and api_key are write-only. Enabling requires
+    /// what the provider needs (422 REFERRALS_NOT_CONFIGURED). Every change is audit-logged without
+    /// secret values.
+    ///
+    /// Takes [`types::InstanceUpdateReferralsBody`]. Returns [`types::InstanceUpdateReferralsResponse`].
+    pub async fn update_referrals(
+        &self,
+        body: &types::InstanceUpdateReferralsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceUpdateReferralsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Patch,
+                "/v1/instance/referrals",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/instance/referrals/calls` — The referral call log, newest first (default 50):
+    /// sign-up reports, erasures, exports, partner codes, signals and tests, with status, attempts
+    /// and the next retry.
+    ///
+    /// Query parameters: `limit`, `status`, `kind`, `user_id`.
+    ///
+    /// Returns [`types::InstanceListReferralCallsResponse`].
+    pub async fn list_referral_calls(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceListReferralCallsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/referrals/calls",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/referrals/calls/{id}/retry` — Retry a failed, retrying or skipped call
+    /// now. A late sign-up answer emits user.referral_attributed.
+    ///
+    /// Returns [`types::InstanceRetryReferralCallResponse`].
+    pub async fn retry_referral_call(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceRetryReferralCallResponse, BackendError> {
+        let path = format!("/v1/instance/referrals/calls/{}/retry", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/instance/referrals/test` — Test the connection: a signed POST to the export
+    /// endpoint with {"op":"export","customerRef":"atlas_connection_test","test":true}. 2xx or 404
+    /// is ok; 401/403 means the platform rejected the signature or key.
+    ///
+    /// Returns [`types::InstanceTestReferralsResponse`].
+    pub async fn test_referrals(
+        &self,
+    ) -> Result<types::InstanceTestReferralsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/referrals/test",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/instance/security` — Read the instance kill switches (per-flow on/off) and the
     /// customer IP allowlist.
     ///
@@ -2627,24 +2711,6 @@ impl McpConnector<'_> {
 }
 
 impl MessagingProvidersApi<'_> {
-    /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
-    /// mode (the provider and its key stay). To remove the provider, DELETE
-    /// /v1/messaging_providers/email.
-    ///
-    /// Returns [`types::MessagingProvidersDisableDevelopmentEmailResponse`].
-    pub async fn disable_development_email(
-        &self,
-    ) -> Result<types::MessagingProvidersDisableDevelopmentEmailResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/messaging_providers/email/development",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
     /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
     /// mode: whether it is active, the provider, the From address, the subject prefix, the
     /// templates it sends and the limits. 404 when the provider is not in development mode.
@@ -2689,6 +2755,24 @@ impl MessagingProvidersApi<'_> {
                 "/v1/messaging_providers/email/development",
                 &[],
                 body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
+    /// mode (the provider and its key stay). To remove the provider, DELETE
+    /// /v1/messaging_providers/email.
+    ///
+    /// Returns [`types::MessagingProvidersDisableDevelopmentEmailResponse`].
+    pub async fn disable_development_email(
+        &self,
+    ) -> Result<types::MessagingProvidersDisableDevelopmentEmailResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/messaging_providers/email/development",
+                &[],
+                None,
                 None,
             )
             .await

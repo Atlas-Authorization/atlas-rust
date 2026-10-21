@@ -533,6 +533,34 @@ Platform rotations take an overlap too: `platform().apps().rotate_instance_secre
 `platform().atlas_id_apps().rotate_secret_with(..)` (default 24 hours) and `rotate_webhook_secret_with(..)`
 (default 0).
 
+### Referral attribution
+
+With referral attribution on, Atlas reports every interactive sign-up to your referral platform before
+`user.created` is sent. `User` gains `referral` (who referred them, or `None`), `referral_code` and `referral_link`.
+
+```rust,ignore
+use atlasauth::backend::{types, Query, UpdateUserBody};
+
+let body = types::InstanceUpdateReferralsBody::new()
+    .with_enabled(true)
+    .with_provider("webhook") // the Atlas referral protocol; or a built-in vendor adapter
+    .with_endpoint_url("https://referrals.example.com/atlas")
+    .with_signing_secret(std::env::var("REFERRAL_SIGNING_SECRET")?)
+    .with_security(types::InstanceUpdateReferralsBodySecurity::new().with_on_high_risk("hold"))
+    .clear_link_template(); // sent as null
+atlas.instance().update_referrals(&body, None).await?;
+let test = atlas.instance().test_referrals().await?; // ok, http_status, latency_ms, error
+let failed = atlas.instance().list_referral_calls(&Query::new().set("status", "failed")).await?;
+atlas.instance().retry_referral_call(&failed.data[0].id, None).await?;
+
+atlas.users().update("user_123", &UpdateUserBody { referral_code: Some(Some("ada-1".into())), ..Default::default() }).await?;
+atlas.users().flag_referral("user_123", Some("self-referral"), None).await?;
+```
+
+Enabling without what the provider needs is `422 REFERRALS_NOT_CONFIGURED`; a code another user holds is
+`409 REFERRAL_CODE_TAKEN`. A late answer from the platform arrives as the `user.referral_attributed` webhook
+(`EventType::UserReferralAttributed`, data `UserReferralAttributedEvent`).
+
 ### Platform API: Sign in with Atlas apps
 
 Build the client with a platform key (`psk_…`) and use `platform()`:

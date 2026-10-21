@@ -100,8 +100,75 @@ pub struct User {
     /// one you hold.
     #[serde(default)]
     pub version: Option<i64>,
+    /// How the user arrived through a referral program (referral attribution
+    /// on), or `None` when not referred, not answered yet, or referrals are off.
+    #[serde(default)]
+    pub referral: Option<super::types::UserReferral>,
+    /// The user's own referral code, when they are a referrer.
+    #[serde(default)]
+    pub referral_code: Option<String>,
+    /// The user's own referral link, when they are a referrer.
+    #[serde(default)]
+    pub referral_link: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// An imported referral on `POST /v1/users`. Each id is 3-64 characters of
+/// `A-Z a-z 0-9 _ -`.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct CreateUserReferral {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub click_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anon_id: Option<String>,
+}
+
+/// `POST /v1/users/:id/referral/flag` result.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UserReferralFlag {
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub user_id: String,
+    /// `flagged` after the call.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub flagged: bool,
+    #[serde(default)]
+    pub flag_reason: Option<String>,
+    /// Epoch ms.
+    #[serde(default)]
+    pub flagged_at: Option<i64>,
+    #[serde(default)]
+    pub risk_level: Option<String>,
+}
+
+/// The `data` of a `user.referral_attributed` webhook: the referral platform
+/// answered after `user.created` was sent.
+#[derive(Debug, Clone, Deserialize)]
+pub struct UserReferralAttributedEvent {
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub user_id: String,
+    /// `attributed`, `not_referred` (no referrer found), `failed`, ...
+    #[serde(default)]
+    pub attribution_status: String,
+    #[serde(default)]
+    pub referral: Option<super::types::UserReferral>,
+    #[serde(default)]
+    pub referral_code: Option<String>,
+    #[serde(default)]
+    pub referral_link: Option<String>,
+    /// Epoch ms.
+    #[serde(default)]
+    pub signed_up_at: Option<i64>,
+    #[serde(default)]
+    pub updated_at: Option<i64>,
 }
 
 /// `POST /v1/users` body.
@@ -124,6 +191,14 @@ pub struct CreateUserBody {
     /// email, SMS or push is sent as a consequence of the create.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notify: Option<bool>,
+    /// Import a referral (how the user arrived); with referral attribution on,
+    /// the user is reported to the referral platform.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referral: Option<CreateUserReferral>,
+    /// The user's own referral code, unique per instance (409
+    /// `REFERRAL_CODE_TAKEN`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referral_code: Option<String>,
 }
 
 /// `PATCH /v1/users/:id` body.
@@ -137,6 +212,10 @@ pub struct UpdateUserBody {
     pub public_metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub private_metadata: Option<Metadata>,
+    /// The user's own referral code, unique per instance (409
+    /// `REFERRAL_CODE_TAKEN`); `Some(None)` sends null and removes it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referral_code: Option<Option<String>>,
 }
 
 /// An OAuth consent grant — the scopes a user authorized a client for. Never a
@@ -231,6 +310,26 @@ impl<'a> Users<'a> {
     pub async fn unlock(&self, id: &str) -> Result<User, BackendError> {
         let path = format!("/v1/users/{}/unlock", seg(id));
         self.client.request(HttpMethod::Post, &path, &[], None, None).await
+    }
+    /// `POST /v1/users/:id/referral/flag` — mark the user's referral
+    /// fraudulent. The referral reads `flagged`, the referral platform is sent
+    /// a `fraud_confirmed` signal (when referrals are on) and the action is
+    /// audited; the account is not changed. 404 when the user has no referral.
+    /// `reason` (at most 500 characters) is sent to the platform.
+    pub async fn flag_referral(
+        &self,
+        id: &str,
+        reason: Option<&str>,
+        idempotency_key: Option<&str>,
+    ) -> Result<UserReferralFlag, BackendError> {
+        let path = format!("/v1/users/{}/referral/flag", seg(id));
+        let mut body = Map::new();
+        if let Some(r) = reason {
+            body.insert("reason".into(), Value::String(r.to_string()));
+        }
+        self.client
+            .request(HttpMethod::Post, &path, &[], Some(Value::Object(body)), idempotency_key)
+            .await
     }
     /// `DELETE /v1/users/:id`.
     pub async fn delete(&self, id: &str) -> Result<DeletedObject, BackendError> {

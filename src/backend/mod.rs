@@ -73,6 +73,7 @@ pub use resources::{
     OrgDomains, OrgInvitations, OrgMemberships, Organization, OrganizationInvitation,
     OrganizationMembership, OrganizationPolicy, Organizations, RevokedApiKey, Session, Sessions,
     UpdateApiKeyBody, UpdateOrganizationBody, UpdateUserBody, User, Users,
+    CreateUserReferral, UserReferralAttributedEvent, UserReferralFlag,
 };
 pub use platform::{
     AuditActor, AuditEvent, AuditEventFilter, AuditEvents, AuditTarget, CreateEntitlementOverrideBody,

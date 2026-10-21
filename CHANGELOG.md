@@ -2,6 +2,18 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.15.0
+
+### Added
+- **Referral attribution settings.** `instance().get_referrals()` (`types::InstanceGetReferralsResponse`, with `security`: `types::ReferralSecuritySettings`, `connection` and `providers`), `instance().update_referrals(&types::InstanceUpdateReferralsBody, idempotency_key)` (nested `types::InstanceUpdateReferralsBodySecurity`; `clear_*` sends a nullable field as null), `instance().test_referrals()` (`types::InstanceTestReferralsResponse`), `instance().list_referral_calls(&Query)` (`limit`, `status`, `kind`, `user_id`; calls carry `risk`: `types::ReferralRisk`) and `instance().retry_referral_call(id, idempotency_key)`.
+- **Users.** `User` gains `referral` (`types::UserReferral`: `partner_id`, `referrer_external_id`, `referrer_user_id`, `matched_via`, `status`, `risk_level`, `flagged`), `referral_code` and `referral_link`. `CreateUserBody` gains `referral` (`CreateUserReferral`: `code`, `click_id`, `anon_id`) and `referral_code`; `UpdateUserBody` gains `referral_code` (`Some(None)` sends null). New `users().flag_referral(id, reason, idempotency_key)` (`UserReferralFlag`).
+- **Webhooks.** `EventType::UserReferralAttributed` (`user.referral_attributed`) and `UserReferralAttributedEvent` for its data.
+- **Error codes.** `codes::REFERRALS_NOT_CONFIGURED` (422) and `codes::REFERRAL_CODE_TAKEN` (409). Preflight can report `referrals_enabled_unverified` and `referrals_without_bot_protection`.
+- Catalog regenerated from the current spec (the referral operations; the generated `types::User` gains the referral fields).
+
+### Changed
+- `User`, `CreateUserBody` and `UpdateUserBody` have new public fields, and `EventType` a new variant: code that builds these structs without `..Default::default()`, or matches `EventType` exhaustively, needs updating.
+
 ## 0.14.0
 
 ### Added

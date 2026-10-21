@@ -787,6 +787,50 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance().get_referrals().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/referrals".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .update_referrals(
+            &types::InstanceUpdateReferralsBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/instance/referrals".into(),
+        B::Obj,
+        true,
+    ));
+    c.instance().list_referral_calls(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/referrals/calls?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .retry_referral_call("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/referrals/calls/p0_id/retry".into(),
+        B::None,
+        true,
+    ));
+    c.instance().test_referrals().await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/referrals/test".into(),
+        B::None,
+        false,
+    ));
     c.instance().get_security().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1114,16 +1158,6 @@ async fn every_catalog_operation_hits_its_route() {
         true,
     ));
     c.messaging_providers()
-        .disable_development_email()
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/messaging_providers/email/development".into(),
-        B::None,
-        false,
-    ));
-    c.messaging_providers()
         .get_development_email()
         .await
         .unwrap();
@@ -1141,6 +1175,16 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/messaging_providers/email/development".into(),
         B::Obj,
+        false,
+    ));
+    c.messaging_providers()
+        .disable_development_email()
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/messaging_providers/email/development".into(),
+        B::None,
         false,
     ));
     c.messaging_providers().get_managed_email().await.unwrap();
@@ -2865,4 +2909,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 327 operations, 327 typed; 327 calls.
+// 332 operations, 332 typed; 332 calls.

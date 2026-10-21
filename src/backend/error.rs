@@ -113,6 +113,11 @@ pub mod codes {
     pub const DEVELOPMENT_EMAIL_LIMIT_REACHED: &str = "DEVELOPMENT_EMAIL_LIMIT_REACHED";
     /// The development sender sends only Atlas's own sign-in emails (422).
     pub const DEVELOPMENT_EMAIL_TEMPLATE_NOT_ALLOWED: &str = "DEVELOPMENT_EMAIL_TEMPLATE_NOT_ALLOWED";
+    /// Referrals cannot be enabled until the provider's needs are set (422;
+    /// `meta` names what is missing).
+    pub const REFERRALS_NOT_CONFIGURED: &str = "REFERRALS_NOT_CONFIGURED";
+    /// Another user on the instance already holds that referral code (409).
+    pub const REFERRAL_CODE_TAKEN: &str = "REFERRAL_CODE_TAKEN";
     /// A billing plan still has subscribers and cannot be removed.
     pub const PLAN_IN_USE: &str = "PLAN_IN_USE";
     /// The key was sent to the wrong API surface (a `psk_` platform key on an

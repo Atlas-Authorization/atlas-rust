@@ -402,6 +402,26 @@ fn decode_instance() {
     round_trip::<types::InstanceDeleteProxySecretResponse>(
         r#"{"deleted":true,"object":"proxy_secret"}"#,
     );
+    // GET /v1/instance/referrals
+    round_trip::<types::InstanceGetReferralsResponse>(
+        r#"{"api_key_set":true,"auto_enroll_users":true,"connection":{"failed_calls_7d":7,"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","context_cookie":"x","enabled":true,"endpoint_url":"x","link_template":"x","missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"auto_enroll":true,"erase":true,"export":true,"partner":true,"signal":true,"signup":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url_params":["x"]}"#,
+    );
+    // PATCH /v1/instance/referrals
+    round_trip::<types::InstanceUpdateReferralsResponse>(
+        r#"{"api_key_set":true,"auto_enroll_users":true,"connection":{"failed_calls_7d":7,"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","context_cookie":"x","enabled":true,"endpoint_url":"x","link_template":"x","missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"auto_enroll":true,"erase":true,"export":true,"partner":true,"signal":true,"signup":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url_params":["x"]}"#,
+    );
+    // GET /v1/instance/referrals/calls
+    round_trip::<types::InstanceListReferralCallsResponse>(
+        r#"{"data":[{"attempts":7,"created_at":7,"customer_ref":"x","http_status":7,"id":"x","kind":"signup","last_error":"x","next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}],"has_more":true,"object":"list"}"#,
+    );
+    // POST /v1/instance/referrals/calls/{id}/retry
+    round_trip::<types::InstanceRetryReferralCallResponse>(
+        r#"{"attempts":7,"created_at":7,"customer_ref":"x","http_status":7,"id":"x","kind":"signup","last_error":"x","next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
+    );
+    // POST /v1/instance/referrals/test
+    round_trip::<types::InstanceTestReferralsResponse>(
+        r#"{"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"ok":true}"#,
+    );
     // GET /v1/instance/security
     round_trip::<types::InstanceSecurity>(
         r#"{"ip_allowlist":["x"],"kill_switches":{"k":true},"object":"instance_security","warning":"x"}"#,
@@ -420,11 +440,11 @@ fn decode_invitations() {
 fn decode_jobs() {
     // GET /v1/jobs
     round_trip::<types::JobsListResponse>(
-        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x"}"#,
+        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","partner_id":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"x"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x"}"#,
     );
     // GET /v1/jobs/{id}
     round_trip::<types::Job>(
-        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
+        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","partner_id":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"x"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
     );
     // GET /v1/jobs/{id}/errors
     round_trip::<types::JobsListErrorsResponse>(r#"{"data":[{"k":"v"}],"object":"list"}"#);
@@ -596,13 +616,13 @@ fn decode_mcp_connector() {
 
 #[test]
 fn decode_messaging_providers_api() {
-    // DELETE /v1/messaging_providers/email/development
-    round_trip::<types::MessagingProvidersDisableDevelopmentEmailResponse>(
-        r#"{"deleted":true,"mode":"standard","object":"development_email","provider_id":"x"}"#,
-    );
     // GET /v1/messaging_providers/email/development
     round_trip::<types::DevelopmentEmail>(
         r#"{"active":true,"enabled":true,"footer":"x","from_address":"x","limits":{"daily":7,"per_recipient_hourly":7},"next_step":"x","note":"x","object":"development_email","provider_id":"x","subject_prefix":"x","templates":["x"],"transport":"x","updated_at":7}"#,
+    );
+    // DELETE /v1/messaging_providers/email/development
+    round_trip::<types::MessagingProvidersDisableDevelopmentEmailResponse>(
+        r#"{"deleted":true,"mode":"standard","object":"development_email","provider_id":"x"}"#,
     );
     // GET /v1/messaging_providers/email/managed
     round_trip::<types::ManagedEmail>(
@@ -1254,7 +1274,7 @@ fn decode_users() {
     );
     // PUT /v1/users/{id}/metadata
     round_trip::<types::User>(
-        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}"#,
+        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","partner_id":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"x"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}"#,
     );
     // DELETE /v1/users/{id}/mfa/{factorId}
     round_trip::<types::UsersDeleteMfaFactorResponse>(
