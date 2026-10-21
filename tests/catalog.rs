@@ -1089,6 +1089,36 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         true,
     ));
+    c.messaging_providers()
+        .disable_development_email()
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/messaging_providers/email/development".into(),
+        B::None,
+        false,
+    ));
+    c.messaging_providers()
+        .get_development_email()
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/messaging_providers/email/development".into(),
+        B::None,
+        false,
+    ));
+    c.messaging_providers()
+        .enable_development_email(&types::MessagingProvidersEnableDevelopmentEmailBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/messaging_providers/email/development".into(),
+        B::Obj,
+        false,
+    ));
     c.messaging_providers().get_managed_email().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1269,13 +1299,17 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.oauth_clients()
-        .rotate_secret("p0_id", Some("idem_1"))
+        .rotate_secret_with(
+            "p0_id",
+            &types::OAuthClientsRotateSecretBody::default(),
+            Some("idem_1"),
+        )
         .await
         .unwrap();
     expected.push((
         HttpMethod::Post,
         "/v1/oauth_clients/p0_id/rotate_secret".into(),
-        B::None,
+        B::Obj,
         true,
     ));
     c.openfga().list_stores(&q).await.unwrap();
@@ -2804,4 +2838,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 321 operations, 321 typed; 321 calls.
+// 324 operations, 324 typed; 324 calls.

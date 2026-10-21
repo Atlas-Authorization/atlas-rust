@@ -263,6 +263,77 @@ impl Instance<'_> {
     }
 }
 
+// ── allowed origins with an integration ───────────────────────────────────
+
+/// One `allowed_origins` entry that may also declare how the origin signs in.
+/// With no integration it is sent as the plain origin string (which keeps the
+/// hint the origin already had); otherwise as `{ "origin", "integration" }`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AllowedOriginEntry {
+    pub origin: String,
+    /// [`AllowedOriginEntry::REDIRECT`], [`AllowedOriginEntry::EMBEDDED`],
+    /// [`AllowedOriginEntry::AUTO`] (clear the hint), or `None` (keep it).
+    pub integration: Option<String>,
+}
+
+impl AllowedOriginEntry {
+    /// Hosted-redirect OIDC: the app never runs the embedded components.
+    pub const REDIRECT: &'static str = "redirect";
+    /// The sign-in components run on the origin.
+    pub const EMBEDDED: &'static str = "embedded";
+    /// Clear the declared integration; Atlas infers it.
+    pub const AUTO: &'static str = "auto";
+
+    /// A plain origin: keeps its current hint.
+    pub fn new(origin: impl Into<String>) -> Self {
+        Self { origin: origin.into(), integration: None }
+    }
+    /// An origin with a declared integration.
+    pub fn with_integration(origin: impl Into<String>, integration: impl Into<String>) -> Self {
+        Self { origin: origin.into(), integration: Some(integration.into()) }
+    }
+}
+
+impl From<&str> for AllowedOriginEntry {
+    fn from(origin: &str) -> Self {
+        Self::new(origin)
+    }
+}
+
+impl From<String> for AllowedOriginEntry {
+    fn from(origin: String) -> Self {
+        Self::new(origin)
+    }
+}
+
+impl From<AllowedOriginEntry> for Value {
+    fn from(e: AllowedOriginEntry) -> Self {
+        match e.integration {
+            None => Value::String(e.origin),
+            Some(i) => serde_json::json!({ "origin": e.origin, "integration": i }),
+        }
+    }
+}
+
+impl Serialize for AllowedOriginEntry {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        Value::from(self.clone()).serialize(s)
+    }
+}
+
+impl super::types::InstanceUpdateBody {
+    /// Set `allowed_origins` from entries that may also declare how each origin
+    /// signs in (strings work too: `["https://a.example".into()]`).
+    pub fn with_allowed_origin_entries<I, E>(mut self, entries: I) -> Self
+    where
+        I: IntoIterator<Item = E>,
+        E: Into<AllowedOriginEntry>,
+    {
+        self.allowed_origins = Some(entries.into_iter().map(|e| Value::from(e.into())).collect());
+        self
+    }
+}
+
 // ── messaging providers ───────────────────────────────────────────────────
 
 /// Resend config.
@@ -532,9 +603,16 @@ pub enum SmsProviderConfig {
 /// `secrets_set` says which secret keys are stored.
 #[derive(Debug, Clone, Deserialize)]
 pub struct MessagingProvider {
+    /// The provider id: pass it as `provider_id` to managed email or the
+    /// development sender.
+    #[serde(default)]
+    pub id: Option<String>,
     /// `email` or `sms`.
     #[serde(default)]
     pub channel: String,
+    /// `standard`, `development` or `managed_domain`.
+    #[serde(default)]
+    pub mode: Option<String>,
     #[serde(default)]
     pub transport: String,
     #[serde(default)]
@@ -563,6 +641,10 @@ pub struct MessagingProviders {
     /// `status`, `verified`), when one is set up.
     #[serde(default)]
     pub managed_email: Option<Value>,
+    /// The email provider in development mode (`enabled`, `from_address`),
+    /// when it is.
+    #[serde(default)]
+    pub development_email: Option<Value>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -606,6 +688,23 @@ impl MessagingProvidersApi<'_> {
     pub async fn set_email(&self, provider: &EmailProviderConfig) -> Result<MessagingProvider, BackendError> {
         self.client
             .request(HttpMethod::Put, "/v1/messaging_providers/email", &[], body_of(provider)?, None)
+            .await
+    }
+    /// `PUT /v1/messaging_providers/email` with a provider mode: `development`
+    /// lets a development instance send without a verified domain (409 on a
+    /// production instance), `standard` sends normally, `None` keeps the
+    /// stored mode.
+    pub async fn set_email_with_mode(
+        &self,
+        provider: &EmailProviderConfig,
+        mode: Option<&str>,
+    ) -> Result<MessagingProvider, BackendError> {
+        let mut body = body_of(provider)?.unwrap_or(Value::Null);
+        if let (Some(m), Some(obj)) = (mode, body.as_object_mut()) {
+            obj.insert("mode".into(), Value::String(m.into()));
+        }
+        self.client
+            .request(HttpMethod::Put, "/v1/messaging_providers/email", &[], Some(body), None)
             .await
     }
     /// `PUT /v1/messaging_providers/sms`.

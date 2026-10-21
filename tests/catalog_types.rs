@@ -162,7 +162,7 @@ fn decode_bot_signals() {
 fn decode_branding() {
     // GET /v1/branding
     round_trip::<types::Branding>(
-        r#"{"applicationName":"x","background":{"angle":1.5,"color":"x","from":"x","imageUrl":"x","to":"x","type":"solid"},"backgroundPattern":"none","borderRadius":"x","buttonShape":"default","card":{"align":"left","logoSize":"sm","width":"narrow"},"cardBorder":"default","cardStyle":"default","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","fontFamily":"x","fontUrl":"x","inputSize":"sm","interaction":{"animations":true,"buttonEffect":"none","buttonStyle":"solid","density":"comfortable","inputStyle":"outline","loading":"spinner","motionEasing":"ease","motionSpeed":"slow","shadow":"none"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","object":"branding","providers":{"hidden":["x"],"order":["x"]},"resolved":{"applicationName":"x","background":{"k":"v"},"backgroundPattern":"x","borderRadius":"x","buttonShape":"x","card":{"k":"v"},"cardBorder":"x","cardStyle":"x","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","escapedName":"x","eyebrow":"x","fontFamily":"x","fontStack":"x","fontUrl":"x","footer":"x","headline":"x","inputSize":"x","interaction":{"k":"v"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","providerHidden":["x"],"providerOrder":["x"],"providers":{"hidden":["x"],"order":["x"]},"sectionOrder":["x"],"signUpFields":[{"k":"v"}],"socialButtons":{"k":"v"},"socialPlacement":"top","subheadline":"x","supportEmail":"x","textScale":"x","theme":"light","typography":{"k":"v"}},"sectionOrder":["x"],"signUpFields":[{"key":"x","label":"x","options":["x"],"placeholder":"x","required":true,"type":"text"}],"socialButtons":{"displayNames":{"k":"x"},"icons":{"k":"x"},"labels":{"k":"x"},"layout":"list","modes":{"k":"native"},"search":"auto","size":"sm","styles":{"k":{"bg":"x","fg":"x"}},"variant":"block"},"socialPlacement":"top","supportEmail":"x","textScale":"sm","theme":"light","typography":{"headingSize":"sm","headingWeight":"normal"}}"#,
+        r#"{"applicationName":"x","audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}},"background":{"angle":1.5,"color":"x","from":"x","imageUrl":"x","to":"x","type":"solid"},"backgroundPattern":"none","borderRadius":"x","buttonShape":"default","card":{"align":"left","logoSize":"sm","width":"narrow"},"cardBorder":"default","cardStyle":"default","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","fontFamily":"x","fontUrl":"x","inputSize":"sm","interaction":{"animations":true,"buttonEffect":"none","buttonStyle":"solid","density":"comfortable","inputStyle":"outline","loading":"spinner","motionEasing":"ease","motionSpeed":"slow","shadow":"none"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","object":"branding","providers":{"hidden":["x"],"order":["x"]},"resolved":{"applicationName":"x","audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}},"background":{"k":"v"},"backgroundPattern":"x","borderRadius":"x","buttonShape":"x","card":{"k":"v"},"cardBorder":"x","cardStyle":"x","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","escapedName":"x","eyebrow":"x","fontFamily":"x","fontStack":"x","fontUrl":"x","footer":"x","headline":"x","inputSize":"x","interaction":{"k":"v"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","providerHidden":["x"],"providerOrder":["x"],"providers":{"hidden":["x"],"order":["x"]},"sectionOrder":["x"],"signUpFields":[{"k":"v"}],"socialButtons":{"k":"v"},"socialPlacement":"top","subheadline":"x","supportEmail":"x","textScale":"x","theme":"light","typography":{"k":"v"}},"sectionOrder":["x"],"signUpFields":[{"key":"x","label":"x","options":["x"],"placeholder":"x","required":true,"type":"text"}],"socialButtons":{"displayNames":{"k":"x"},"icons":{"k":"x"},"labels":{"k":"x"},"layout":"list","modes":{"k":"native"},"search":"auto","size":"sm","styles":{"k":{"bg":"x","fg":"x"}},"variant":"block"},"socialPlacement":"top","supportEmail":"x","textScale":"sm","theme":"light","typography":{"headingSize":"sm","headingWeight":"normal"}}"#,
     );
     // POST /v1/branding/preview
     round_trip::<types::BrandingPreviewResponse>(r#"{"html":"x","object":"hosted_page_preview"}"#);
@@ -224,7 +224,7 @@ fn decode_data_subject_requests() {
 fn decode_diagnostics() {
     // GET /v1/diagnostics/login_readiness
     round_trip::<types::LoginReadiness>(
-        r#"{"checks":[{"detail":"x","name":"x","observed":{"k":"v"},"pass":true}],"data_region":"x","live":true,"object":"login_readiness","origin":"x","ready":true}"#,
+        r#"{"checks":[{"applies":true,"detail":"x","name":"x","observed":{"k":"v"},"pass":true}],"data_region":"x","integration":{"assumed":"redirect","reason":"x","source":"declared"},"live":true,"object":"login_readiness","origin":"x","ready":true}"#,
     );
     // GET /v1/diagnostics/request_inspector
     round_trip::<types::RequestInspection>(
@@ -244,7 +244,7 @@ fn decode_directory() {
 fn decode_email_addresses() {
     // POST /v1/email_addresses/{eid}/primary
     round_trip::<types::EmailAddress>(
-        r#"{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified"},"verified":true}"#,
+        r#"{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}"#,
     );
 }
 
@@ -328,11 +328,11 @@ fn decode_fga() {
 fn decode_instance() {
     // GET /v1/instance
     round_trip::<types::InstanceGetResponse>(
-        r#"{"allowed_origins":["x"],"auth_config":{"k":"v"},"auth_config_resolved":{"externalJwt":{"issuers":[{"audience":"x","emailClaim":"x","id":"x","issuer":"x","jwksUri":"x"}]},"mfaPolicy":"off","passwordPolicy":{"checkBreaches":true,"minLength":7,"requireNumber":true,"requireSymbol":true,"requireUppercase":true},"requireEmailVerification":true,"samlIdp":{"serviceProviders":[{"acsUrl":"x","attributes":{"k":"x"},"entityId":"x","id":"x","nameIdField":"email"}]},"session":{"absoluteMs":7,"crossSubdomainCookies":true,"idleMs":7,"includeEmailClaim":true,"includeEndUserPoolClaim":true,"jwtTtlSeconds":7},"signUpMode":"public","strategies":{"emailCode":true,"emailLink":true,"passkey":true,"password":true,"phoneCode":true,"siwe":true,"siwf":true,"siws":true,"username":true},"verification":{"emailCode":{"k":"v"},"magicLink":{"k":"v"},"smsCode":{"k":"v"}}},"created_at":7,"environment":"development","frontend_api_host":"x","id":"x","object":"instance","publishable_key":"x"}"#,
+        r#"{"allowed_origin_integrations":{"k":"redirect"},"allowed_origins":["x"],"auth_config":{"k":"v"},"auth_config_resolved":{"branding":{"audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}}},"dangerouslyReportSkippedEmailsAsVerified":true,"externalJwt":{"issuers":[{"audience":"x","emailClaim":"x","id":"x","issuer":"x","jwksUri":"x"}]},"mfaPolicy":"off","passwordPolicy":{"checkBreaches":true,"minLength":7,"requireNumber":true,"requireSymbol":true,"requireUppercase":true},"requireEmailVerification":true,"samlIdp":{"serviceProviders":[{"acsUrl":"x","attributes":{"k":"x"},"entityId":"x","id":"x","nameIdField":"email"}]},"session":{"absoluteMs":7,"crossSubdomainCookies":true,"idleMs":7,"includeEmailClaim":true,"includeEndUserPoolClaim":true,"jwtTtlSeconds":7},"signUpMode":"public","strategies":{"emailCode":true,"emailLink":true,"passkey":true,"password":true,"phoneCode":true,"siwe":true,"siwf":true,"siws":true,"username":true},"strictRequestBodies":true,"verification":{"emailCode":{"k":"v"},"magicLink":{"k":"v"},"smsCode":{"k":"v"}}},"created_at":7,"discovery_url":"x","environment":"development","frontend_api_host":"x","id":"x","issuer":"x","jwks_uri":"x","object":"instance","publishable_key":"x"}"#,
     );
     // PATCH /v1/instance
     round_trip::<types::InstanceUpdateResponse>(
-        r#"{"allowed_origins":["x"],"auth_config":{"k":"v"},"auth_config_resolved":{"externalJwt":{"issuers":[{"audience":"x","emailClaim":"x","id":"x","issuer":"x","jwksUri":"x"}]},"mfaPolicy":"off","passwordPolicy":{"checkBreaches":true,"minLength":7,"requireNumber":true,"requireSymbol":true,"requireUppercase":true},"requireEmailVerification":true,"samlIdp":{"serviceProviders":[{"acsUrl":"x","attributes":{"k":"x"},"entityId":"x","id":"x","nameIdField":"email"}]},"session":{"absoluteMs":7,"crossSubdomainCookies":true,"idleMs":7,"includeEmailClaim":true,"includeEndUserPoolClaim":true,"jwtTtlSeconds":7},"signUpMode":"public","strategies":{"emailCode":true,"emailLink":true,"passkey":true,"password":true,"phoneCode":true,"siwe":true,"siwf":true,"siws":true,"username":true},"verification":{"emailCode":{"k":"v"},"magicLink":{"k":"v"},"smsCode":{"k":"v"}}},"created_at":7,"environment":"development","frontend_api_host":"x","id":"x","object":"instance","publishable_key":"x"}"#,
+        r#"{"allowed_origin_integrations":{"k":"redirect"},"allowed_origins":["x"],"auth_config":{"k":"v"},"auth_config_resolved":{"branding":{"audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}}},"dangerouslyReportSkippedEmailsAsVerified":true,"externalJwt":{"issuers":[{"audience":"x","emailClaim":"x","id":"x","issuer":"x","jwksUri":"x"}]},"mfaPolicy":"off","passwordPolicy":{"checkBreaches":true,"minLength":7,"requireNumber":true,"requireSymbol":true,"requireUppercase":true},"requireEmailVerification":true,"samlIdp":{"serviceProviders":[{"acsUrl":"x","attributes":{"k":"x"},"entityId":"x","id":"x","nameIdField":"email"}]},"session":{"absoluteMs":7,"crossSubdomainCookies":true,"idleMs":7,"includeEmailClaim":true,"includeEndUserPoolClaim":true,"jwtTtlSeconds":7},"signUpMode":"public","strategies":{"emailCode":true,"emailLink":true,"passkey":true,"password":true,"phoneCode":true,"siwe":true,"siwf":true,"siws":true,"username":true},"strictRequestBodies":true,"verification":{"emailCode":{"k":"v"},"magicLink":{"k":"v"},"smsCode":{"k":"v"}}},"created_at":7,"discovery_url":"x","environment":"development","frontend_api_host":"x","id":"x","issuer":"x","jwks_uri":"x","object":"instance","publishable_key":"x"}"#,
     );
     // PUT /v1/instance/captcha_secret
     round_trip::<types::InstanceSetCaptchaSecretResponse>(
@@ -408,11 +408,11 @@ fn decode_invitations() {
 fn decode_jobs() {
     // GET /v1/jobs
     round_trip::<types::JobsListResponse>(
-        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x"}"#,
+        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x"}"#,
     );
     // GET /v1/jobs/{id}
     round_trip::<types::Job>(
-        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
+        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
     );
     // GET /v1/jobs/{id}/errors
     round_trip::<types::JobsListErrorsResponse>(r#"{"data":[{"k":"v"}],"object":"list"}"#);
@@ -584,13 +584,21 @@ fn decode_mcp_connector() {
 
 #[test]
 fn decode_messaging_providers_api() {
+    // DELETE /v1/messaging_providers/email/development
+    round_trip::<types::MessagingProvidersDisableDevelopmentEmailResponse>(
+        r#"{"deleted":true,"mode":"standard","object":"development_email","provider_id":"x"}"#,
+    );
+    // GET /v1/messaging_providers/email/development
+    round_trip::<types::DevelopmentEmail>(
+        r#"{"active":true,"enabled":true,"footer":"x","from_address":"x","limits":{"daily":7,"per_recipient_hourly":7},"next_step":"x","note":"x","object":"development_email","provider_id":"x","subject_prefix":"x","templates":["x"],"transport":"x","updated_at":7}"#,
+    );
     // GET /v1/messaging_providers/email/managed
     round_trip::<types::ManagedEmail>(
-        r#"{"created_at":7,"dns":{"provider":"x","token_set":true},"dns_result":{"k":"v"},"domain":"x","failure_reason":"x","from_address":"x","id":"x","last_checked_at":7,"limits":{"daily":7,"hourly":7},"next_step":"x","object":"managed_email","provider":"x","records":[{"name":"x","priority":7,"purpose":"dkim","status":"x","type":"TXT","value":"x"}],"region":"x","reputation":"shared_platform_account","status":"x","updated_at":7,"usage":{"bounces":7,"complaints":7,"last_bounce_at":7,"last_complaint_at":7,"sent":7},"verified":true,"verified_at":7}"#,
+        r#"{"backend":"resend","created_at":7,"dns":{"provider":"x","token_set":true},"dns_result":{"k":"v"},"domain":"x","failure_reason":"x","feedback_webhook":"registered","from_address":"x","id":"x","last_checked_at":7,"limits":"sample","next_step":"x","object":"managed_email","provider":"x","provider_id":"x","records":[{"name":"x","priority":7,"purpose":"dkim","status":"x","type":"TXT","value":"x"}],"region":"x","reputation":"your_provider_account","status":"x","updated_at":7,"usage":{"bounces":7,"complaints":7,"last_bounce_at":7,"last_complaint_at":7,"sent":7},"verified":true,"verified_at":7}"#,
     );
     // DELETE /v1/messaging_providers/email/managed
     round_trip::<types::MessagingProvidersDeleteManagedEmailResponse>(
-        r#"{"deleted":true,"domain":"x","object":"managed_email"}"#,
+        r#"{"deleted":true,"domain":"x","object":"managed_email","provider_removed":true}"#,
     );
 }
 
@@ -614,15 +622,15 @@ fn decode_network_acls() {
 fn decode_oauth_clients() {
     // GET /v1/oauth_clients
     round_trip::<types::OAuthClientsListResponse>(
-        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/oauth_clients
     round_trip::<types::OAuthClientsCreateResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // POST /v1/oauth_clients/import
     round_trip::<types::OAuthClientsImportResponse>(
-        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // GET /v1/oauth_clients/{clientId}/grants
     round_trip::<types::OAuthClientsListGrantsResponse>(
@@ -638,11 +646,11 @@ fn decode_oauth_clients() {
     );
     // GET /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsGetResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // PATCH /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsUpdateResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // DELETE /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsDeleteResponse>(
@@ -658,7 +666,7 @@ fn decode_oauth_clients() {
     );
     // POST /v1/oauth_clients/{id}/rotate_secret
     round_trip::<types::OAuthClientsRotateSecretResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","note":"x","object":"oauth_client","overlap_seconds":7,"post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
     );
 }
 
@@ -1234,7 +1242,7 @@ fn decode_users() {
     );
     // PUT /v1/users/{id}/metadata
     round_trip::<types::User>(
-        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}"#,
+        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"updated_at":7,"username":"x","version":7}"#,
     );
     // DELETE /v1/users/{id}/mfa/{factorId}
     round_trip::<types::UsersDeleteMfaFactorResponse>(

@@ -101,6 +101,18 @@ pub mod codes {
     pub const CAPTCHA_IN_USE: &str = "CAPTCHA_IN_USE";
     /// Strict request bodies refused a field the endpoint does not accept.
     pub const UNKNOWN_FIELD: &str = "UNKNOWN_FIELD";
+    /// The body set a field that is not writable on this endpoint (`param`
+    /// names it; the message names the call that changes it).
+    pub const READ_ONLY_FIELD: &str = "READ_ONLY_FIELD";
+    /// The development email sender is not available on a production instance (409).
+    pub const DEVELOPMENT_EMAIL_NOT_ALLOWED: &str = "DEVELOPMENT_EMAIL_NOT_ALLOWED";
+    /// The development email sender is not available on this deployment (503).
+    pub const DEVELOPMENT_EMAIL_UNAVAILABLE: &str = "DEVELOPMENT_EMAIL_UNAVAILABLE";
+    /// The development sender's daily or per-recipient hourly cap is spent
+    /// (429; `meta.window`, `meta.retry_after_seconds`).
+    pub const DEVELOPMENT_EMAIL_LIMIT_REACHED: &str = "DEVELOPMENT_EMAIL_LIMIT_REACHED";
+    /// The development sender sends only Atlas's own sign-in emails (422).
+    pub const DEVELOPMENT_EMAIL_TEMPLATE_NOT_ALLOWED: &str = "DEVELOPMENT_EMAIL_TEMPLATE_NOT_ALLOWED";
     /// A billing plan still has subscribers and cannot be removed.
     pub const PLAN_IN_USE: &str = "PLAN_IN_USE";
     /// The key was sent to the wrong API surface (a `psk_` platform key on an

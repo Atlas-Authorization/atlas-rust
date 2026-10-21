@@ -1137,6 +1137,11 @@ impl Diagnostics<'_> {
     /// `origin` (CORS, cookie domain, email claim, JWKS), reporting the observed effective runtime
     /// values with a per-hop pass/fail and a specific fix. Pass `live=true` to upgrade the signing
     /// hop from config-inferred to an actual JWKS round-trip (real HTTP status + key count).
+    /// `integration` says which integration the checks assumed for the origin and why: for a
+    /// hosted-redirect origin (declared in allowed_origins, or inferred because every OAuth client
+    /// redirecting to it uses the authorization-code flow and no Atlas browser SDK called from it
+    /// in the last 7 days) the cors and session_cookie checks carry applies:false and do not make
+    /// ready false.
     ///
     /// Query parameters: `origin`, `live`.
     ///
@@ -1550,7 +1555,9 @@ impl Instance<'_> {
     /// branding fields (branding.customCss / customHtmlHeader / customHtmlFooter) returns 422
     /// naming the field — use the design settings (PUT /v1/instance/design) instead; clearing them
     /// (null or "") is accepted. The response echoes auth_config_resolved so you can confirm the
-    /// change took effect.
+    /// change took effect. Strict writes: auth_config.strictRequestBodies (true on instances
+    /// created from 2026-10 on) refuses unknown body fields with 422 UNKNOWN_FIELD on every Backend
+    /// API write; set it to opt in or out, or send Atlas-Strict: true | false on one request.
     ///
     /// Query parameters: `force`.
     ///
@@ -2564,10 +2571,75 @@ impl McpConnector<'_> {
 }
 
 impl MessagingProvidersApi<'_> {
+    /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
+    /// mode (the provider and its key stay). To remove the provider, DELETE
+    /// /v1/messaging_providers/email.
+    ///
+    /// Returns [`types::MessagingProvidersDisableDevelopmentEmailResponse`].
+    pub async fn disable_development_email(
+        &self,
+    ) -> Result<types::MessagingProvidersDisableDevelopmentEmailResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/messaging_providers/email/development",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
+    /// mode: whether it is active, the provider, the From address, the subject prefix, the
+    /// templates it sends and the limits. 404 when the provider is not in development mode.
+    ///
+    /// Returns [`types::DevelopmentEmail`].
+    pub async fn get_development_email(&self) -> Result<types::DevelopmentEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/messaging_providers/email/development",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/messaging_providers/email/development` — Put your OWN email provider in
+    /// development mode, so a development instance can send sign-in email without a verified
+    /// domain: Resend's `onboarding@resend.dev` (the default From for Resend; Resend delivers it
+    /// only to your Resend account's own address), or a single sender address your provider has
+    /// verified (Brevo, SES, SMTP, a Mailgun sandbox). Body: `provider_id` of your configured email
+    /// provider, or `transport` + `config` (+ `from_address`) exactly as PUT
+    /// /v1/messaging_providers/email; with neither, 422 (param `provider_id`). Only Atlas's own
+    /// sign-in emails are sent (verification code, magic link, password reset, password changed,
+    /// account exists notice, organization invitation); every subject starts with "\[Atlas test\] "
+    /// and every message ends with a development footer; template overrides and branding are not
+    /// used and custom notification templates are refused. Capped per instance per day and per
+    /// recipient per hour (`limits`); over a cap a send is refused with 429
+    /// DEVELOPMENT_EMAIL_LIMIT_REACHED. The instance then counts as able to deliver email, and
+    /// preflight warns `email_development_sender`. Atlas never sends with an account of its own.
+    /// 201 when the mode is turned on, 200 when it already was. 409 DEVELOPMENT_EMAIL_NOT_ALLOWED
+    /// on a production instance.
+    ///
+    /// Takes [`types::MessagingProvidersEnableDevelopmentEmailBody`]. Returns [`types::DevelopmentEmail`].
+    pub async fn enable_development_email(
+        &self,
+        body: &types::MessagingProvidersEnableDevelopmentEmailBody,
+    ) -> Result<types::DevelopmentEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/messaging_providers/email/development",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/messaging_providers/email/managed` — Read the managed sending domain: status
-    /// (refreshed from the provider while unverified), the records to publish, the hourly and daily
-    /// limits, and sent / bounce / complaint counts. 404 when none is configured. Never returns a
-    /// DNS token.
+    /// (refreshed from your provider while unverified), the records to publish, and sent / bounce /
+    /// complaint counts. 404 when none is configured. Never returns an API key or DNS token.
     ///
     /// Returns [`types::ManagedEmail`].
     pub async fn get_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
@@ -2581,17 +2653,21 @@ impl MessagingProvidersApi<'_> {
             )
             .await
     }
-    /// `POST /v1/messaging_providers/email/managed` — Use Atlas-managed email: register your own
-    /// sending domain (the domain of `from_address`) on Atlas's email account. Returns 201 with the
-    /// DKIM, SPF and return-path `records` to publish. Email sends from `from_address` only once
-    /// the domain is verified; until then email delivery stays unavailable and preflight warns
+    /// `POST /v1/messaging_providers/email/managed` — Managed email: Atlas sets up your sending
+    /// domain (the domain of `from_address`) on YOUR OWN Resend or Brevo account, with your API
+    /// key, and sends through it once the domain is verified. Pass `transport` ("resend" | "brevo")
+    /// with `config.api_key`, or `provider_id` of your configured Resend or Brevo email provider;
+    /// without either the call is refused with 422 (param `config.api_key`). The key is stored,
+    /// write-only, as the instance's email provider in `managed_domain` mode. Returns 201 with the
+    /// DNS `records` to publish (DKIM, SPF / return-path for Resend; ownership, DKIM, DMARC for
+    /// Brevo). Until the domain is verified email delivery stays unavailable and preflight warns
     /// `managed_email_unverified`. Pass `dns: {provider: "cloudflare", api_token}` and Atlas writes
     /// the records itself (DNS-only; the token is write-only) and verifies in the same call when
-    /// DNS propagates in time. Sending is capped per instance (`limits`), and reputation is shared
-    /// on Atlas's sending account: isolation is the per-domain DKIM signature plus those limits.
-    /// Your own email provider (PUT /v1/messaging_providers/email), when set, takes precedence. 503
-    /// MANAGED_EMAIL_UNAVAILABLE when the deployment has no managed email; 409 when the domain is
-    /// registered elsewhere.
+    /// DNS propagates in time. On Brevo, Atlas also registers a bounce / complaint webhook on your
+    /// account (`feedback_webhook`). No Atlas sending limits apply (`limits: null`): the account
+    /// and its limits are yours. Atlas never uses an email account of its own. 409 when the domain
+    /// is set up on another Atlas instance; 502 MANAGED_EMAIL_PROVIDER_ERROR when your provider
+    /// refuses.
     ///
     /// Takes [`types::MessagingProvidersCreateManagedEmailBody`]. Returns [`types::ManagedEmail`].
     pub async fn create_managed_email(
@@ -2608,10 +2684,11 @@ impl MessagingProvidersApi<'_> {
             )
             .await
     }
-    /// `DELETE /v1/messaging_providers/email/managed` — Stop using managed email and release the
-    /// sending domain. DNS records are left in place. Refused with 409 EMAIL_PROVIDER_IN_USE while
-    /// it is the only way the instance can send email and email-dependent features are on; pass
-    /// force=true to remove it anyway.
+    /// `DELETE /v1/messaging_providers/email/managed` — Stop using managed email: removes the
+    /// domain from your provider account and the email provider (managed_domain mode) that held
+    /// your key (`provider_removed`). DNS records are left in place. Refused with 409
+    /// EMAIL_PROVIDER_IN_USE while it is the only way the instance can send email and
+    /// email-dependent features are on; pass force=true to remove it anyway.
     ///
     /// Query parameters: `force`.
     ///
@@ -2912,18 +2989,42 @@ impl OAuthClients<'_> {
             .await
     }
     /// `POST /v1/oauth_clients/{id}/rotate_secret` — Rotate a confidential client's secret; the new
-    /// one is revealed exactly once.
+    /// one is revealed exactly once. The previous secret keeps working for `overlap_seconds`
+    /// (default 86400 = 24 hours, at most 604800 = 7 days) so you can deploy the new one without
+    /// downtime; pass `overlap_seconds: 0` to revoke it now (for example after a leak).
+    /// `previous_secret_expires_at` says when the old secret stops working (epoch ms), or null when
+    /// it already has. 409 for a public client.
     ///
-    /// Returns [`types::OAuthClientsRotateSecretResponse`].
+    /// Takes [`types::OAuthClientsRotateSecretBody`]. Returns [`types::OAuthClientsRotateSecretResponse`].
+    pub async fn rotate_secret_with(
+        &self,
+        id: &str,
+        body: &types::OAuthClientsRotateSecretBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::OAuthClientsRotateSecretResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/rotate_secret", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/oauth_clients/{id}/rotate_secret` with the default body; see [`rotate_secret_with`](Self::rotate_secret_with).
     pub async fn rotate_secret(
         &self,
         id: &str,
         idempotency_key: Option<&str>,
     ) -> Result<types::OAuthClientsRotateSecretResponse, BackendError> {
-        let path = format!("/v1/oauth_clients/{}/rotate_secret", seg(id));
-        self.client
-            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
-            .await
+        self.rotate_secret_with(
+            id,
+            &types::OAuthClientsRotateSecretBody::default(),
+            idempotency_key,
+        )
+        .await
     }
 }
 

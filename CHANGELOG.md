@@ -2,6 +2,27 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.13.0
+
+### Added
+- **OAuth client secret rotation with overlap.** `oauth_clients().rotate_secret_with(id, &types::OAuthClientsRotateSecretBody, idempotency_key)` takes `overlap_seconds` (default 86400, `0` revokes the old secret now, at most 604800). `rotate_secret(id, idempotency_key)` keeps its signature (default overlap). The OAuth client responses gain `previous_secret_expires_at`; the rotate response gains `overlap_seconds`.
+- **Development email sender.** `messaging_providers().get_development_email()`, `enable_development_email(&types::MessagingProvidersEnableDevelopmentEmailBody)` and `disable_development_email()` (`types::DevelopmentEmail`). `MessagingProviders` gains `development_email`.
+- **Managed email on your own provider account.** `types::MessagingProvidersCreateManagedEmailBody` gains `transport`, `config` (`api_key`) and `provider_id`. `types::ManagedEmail` gains `provider_id` and `feedback_webhook`; `reputation` is `your_provider_account`. The delete response gains `provider_removed`.
+- **Provider mode.** `MessagingProvider` gains `id` and `mode`; `messaging_providers().set_email_with_mode(&provider, Some("development"))`.
+- **Allowed origins with an integration.** `AllowedOriginEntry` (`new`, `with_integration`, `REDIRECT` / `EMBEDDED` / `AUTO`); `types::InstanceUpdateBody::with_allowed_origin_entries(..)`; `CreatePlatformAppBody` and `UpdatePlatformAppBody` gain `allowed_origin_entries`.
+- **Issuer and verification endpoints.** The instance responses gain `issuer`, `discovery_url`, `jwks_uri` and `allowed_origin_integrations`; `PlatformApp` gains `frontend_api_host`, `issuer`, `discovery_url`, `jwks_uri` and `allowed_origin_integrations`.
+- **Login readiness.** `types::LoginReadiness` gains `integration` (`types::LoginReadinessIntegration`); each check gains `applies`.
+- **Email verification.** `types::EmailAddressVerification` gains `strategy`.
+- **Branding audiences.** `types::BrandingSettings` and the resolved branding gain `audiences`; `auth_config` gains `branding.audiences`, `strictRequestBodies` and `dangerouslyReportSkippedEmailsAsVerified`.
+- **Error codes.** `codes::READ_ONLY_FIELD`, `DEVELOPMENT_EMAIL_NOT_ALLOWED`, `DEVELOPMENT_EMAIL_UNAVAILABLE`, `DEVELOPMENT_EMAIL_LIMIT_REACHED`, `DEVELOPMENT_EMAIL_TEMPLATE_NOT_ALLOWED`.
+- **Webhooks, several signatures.** `Webhook::verify` / `verify_delivery` accept an `atlas-signature` header with several space-separated `v1,<signature>` entries and verify when any one matches (each compared in constant time). A single signature works as before.
+
+### Changed (breaking)
+- `types::InstanceUpdateBody::allowed_origins` is `Vec<Value>` (a string or `{ origin, integration }` per entry). Use `with_allowed_origin_entries(["https://a.example"])` for plain origins.
+- `types::ManagedEmail::limits` is a `Value` (always `null` now); `types::ManagedEmailLimits` is removed.
+- `types::OAuthClientsRotateSecretResponse` types the fields the API always returns as plain values (`object`, `id`, `client_id`, `client_secret`, `overlap_seconds`) instead of `Option`.
+- **Struct literals only.** `MessagingProvider` and `PlatformApp` gain fields; `CreatePlatformAppBody` and `UpdatePlatformAppBody` gain `allowed_origin_entries` (use `..Default::default()`).
+
 ## 0.12.0
 
 ### Added

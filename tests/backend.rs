@@ -330,3 +330,27 @@ fn create_api_key_body_serializes_import() {
     // Unset inner field is omitted, not null.
     assert!(imp.get("revoked_at").is_none(), "unset import field omitted");
 }
+
+#[test]
+fn webhook_accepts_several_signatures_when_one_matches() {
+    let now = 1_757_937_600_000i64;
+    let body = r#"{"id":"evt_1","type":"user.updated","data":{"id":"user_1"}}"#;
+    let mut headers = sign("evt_1", now, body, SECRET);
+    let fresh = headers[2].1.clone();
+    let stale = sign("evt_1", now, body, "whsec_old_secret")[2].1.clone();
+    let hook = Webhook::new(SECRET).now_ms(now);
+    for value in [format!("{stale} {fresh}"), format!("{fresh} {stale}"), format!("v2,abc {fresh}")] {
+        headers[2].1 = value.clone();
+        assert!(hook.verify_delivery(body.as_bytes(), headers.as_slice()).is_ok(), "{value}");
+    }
+    headers[2].1 = format!("{stale} {stale}");
+    assert!(matches!(
+        hook.verify_delivery(body.as_bytes(), headers.as_slice()),
+        Err(WebhookError::SignatureMismatch)
+    ));
+    headers[2].1 = "v2,abc v0,def".to_string();
+    assert!(matches!(
+        hook.verify_delivery(body.as_bytes(), headers.as_slice()),
+        Err(WebhookError::MalformedSignature)
+    ));
+}

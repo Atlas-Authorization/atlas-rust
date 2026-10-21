@@ -476,9 +476,30 @@ println!("{} fields move", preview.changes.len());
 ```
 
 `logout_notify_endpoints()` registers services that get the same `logout_token` as your OIDC apps,
-`messaging_providers().create_managed_email(..)` sends email from your own domain through Atlas, and with a platform
+`messaging_providers().create_managed_email(..)` sets your domain up on your own Resend or Brevo account
+(`with_transport` + `with_config(..with_api_key(..))`, or `with_provider_id`), and with a platform
 key `platform().atlas_id_apps().find_users(..)` answers a privacy request for one app and
 `platform().atlas_id_publisher()` claims the publisher name shown on consent screens.
+
+### OAuth client secret rotation and development email
+
+```rust,no_run
+# async fn demo(atlas: &atlasauth::backend::BackendClient) -> Result<(), atlasauth::backend::BackendError> {
+use atlasauth::backend::types;
+// The previous secret keeps working for the overlap (default 24 hours, at most 7 days); 0 revokes it now.
+let body = types::OAuthClientsRotateSecretBody::new().with_overlap_seconds(3600);
+let rotated = atlas.oauth_clients().rotate_secret_with("oc_123", &body, None).await?;
+println!("new secret shown once; old one stops at {:?}", rotated.previous_secret_expires_at);
+
+// A development instance can send sign-in emails through your provider without a verified domain.
+let dev = types::MessagingProvidersEnableDevelopmentEmailBody::new().with_provider_id("mp_123");
+atlas.messaging_providers().enable_development_email(&dev).await?;
+# Ok(()) }
+```
+
+`Webhook::verify` accepts an `atlas-signature` header that carries several signatures separated by spaces
+(`v1,<sig> v1,<sig>`). While an endpoint secret rotates, Atlas may sign each delivery with the old and the new
+secret; the delivery verifies when any one signature matches.
 
 ### Platform API: Sign in with Atlas apps
 

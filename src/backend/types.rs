@@ -1064,6 +1064,14 @@ pub struct BrandingSettings {
         skip_serializing_if = "Option::is_none"
     )]
     pub sign_up_fields: Option<Vec<BrandingSettingsSignUpFieldsItem>>,
+    /// Per-audience branding for the hosted sign-in and sign-up pages, keyed by audience hint (1-32
+    /// characters: a-z, 0-9, _ and -; at most 20). A sign-in started with
+    /// audience_hint=&lt;hint&gt; (on /oauth2/authorize or the hosted page URL) uses that entry's
+    /// heading, subheading, logo and primary colour; any other hint gets the default branding.
+    /// PATCH merges per hint: an entry replaces that hint, null deletes it, audiences: null removes
+    /// them all.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audiences: Option<HashMap<String, BrandingSettingsAudiencesValue>>,
     #[serde(rename = "customCss", default, skip_serializing_if = "Option::is_none")]
     pub custom_css: Option<String>,
     #[serde(
@@ -1250,6 +1258,14 @@ impl BrandingSettings {
         v: impl Into<Vec<BrandingSettingsSignUpFieldsItem>>,
     ) -> Self {
         self.sign_up_fields = Some(v.into());
+        self
+    }
+    /// Set `audiences`.
+    pub fn with_audiences(
+        mut self,
+        v: impl Into<HashMap<String, BrandingSettingsAudiencesValue>>,
+    ) -> Self {
+        self.audiences = Some(v.into());
         self
     }
     /// Set `customCss`.
@@ -1858,6 +1874,63 @@ impl BrandingSettingsSignUpFieldsItem {
     /// Set `options`.
     pub fn with_options(mut self, v: impl Into<Vec<String>>) -> Self {
         self.options = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BrandingSettingsAudiencesValue {
+    /// Replaces the card heading.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    /// Replaces the line under the heading.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// Replaces the logo (https).
+    #[serde(rename = "logoUrl", default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// Replaces the primary colour (hex, rgb() or a CSS colour name).
+    #[serde(
+        rename = "primaryColor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BrandingSettingsAudiencesValue {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `heading`.
+    pub fn with_heading(mut self, v: impl Into<String>) -> Self {
+        self.heading = Some(v.into());
+        self
+    }
+    /// Set `subheading`.
+    pub fn with_subheading(mut self, v: impl Into<String>) -> Self {
+        self.subheading = Some(v.into());
+        self
+    }
+    /// Set `logoUrl`.
+    pub fn with_logo_url(mut self, v: impl Into<String>) -> Self {
+        self.logo_url = Some(v.into());
+        self
+    }
+    /// Set `primaryColor`.
+    pub fn with_primary_color(mut self, v: impl Into<String>) -> Self {
+        self.primary_color = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -3297,9 +3370,15 @@ impl FgaWriteBody {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceUpdateBody {
-    /// Bare origins, no wildcards.
+    /// Bare origins, no wildcards. The list replaces the stored one. An entry is an origin string,
+    /// or an object { origin, integration } that also says how the origin signs in: "redirect"
+    /// (hosted-redirect OIDC: the app sends users to /oauth2/authorize and never runs the embedded
+    /// components, so preflight reports the CORS and session-cookie findings for it as info),
+    /// "embedded" (the sign-in components run on the origin), or "auto" / null (clear the hint;
+    /// preflight infers it). A plain string keeps the hint the origin already had. Read the hints
+    /// back as allowed_origin_integrations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub allowed_origins: Option<Vec<String>>,
+    pub allowed_origins: Option<Vec<Value>>,
     /// Instance auth configuration. Partial + additive on PATCH — omitted sections are untouched.
     /// GET /v1/instance returns this resolved (defaults expanded) as auth_config_resolved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -3316,7 +3395,7 @@ impl InstanceUpdateBody {
         Self::default()
     }
     /// Set `allowed_origins`.
-    pub fn with_allowed_origins(mut self, v: impl Into<Vec<String>>) -> Self {
+    pub fn with_allowed_origins(mut self, v: impl Into<Vec<Value>>) -> Self {
         self.allowed_origins = Some(v.into());
         self
     }
@@ -3366,12 +3445,45 @@ pub struct InstanceUpdateBodyAuthConfig {
         skip_serializing_if = "Option::is_none"
     )]
     pub sign_up_mode: Option<String>,
+    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+    /// written with PATCH /v1/branding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<InstanceUpdateBodyAuthConfigBranding>,
+    /// Strict writes for this instance's secret keys: a Backend API write that carries a body field
+    /// the endpoint does not know is refused with 422 UNKNOWN_FIELD instead of being accepted and
+    /// ignored. true for every instance created from 2026-10 on; older instances stay false
+    /// (lenient: the ignored fields are named in the Atlas-Unknown-Fields response header) until
+    /// set. One request overrides it with the Atlas-Strict: true | false header. Fields that look
+    /// writable and have their own call (verified on an email address, banned, …) are refused with
+    /// 422 READ_ONLY_FIELD either way; echoed id, object, created_at and updated_at are 422
+    /// READ_ONLY_FIELD only when strict.
+    #[serde(
+        rename = "strictRequestBodies",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub strict_request_bodies: Option<bool>,
+    /// Whether a password sign-up must prove the address with an emailed code before it completes.
+    /// When false the sign-up completes at once, but the address stays unverified (verified,
+    /// verification.status and email_verified report false) until the user proves it later.
     #[serde(
         rename = "requireEmailVerification",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub require_email_verification: Option<bool>,
+    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
+    /// false are reported as verified again in users, tokens, webhooks and exports (the old
+    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
+    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
+    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
+    #[serde(
+        rename = "dangerouslyReportSkippedEmailsAsVerified",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dangerously_report_skipped_emails_as_verified: Option<bool>,
     /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
     /// (direct SAML; no OIDC/atlas_byo needed).
     #[serde(rename = "samlIdp", default, skip_serializing_if = "Option::is_none")]
@@ -3431,9 +3543,27 @@ impl InstanceUpdateBodyAuthConfig {
         self.sign_up_mode = Some(v.into());
         self
     }
+    /// Set `branding`.
+    pub fn with_branding(mut self, v: impl Into<InstanceUpdateBodyAuthConfigBranding>) -> Self {
+        self.branding = Some(v.into());
+        self
+    }
+    /// Set `strictRequestBodies`.
+    pub fn with_strict_request_bodies(mut self, v: impl Into<bool>) -> Self {
+        self.strict_request_bodies = Some(v.into());
+        self
+    }
     /// Set `requireEmailVerification`.
     pub fn with_require_email_verification(mut self, v: impl Into<bool>) -> Self {
         self.require_email_verification = Some(v.into());
+        self
+    }
+    /// Set `dangerouslyReportSkippedEmailsAsVerified`.
+    pub fn with_dangerously_report_skipped_emails_as_verified(
+        mut self,
+        v: impl Into<bool>,
+    ) -> Self {
+        self.dangerously_report_skipped_emails_as_verified = Some(v.into());
         self
     }
     /// Set `samlIdp`.
@@ -3739,6 +3869,95 @@ impl InstanceUpdateBodyAuthConfigSession {
     /// Set `includeEndUserPoolClaim`.
     pub fn with_include_end_user_pool_claim(mut self, v: impl Into<bool>) -> Self {
         self.include_end_user_pool_claim = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+/// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+/// written with PATCH /v1/branding.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateBodyAuthConfigBranding {
+    /// Audience hint (\[a-z0-9_-\]{1,32}) → { heading, subheading, logoUrl, primaryColor }, or null
+    /// to delete that audience.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audiences: Option<HashMap<String, InstanceUpdateBodyAuthConfigBrandingAudiencesValue>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceUpdateBodyAuthConfigBranding {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `audiences`.
+    pub fn with_audiences(
+        mut self,
+        v: impl Into<HashMap<String, InstanceUpdateBodyAuthConfigBrandingAudiencesValue>>,
+    ) -> Self {
+        self.audiences = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateBodyAuthConfigBrandingAudiencesValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    #[serde(rename = "logoUrl", default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    #[serde(
+        rename = "primaryColor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceUpdateBodyAuthConfigBrandingAudiencesValue {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `heading`.
+    pub fn with_heading(mut self, v: impl Into<String>) -> Self {
+        self.heading = Some(v.into());
+        self
+    }
+    /// Set `subheading`.
+    pub fn with_subheading(mut self, v: impl Into<String>) -> Self {
+        self.subheading = Some(v.into());
+        self
+    }
+    /// Set `logoUrl`.
+    pub fn with_logo_url(mut self, v: impl Into<String>) -> Self {
+        self.logo_url = Some(v.into());
+        self
+    }
+    /// Set `primaryColor`.
+    pub fn with_primary_color(mut self, v: impl Into<String>) -> Self {
+        self.primary_color = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -5353,6 +5572,64 @@ impl McpConnectorSetBody {
     }
 }
 
+/// The request body of `POST /v1/messaging_providers/email/development`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MessagingProvidersEnableDevelopmentEmailBody {
+    /// The id of your configured email provider (GET /v1/messaging_providers).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<String>,
+    /// Instead of provider_id: your provider, configured as PUT /v1/messaging_providers/email takes
+    /// it.
+    ///
+    /// Known values: `resend`, `ses`, `smtp`, `brevo`, `mailgun`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transport: Option<String>,
+    /// A sender your provider accepts without a verified domain. Default for Resend:
+    /// onboarding@resend.dev (delivers only to your Resend account address). Required otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from_address: Option<String>,
+    /// The transport's settings, as for PUT /v1/messaging_providers/email (secrets write-only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config: Option<Map<String, Value>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl MessagingProvidersEnableDevelopmentEmailBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `provider_id`.
+    pub fn with_provider_id(mut self, v: impl Into<String>) -> Self {
+        self.provider_id = Some(v.into());
+        self
+    }
+    /// Set `transport`.
+    pub fn with_transport(mut self, v: impl Into<String>) -> Self {
+        self.transport = Some(v.into());
+        self
+    }
+    /// Set `from_address`.
+    pub fn with_from_address(mut self, v: impl Into<String>) -> Self {
+        self.from_address = Some(v.into());
+        self
+    }
+    /// Set `config`.
+    pub fn with_config(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.config = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `POST /v1/messaging_providers/email/managed`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -5360,6 +5637,19 @@ pub struct MessagingProvidersCreateManagedEmailBody {
     /// The From address, bare or "Name &lt;address&gt;". Its domain becomes the sending domain.
     #[serde(default)]
     pub from_address: String,
+    /// Your email provider. With config.api_key: the account Atlas sets the domain up on and sends
+    /// through. Required unless provider_id is given (or the domain is already set up).
+    ///
+    /// Known values: `resend`, `brevo`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transport: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config: Option<MessagingProvidersCreateManagedEmailBodyConfig>,
+    /// Instead of transport + config: the id of your configured Resend or Brevo email provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<String>,
+    /// Resend only.
+    ///
     /// Known values: `us-east-1`, `eu-west-1`, `sa-east-1`, `ap-northeast-1`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub region: Option<String>,
@@ -5385,6 +5675,24 @@ impl MessagingProvidersCreateManagedEmailBody {
         self.from_address = v.into();
         self
     }
+    /// Set `transport`.
+    pub fn with_transport(mut self, v: impl Into<String>) -> Self {
+        self.transport = Some(v.into());
+        self
+    }
+    /// Set `config`.
+    pub fn with_config(
+        mut self,
+        v: impl Into<MessagingProvidersCreateManagedEmailBodyConfig>,
+    ) -> Self {
+        self.config = Some(v.into());
+        self
+    }
+    /// Set `provider_id`.
+    pub fn with_provider_id(mut self, v: impl Into<String>) -> Self {
+        self.provider_id = Some(v.into());
+        self
+    }
     /// Set `region`.
     pub fn with_region(mut self, v: impl Into<String>) -> Self {
         self.region = Some(v.into());
@@ -5393,6 +5701,35 @@ impl MessagingProvidersCreateManagedEmailBody {
     /// Set `dns`.
     pub fn with_dns(mut self, v: impl Into<MessagingProvidersCreateManagedEmailBodyDns>) -> Self {
         self.dns = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MessagingProvidersCreateManagedEmailBodyConfig {
+    /// Your Resend (re_…) or Brevo (xkeysib-…) API key, with domain permissions. Write-only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_key: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl MessagingProvidersCreateManagedEmailBodyConfig {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `api_key`.
+    pub fn with_api_key(mut self, v: impl Into<String>) -> Self {
+        self.api_key = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -6042,6 +6379,37 @@ impl OAuthClientsUpdateBody {
     /// Set `skip_logout_confirmation`.
     pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
         self.skip_logout_confirmation = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/oauth_clients/{id}/rotate_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRotateSecretBody {
+    /// How long the previous secret keeps working, in seconds. Default 86400 (24 hours). 0 revokes
+    /// it now. At most 604800 (7 days).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overlap_seconds: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl OAuthClientsRotateSecretBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `overlap_seconds`.
+    pub fn with_overlap_seconds(mut self, v: impl Into<i64>) -> Self {
+        self.overlap_seconds = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -11725,6 +12093,14 @@ pub struct Branding {
         skip_serializing_if = "Vec::is_empty"
     )]
     pub sign_up_fields: Vec<BrandingSignUpFieldsItem>,
+    /// Per-audience branding for the hosted sign-in and sign-up pages, keyed by audience hint (1-32
+    /// characters: a-z, 0-9, _ and -; at most 20). A sign-in started with
+    /// audience_hint=&lt;hint&gt; (on /oauth2/authorize or the hosted page URL) uses that entry's
+    /// heading, subheading, logo and primary colour; any other hint gets the default branding.
+    /// PATCH merges per hint: an entry replaces that hint, null deletes it, audiences: null removes
+    /// them all.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub audiences: HashMap<String, BrandingAudiencesValue>,
     #[serde(rename = "customCss", default, skip_serializing_if = "Option::is_none")]
     pub custom_css: Option<String>,
     #[serde(
@@ -11994,6 +12370,31 @@ pub struct BrandingSignUpFieldsItem {
     pub extra: Map<String, Value>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BrandingAudiencesValue {
+    /// Replaces the card heading.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    /// Replaces the line under the heading.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// Replaces the logo (https).
+    #[serde(rename = "logoUrl", default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// Replaces the primary colour (hex, rgb() or a CSS colour name).
+    #[serde(
+        rename = "primaryColor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// What the renderers use, after dropping anything unsafe or invalid. Every writable field
 /// appears here under the same name and shape you write it (fontFamily, providers, copy, legal,
 /// theme, layout, card, interaction, …), holding the value in force: compare your desired state
@@ -12042,6 +12443,9 @@ pub struct BrandingResolved {
     /// Known values: `light`, `dark`, `auto`.
     #[serde(default)]
     pub theme: String,
+    /// Every audience the hosted page can theme for, as it reads them (invalid values dropped).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub audiences: HashMap<String, BrandingResolvedAudiencesValue>,
     /// The font stack name in force (system when unset or unknown).
     #[serde(rename = "fontFamily", default)]
     pub font_family: String,
@@ -12153,6 +12557,27 @@ pub struct BrandingResolved {
         skip_serializing_if = "Option::is_none"
     )]
     pub custom_html_footer: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BrandingResolvedAudiencesValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    #[serde(rename = "logoUrl", default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    #[serde(
+        rename = "primaryColor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_color: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -12592,10 +13017,42 @@ pub struct LoginReadiness {
     pub live: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub data_region: Option<String>,
+    /// Every check that applies to the assumed integration passes.
     #[serde(default)]
     pub ready: bool,
+    /// The integration the checks assumed for this origin. redirect = hosted-redirect OIDC sign-in
+    /// (the app never runs the embedded components), so the cors and session_cookie checks do not
+    /// apply. embedded = the sign-in components run on the origin.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub integration: Option<LoginReadinessIntegration>,
     #[serde(default)]
     pub checks: Vec<LoginReadinessChecksItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The integration the checks assumed for this origin. redirect = hosted-redirect OIDC sign-in
+/// (the app never runs the embedded components), so the cors and session_cookie checks do not
+/// apply. embedded = the sign-in components run on the origin.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct LoginReadinessIntegration {
+    /// Known values: `redirect`, `embedded`.
+    #[serde(default)]
+    pub assumed: String,
+    /// declared: allowed_origins names it ({ origin, integration }). embedded_traffic: an Atlas
+    /// browser SDK called the Frontend API from the origin in the last 7 days. redirect_clients:
+    /// every OAuth client redirecting to the origin uses the authorization-code flow, and no SDK
+    /// traffic was seen. default: nothing says, so embedded.
+    ///
+    /// Known values: `declared`, `embedded_traffic`, `redirect_clients`, `default`.
+    #[serde(default)]
+    pub source: String,
+    /// A plain sentence saying why.
+    #[serde(default)]
+    pub reason: String,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -12609,6 +13066,10 @@ pub struct LoginReadinessChecksItem {
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pass: Option<bool>,
+    /// false when the check does not matter for the assumed integration (it then never makes ready
+    /// false).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub applies: Option<bool>,
     /// Check-specific observed values.
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub observed: Map<String, Value>,
@@ -12760,6 +13221,7 @@ pub struct EmailAddress {
     pub email_address: String,
     #[serde(default)]
     pub verification: EmailAddressVerification,
+    /// Same as verification.status === "verified": the address was proven.
     #[serde(default)]
     pub verified: bool,
     #[serde(default)]
@@ -12773,9 +13235,18 @@ pub struct EmailAddress {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct EmailAddressVerification {
+    /// verified only when the address was proven (an emailed code or link, a provider that vouches
+    /// for it, or your backend). An address that signed up while requireEmailVerification was false
+    /// is unverified.
+    ///
     /// Known values: `verified`, `unverified`.
     #[serde(default)]
     pub status: String,
+    /// How the address was verified: email_code, email_link, oauth, admin, import, scim, lti;
+    /// skipped when it signed up without proof (held for sign-in, reported unverified); null when
+    /// not verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strategy: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -13241,8 +13712,23 @@ pub struct InstanceGetResponse {
     pub publishable_key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontend_api_host: Option<String>,
+    /// The `iss` your session tokens carry. Changes when a custom domain goes active, so read it
+    /// from here rather than hard-coding it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The OpenID discovery document whose `issuer` equals `issuer`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovery_url: Option<String>,
+    /// The JWKS holding this instance's signing keys.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub allowed_origins: Vec<String>,
+    /// The declared integration per allowed origin ("redirect" or "embedded"), set by writing
+    /// allowed_origins entries as { origin, integration }. An origin not listed is inferred by
+    /// preflight and login readiness.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub allowed_origin_integrations: HashMap<String, String>,
     /// The raw stored patch (often {} = defaults).
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub auth_config: Map<String, Value>,
@@ -13293,12 +13779,45 @@ pub struct InstanceGetResponseAuthConfigResolved {
         skip_serializing_if = "Option::is_none"
     )]
     pub sign_up_mode: Option<String>,
+    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+    /// written with PATCH /v1/branding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<InstanceGetResponseAuthConfigResolvedBranding>,
+    /// Strict writes for this instance's secret keys: a Backend API write that carries a body field
+    /// the endpoint does not know is refused with 422 UNKNOWN_FIELD instead of being accepted and
+    /// ignored. true for every instance created from 2026-10 on; older instances stay false
+    /// (lenient: the ignored fields are named in the Atlas-Unknown-Fields response header) until
+    /// set. One request overrides it with the Atlas-Strict: true | false header. Fields that look
+    /// writable and have their own call (verified on an email address, banned, …) are refused with
+    /// 422 READ_ONLY_FIELD either way; echoed id, object, created_at and updated_at are 422
+    /// READ_ONLY_FIELD only when strict.
+    #[serde(
+        rename = "strictRequestBodies",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub strict_request_bodies: Option<bool>,
+    /// Whether a password sign-up must prove the address with an emailed code before it completes.
+    /// When false the sign-up completes at once, but the address stays unverified (verified,
+    /// verification.status and email_verified report false) until the user proves it later.
     #[serde(
         rename = "requireEmailVerification",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub require_email_verification: Option<bool>,
+    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
+    /// false are reported as verified again in users, tokens, webhooks and exports (the old
+    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
+    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
+    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
+    #[serde(
+        rename = "dangerouslyReportSkippedEmailsAsVerified",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dangerously_report_skipped_emails_as_verified: Option<bool>,
     /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
     /// (direct SAML; no OIDC/atlas_byo needed).
     #[serde(rename = "samlIdp", default, skip_serializing_if = "Option::is_none")]
@@ -13446,6 +13965,43 @@ pub struct InstanceGetResponseAuthConfigResolvedSession {
     pub extra: Map<String, Value>,
 }
 
+/// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+/// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+/// written with PATCH /v1/branding.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetResponseAuthConfigResolvedBranding {
+    /// Audience hint (\[a-z0-9_-\]{1,32}) → { heading, subheading, logoUrl, primaryColor }, or null
+    /// to delete that audience.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub audiences: HashMap<String, InstanceGetResponseAuthConfigResolvedBrandingAudiencesValue>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetResponseAuthConfigResolvedBrandingAudiencesValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    #[serde(rename = "logoUrl", default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    #[serde(
+        rename = "primaryColor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
 /// (direct SAML; no OIDC/atlas_byo needed).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -13551,8 +14107,23 @@ pub struct InstanceUpdateResponse {
     pub publishable_key: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub frontend_api_host: Option<String>,
+    /// The `iss` your session tokens carry. Changes when a custom domain goes active, so read it
+    /// from here rather than hard-coding it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<String>,
+    /// The OpenID discovery document whose `issuer` equals `issuer`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovery_url: Option<String>,
+    /// The JWKS holding this instance's signing keys.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_uri: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub allowed_origins: Vec<String>,
+    /// The declared integration per allowed origin ("redirect" or "embedded"), set by writing
+    /// allowed_origins entries as { origin, integration }. An origin not listed is inferred by
+    /// preflight and login readiness.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub allowed_origin_integrations: HashMap<String, String>,
     /// The raw stored patch (often {} = defaults).
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub auth_config: Map<String, Value>,
@@ -13603,12 +14174,45 @@ pub struct InstanceUpdateResponseAuthConfigResolved {
         skip_serializing_if = "Option::is_none"
     )]
     pub sign_up_mode: Option<String>,
+    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+    /// written with PATCH /v1/branding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<InstanceUpdateResponseAuthConfigResolvedBranding>,
+    /// Strict writes for this instance's secret keys: a Backend API write that carries a body field
+    /// the endpoint does not know is refused with 422 UNKNOWN_FIELD instead of being accepted and
+    /// ignored. true for every instance created from 2026-10 on; older instances stay false
+    /// (lenient: the ignored fields are named in the Atlas-Unknown-Fields response header) until
+    /// set. One request overrides it with the Atlas-Strict: true | false header. Fields that look
+    /// writable and have their own call (verified on an email address, banned, …) are refused with
+    /// 422 READ_ONLY_FIELD either way; echoed id, object, created_at and updated_at are 422
+    /// READ_ONLY_FIELD only when strict.
+    #[serde(
+        rename = "strictRequestBodies",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub strict_request_bodies: Option<bool>,
+    /// Whether a password sign-up must prove the address with an emailed code before it completes.
+    /// When false the sign-up completes at once, but the address stays unverified (verified,
+    /// verification.status and email_verified report false) until the user proves it later.
     #[serde(
         rename = "requireEmailVerification",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub require_email_verification: Option<bool>,
+    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
+    /// false are reported as verified again in users, tokens, webhooks and exports (the old
+    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
+    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
+    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
+    #[serde(
+        rename = "dangerouslyReportSkippedEmailsAsVerified",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dangerously_report_skipped_emails_as_verified: Option<bool>,
     /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
     /// (direct SAML; no OIDC/atlas_byo needed).
     #[serde(rename = "samlIdp", default, skip_serializing_if = "Option::is_none")]
@@ -13750,6 +14354,43 @@ pub struct InstanceUpdateResponseAuthConfigResolvedSession {
         skip_serializing_if = "Option::is_none"
     )]
     pub include_end_user_pool_claim: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+/// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+/// written with PATCH /v1/branding.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateResponseAuthConfigResolvedBranding {
+    /// Audience hint (\[a-z0-9_-\]{1,32}) → { heading, subheading, logoUrl, primaryColor }, or null
+    /// to delete that audience.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub audiences: HashMap<String, InstanceUpdateResponseAuthConfigResolvedBrandingAudiencesValue>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateResponseAuthConfigResolvedBrandingAudiencesValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    #[serde(rename = "logoUrl", default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    #[serde(
+        rename = "primaryColor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub primary_color: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -15783,6 +16424,85 @@ pub struct McpConnectorDeleteResponse {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `DELETE /v1/messaging_providers/email/development`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct MessagingProvidersDisableDevelopmentEmailResponse {
+    /// Always `development_email`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub deleted: Value,
+    #[serde(default)]
+    pub provider_id: String,
+    /// Always `standard`.
+    #[serde(default)]
+    pub mode: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `DevelopmentEmail` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct DevelopmentEmail {
+    /// Always `development_email`.
+    #[serde(default)]
+    pub object: String,
+    /// Your email provider, in development mode.
+    #[serde(default)]
+    pub provider_id: String,
+    #[serde(default)]
+    pub enabled: Value,
+    /// Whether mail goes out through it now. Always false on a production instance.
+    #[serde(default)]
+    pub active: bool,
+    /// Your email provider: resend, ses, smtp, brevo or mailgun.
+    #[serde(default)]
+    pub transport: String,
+    /// The sender: onboarding@resend.dev on Resend by default, or an address your provider has
+    /// verified.
+    #[serde(default)]
+    pub from_address: Option<String>,
+    /// Added to every subject: "\[Atlas test\] ".
+    #[serde(default)]
+    pub subject_prefix: String,
+    /// The line added to the end of every message.
+    #[serde(default)]
+    pub footer: String,
+    /// The only emails it sends: Atlas's own sign-in templates.
+    #[serde(default)]
+    pub templates: Vec<String>,
+    #[serde(default)]
+    pub limits: DevelopmentEmailLimits,
+    /// Present for onboarding@resend.dev: Resend delivers it only to your Resend account address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_step: Option<String>,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct DevelopmentEmailLimits {
+    #[serde(default)]
+    pub daily: i64,
+    #[serde(default)]
+    pub per_recipient_hourly: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The `ManagedEmail` object.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -15798,6 +16518,20 @@ pub struct ManagedEmail {
     pub domain: String,
     #[serde(default)]
     pub provider: String,
+    /// The email service the domain is set up on: your own account there.
+    ///
+    /// Known values: `resend`, `brevo`.
+    #[serde(default)]
+    pub backend: String,
+    /// Your email provider (mode managed_domain) that holds the API key.
+    #[serde(default)]
+    pub provider_id: Option<String>,
+    /// Brevo only, on create: whether the bounce / complaint webhook was registered on your
+    /// account.
+    ///
+    /// Known values: `registered`, `not_registered`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_webhook: Option<String>,
     #[serde(default)]
     pub region: Option<String>,
     /// not_started | pending | verified | failed | temporary_failure. Email sends only when
@@ -15808,14 +16542,14 @@ pub struct ManagedEmail {
     pub verified: bool,
     #[serde(default)]
     pub records: Vec<ManagedEmailRecord>,
+    /// Always null: no Atlas sending limits apply; the account and its limits are yours.
     #[serde(default)]
-    pub limits: ManagedEmailLimits,
+    pub limits: Value,
     #[serde(default)]
     pub usage: ManagedEmailUsage,
-    /// Mail goes out through Atlas's sending account; isolation is the per-domain DKIM signature
-    /// plus per-instance limits.
+    /// Mail goes out through your own provider account.
     ///
-    /// Always `shared_platform_account`.
+    /// Always `your_provider_account`.
     #[serde(default)]
     pub reputation: String,
     #[serde(default)]
@@ -15845,7 +16579,7 @@ pub struct ManagedEmail {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ManagedEmailRecord {
-    /// Known values: `dkim`, `spf`, `return_path`, `other`.
+    /// Known values: `dkim`, `spf`, `return_path`, `ownership`, `dmarc`, `other`.
     #[serde(default)]
     pub purpose: String,
     /// Known values: `TXT`, `MX`, `CNAME`.
@@ -15860,19 +16594,6 @@ pub struct ManagedEmailRecord {
     pub priority: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct ManagedEmailLimits {
-    #[serde(default)]
-    pub hourly: i64,
-    #[serde(default)]
-    pub daily: i64,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -15922,6 +16643,8 @@ pub struct MessagingProvidersDeleteManagedEmailResponse {
     pub domain: String,
     #[serde(default)]
     pub deleted: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_removed: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -16049,6 +16772,10 @@ pub struct OAuthClientsListResponseDataItem {
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
+    /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
+    /// only the current secret is accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_public: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16106,6 +16833,10 @@ pub struct OAuthClientsCreateResponse {
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
+    /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
+    /// only the current secret is accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_public: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16184,6 +16915,10 @@ pub struct OAuthClientsImportResponseDataItem {
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
+    /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
+    /// only the current secret is accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_public: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16307,6 +17042,10 @@ pub struct OAuthClientsGetResponse {
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
+    /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
+    /// only the current secret is accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_public: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16364,6 +17103,10 @@ pub struct OAuthClientsUpdateResponse {
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
+    /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
+    /// only the current secret is accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_public: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16536,12 +17279,12 @@ pub struct BackchannelLogoutTest {
 #[non_exhaustive]
 pub struct OAuthClientsRotateSecretResponse {
     /// Always `oauth_client`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub object: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_id: Option<String>,
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub client_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16556,6 +17299,10 @@ pub struct OAuthClientsRotateSecretResponse {
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
+    /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
+    /// only the current secret is accepted.
+    #[serde(default)]
+    pub previous_secret_expires_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_public: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16573,15 +17320,20 @@ pub struct OAuthClientsRotateSecretResponse {
     /// RP-initiated logout skips the confirmation page (first-party clients only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_secret: Option<String>,
+    /// The new client secret. Returned exactly once.
+    #[serde(default)]
+    pub client_secret: String,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// The overlap applied, in seconds (echoed).
+    #[serde(default)]
+    pub overlap_seconds: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

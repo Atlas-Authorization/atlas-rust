@@ -22,6 +22,8 @@
 //! # Ok(()) }
 //! ```
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -31,6 +33,7 @@ use super::client::BackendClient;
 use super::design::{content_type_for, AtlasDesign, DesignAsset, DesignAssetKind, DesignPreview};
 use super::error::BackendError;
 use super::pagination::Query;
+use super::instance::AllowedOriginEntry;
 use super::resources::{body_of, seg, ListPage};
 
 // ── Sign in with Atlas apps ───────────────────────────────────────────────
@@ -314,8 +317,25 @@ pub struct PlatformApp {
     pub environment: String,
     #[serde(default)]
     pub publishable_key: String,
+    /// The Frontend API host: the default per-app host, or the custom domain
+    /// once it is active.
+    #[serde(default)]
+    pub frontend_api_host: Option<String>,
+    /// The `iss` the app's session tokens carry. It changes when a custom
+    /// domain goes active, so read it rather than hard-coding it.
+    #[serde(default)]
+    pub issuer: Option<String>,
+    /// The OpenID discovery document whose `issuer` equals [`Self::issuer`].
+    #[serde(default)]
+    pub discovery_url: Option<String>,
+    /// The JWKS holding the app's signing keys.
+    #[serde(default)]
+    pub jwks_uri: Option<String>,
     #[serde(default)]
     pub allowed_origins: Vec<String>,
+    /// The declared integration per allowed origin (`redirect` or `embedded`).
+    #[serde(default)]
+    pub allowed_origin_integrations: HashMap<String, String>,
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
@@ -346,6 +366,10 @@ pub struct CreatePlatformAppBody {
     pub create_development_sibling: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    /// Sent as `allowed_origins` instead of `allowed_origins` when set: entries
+    /// that may also declare how each origin signs in.
+    #[serde(skip)]
+    pub allowed_origin_entries: Option<Vec<AllowedOriginEntry>>,
 }
 
 /// Body for `PATCH /v1/platform/apps/:id`.
@@ -357,6 +381,25 @@ pub struct UpdatePlatformAppBody {
     pub allowed_origins: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
+    /// Sent as `allowed_origins` instead of `allowed_origins` when set: entries
+    /// that may also declare how each origin signs in.
+    #[serde(skip)]
+    pub allowed_origin_entries: Option<Vec<AllowedOriginEntry>>,
+}
+
+/// The body with `allowed_origin_entries` (when set) written as `allowed_origins`.
+fn with_origin_entries<T: Serialize>(
+    body: &T,
+    entries: &Option<Vec<AllowedOriginEntry>>,
+) -> Result<Option<Value>, BackendError> {
+    let mut v = body_of(body)?;
+    if let (Some(e), Some(Value::Object(obj))) = (entries, v.as_mut()) {
+        obj.insert(
+            "allowed_origins".into(),
+            serde_json::to_value(e).map_err(|err| BackendError::Malformed(err.to_string()))?,
+        );
+    }
+    Ok(v)
 }
 
 /// `/v1/platform/apps` and `/v1/platform/accountless_apps`.
@@ -369,7 +412,13 @@ impl PlatformApps<'_> {
     /// the response, exactly once.
     pub async fn create(&self, body: &CreatePlatformAppBody, idempotency_key: Option<&str>) -> Result<Value, BackendError> {
         self.client
-            .request(HttpMethod::Post, "/v1/platform/apps", &[], body_of(body)?, idempotency_key)
+            .request(
+                HttpMethod::Post,
+                "/v1/platform/apps",
+                &[],
+                with_origin_entries(body, &body.allowed_origin_entries)?,
+                idempotency_key,
+            )
             .await
     }
     /// `GET /v1/platform/apps` — e.g. `Query::new().set("include_archived", true)`.
@@ -384,7 +433,8 @@ impl PlatformApps<'_> {
     /// `PATCH /v1/platform/apps/:id`.
     pub async fn update(&self, id: &str, body: &UpdatePlatformAppBody) -> Result<PlatformApp, BackendError> {
         let path = format!("/v1/platform/apps/{}", seg(id));
-        self.client.request(HttpMethod::Patch, &path, &[], body_of(body)?, None).await
+        let body = with_origin_entries(body, &body.allowed_origin_entries)?;
+        self.client.request(HttpMethod::Patch, &path, &[], body, None).await
     }
     /// `DELETE /v1/platform/apps/:id` — soft-disable (reversible).
     pub async fn delete(&self, id: &str) -> Result<Value, BackendError> {
@@ -408,7 +458,8 @@ impl PlatformApps<'_> {
     }
     /// `POST /v1/platform/apps/:id/instances` — add an instance (e.g.
     /// `development`) under an owned app. `body`: `{ environment,
-    /// allowed_origins? }`.
+    /// allowed_origins? }`; an `allowed_origins` entry is an origin string or
+    /// `{ origin, integration }` (see [`AllowedOriginEntry`]).
     pub async fn create_instance(&self, id: &str, body: Value, idempotency_key: Option<&str>) -> Result<Value, BackendError> {
         let path = format!("/v1/platform/apps/{}/instances", seg(id));
         self.client.request(HttpMethod::Post, &path, &[], Some(body), idempotency_key).await
@@ -465,7 +516,8 @@ impl PlatformApps<'_> {
     }
     /// `POST /v1/platform/accountless_apps` — mint an app owned by no platform,
     /// with a one-time `claim_token`. `body`: `{ name, environment?,
-    /// allowed_origins? }`.
+    /// allowed_origins? }`; an `allowed_origins` entry is an origin string or
+    /// `{ origin, integration }` (see [`AllowedOriginEntry`]).
     pub async fn create_accountless(&self, body: Value, idempotency_key: Option<&str>) -> Result<Value, BackendError> {
         self.client
             .request(HttpMethod::Post, "/v1/platform/accountless_apps", &[], Some(body), idempotency_key)

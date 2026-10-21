@@ -6,7 +6,9 @@
 //! the signed material — a header-only timestamp would let an attacker replay a
 //! captured body under a fresh timestamp — and a delivery more than five minutes
 //! from now (in EITHER direction) is rejected so a captured request cannot be
-//! replayed later, nor a far-future one minted to live long.
+//! replayed later, nor a far-future one minted to live long. The header may
+//! carry several space-separated `v1,<base64>` entries (one per secret while a
+//! secret rotates with an overlap); the delivery verifies when any one matches.
 //!
 //! The signing string, the header names, the `v1,` prefix, the base64 of the
 //! raw MAC, and the five-minute window are matched byte-for-byte to the server
@@ -152,13 +154,18 @@ impl Webhook {
             .get_header(HEADER_SIGNATURE)
             .ok_or(WebhookError::MissingHeaders)?;
 
-        let (version, provided) = sig.split_once(',').ok_or(WebhookError::MalformedSignature)?;
-        if version != SIGNATURE_VERSION || provided.is_empty() {
+        // One `v1,<base64>` entry, or several separated by spaces (while an
+        // endpoint secret rotates, Atlas signs with the old and the new
+        // secret). Entries of another version are skipped.
+        let provided_macs: Vec<Vec<u8>> = sig
+            .split_whitespace()
+            .filter_map(|entry| entry.split_once(','))
+            .filter(|(version, value)| *version == SIGNATURE_VERSION && !value.is_empty())
+            .filter_map(|(_, value)| STANDARD.decode(value).ok())
+            .collect();
+        if provided_macs.is_empty() {
             return Err(WebhookError::MalformedSignature);
         }
-        let provided_mac = STANDARD
-            .decode(provided)
-            .map_err(|_| WebhookError::MalformedSignature)?;
 
         let timestamp: i64 = ts_raw.parse().map_err(|_| WebhookError::StaleTimestamp)?;
         let now = self.now_ms.unwrap_or_else(now_epoch_ms);
@@ -176,9 +183,16 @@ impl Webhook {
         mac.update(timestamp.to_string().as_bytes());
         mac.update(b".");
         mac.update(raw);
-        // Constant-time comparison against the decoded MAC bytes.
-        mac.verify_slice(&provided_mac)
-            .map_err(|_| WebhookError::SignatureMismatch)?;
+        // Constant-time comparison against each decoded MAC (no early exit).
+        let mut matched = false;
+        for provided in &provided_macs {
+            if mac.clone().verify_slice(provided).is_ok() {
+                matched = true;
+            }
+        }
+        if !matched {
+            return Err(WebhookError::SignatureMismatch);
+        }
 
         let event = parse_event(raw).ok_or(WebhookError::MalformedBody)?;
         Ok(VerifiedDelivery {

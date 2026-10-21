@@ -43,7 +43,7 @@ pub use design::{
 };
 pub use error::{codes, AtlasApiError, AtlasErrorItem, BackendError};
 pub use instance::{
-    cookie_settings_link_presets, AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig,
+    cookie_settings_link_presets, AllowedOriginEntry, AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig,
     CookieConsent, CookieSettingsLink, DeclaredCookie, SdkAdvisory, SdkVersionSeen, CookieSettingsLinkInput, DeleteMessagingProviderParams,
     EmailProviderConfig, InfobipConfig, Instance, MailgunConfig, MessagebirdConfig, MessagingChannel, MessagingProvider,
     MessagingProviders, MessagingProvidersApi, OAuthProvider, OAuthProviderFilter, OAuthProviderUpdate,

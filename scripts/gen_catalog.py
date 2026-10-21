@@ -343,6 +343,9 @@ OVR = {
     ('POST', '/v1/messaging_providers/email/managed'): 'create_managed_email',
     ('DELETE', '/v1/messaging_providers/email/managed'): 'delete_managed_email',
     ('POST', '/v1/messaging_providers/email/managed/verify'): 'verify_managed_email',
+    ('GET', '/v1/messaging_providers/email/development'): 'get_development_email',
+    ('POST', '/v1/messaging_providers/email/development'): 'enable_development_email',
+    ('DELETE', '/v1/messaging_providers/email/development'): 'disable_development_email',
     ('GET', '/v1/oauth_clients/{id}/backchannel_deliveries'): 'list_backchannel_deliveries',
     ('POST', '/v1/oauth_clients/{id}/backchannel_logout/test'): 'test_backchannel_logout',
     ('GET', '/v1/platform/atlas_id_apps/{id}/backchannel_deliveries'): 'list_backchannel_deliveries',
@@ -826,6 +829,13 @@ for p, pops in sorted(d['paths'].items()):
                         req_schema=rs, resp=json_response(o),
                         summary=(o.get('summary') or '').strip()))
 
+# Operations that gained a request body after release: the method keeps its
+# bodyless signature (sending the default body) and `<name>_with` takes the body,
+# so existing callers compile unchanged.
+BODY_ADDED = {('POST', '/v1/oauth_clients/{id}/rotate_secret')}
+for op in ops:
+    op['fn'] = op['name'] + '_with' if (op['M'], op['p']) in BODY_ADDED else op['name']
+
 seen = {}
 for op in ops:
     k = (op['st'], op['name'])
@@ -1019,10 +1029,18 @@ for st, sops in by_struct.items():
             notes.append('Returns the response JSON (the API documents it as open-ended).')
         lines.append('    ///')
         lines.append(f'    /// {" ".join(notes)}')
-        lines.append(f"    pub async fn {op['name']}({sig(body_arg)}) -> Result<{resp_t}, BackendError> {{")
+        lines.append(f"    pub async fn {op['fn']}({sig(body_arg)}) -> Result<{resp_t}, BackendError> {{")
         bexpr = 'body_of(body)?' if op['req_ty'] else ('Some(body)' if op['body'] else 'None')
         lines += body_lines(bexpr, resp_t)
         lines.append('    }')
+        if op['fn'] != op['name'] and op['req_ty']:
+            legacy = [a for a in sig(body_arg).split(', ') if not a.startswith('body: ')]
+            call = [a.split(':')[0] for a in legacy[1:]]
+            call.insert(len(op['params']), f'&{req_t}::default()')
+            lines.append(f"    /// `{op['M']} {op['p']}` with the default body; see [`{op['fn']}`](Self::{op['fn']}).")
+            lines.append(f"    pub async fn {op['name']}({', '.join(legacy)}) -> Result<{resp_t}, BackendError> {{")
+            lines.append(f"        self.{op['fn']}({', '.join(call)}).await")
+            lines.append('    }')
     lines.append('}\n')
 
 lines.append('impl BackendClient {')
@@ -1099,7 +1117,7 @@ for op in ops:
         bexp = 'B::K'
     else:
         barg, bexp = [], 'B::None'
-    t.append(f'    c.{acc}().{op["name"]}({", ".join(pargs + barg + tail)}).await.unwrap();')
+    t.append(f'    c.{acc}().{op["fn"]}({", ".join(pargs + barg + tail)}).await.unwrap();')
     t.append(f'    expected.push((HttpMethod::{meth}, "{url}".into(), {bexp}, {idem}));')
     n_calls += 1
 t.append('''
