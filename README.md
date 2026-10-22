@@ -567,6 +567,10 @@ The settings report `inbound` (`url` to give the platform, `secret_set`, `endpoi
 characters) and its subscription id with `with_inbound_endpoint_id`; `clear_inbound_secret` /
 `clear_inbound_endpoint_id` send null.
 
+Browser capture: `browser_sources` lists the referral programs whose script or cookie the browser reads
+(`clear_browser_sources` goes back to the provider's default, reported by `browser_sources_default`), and
+`consent_provider` picks the consent manager that decides (`auto`, one manager, or `app`).
+
 ### Platform API: Sign in with Atlas apps
 
 Build the client with a platform key (`psk_…`) and use `platform()`:

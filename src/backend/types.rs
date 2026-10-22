@@ -4642,6 +4642,16 @@ pub struct InstanceUpdateReferralsBody {
     pub code_lookup_url: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signup_code_field: Option<bool>,
+    /// The programs to read, in order; null goes back to the provider's default.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub browser_sources: Option<Option<Vec<String>>>,
+    /// Known values: `auto`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `app`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_provider: Option<String>,
     /// Partial update of the security settings (see ReferralSecuritySettings); only the fields sent
     /// change.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -4816,6 +4826,21 @@ impl InstanceUpdateReferralsBody {
     /// Set `signup_code_field`.
     pub fn with_signup_code_field(mut self, v: impl Into<bool>) -> Self {
         self.signup_code_field = Some(v.into());
+        self
+    }
+    /// Set `browser_sources`.
+    pub fn with_browser_sources(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.browser_sources = Some(Some(v.into()));
+        self
+    }
+    /// Send `browser_sources: null` to clear it.
+    pub fn clear_browser_sources(mut self) -> Self {
+        self.browser_sources = Some(None);
+        self
+    }
+    /// Set `consent_provider`.
+    pub fn with_consent_provider(mut self, v: impl Into<String>) -> Self {
+        self.consent_provider = Some(v.into());
         self
     }
     /// Set `security`.
@@ -16040,6 +16065,19 @@ pub struct InstanceGetReferralsResponse {
     /// Show an optional "Referral code" field on hosted sign-up (default false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signup_code_field: Option<bool>,
+    /// The referral programs whose script or cookie the browser reads, in order. Defaults to the
+    /// provider's own program (every program for the Atlas referral protocol).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub browser_sources: Vec<String>,
+    /// Whether browser_sources is the provider's default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_sources_default: Option<bool>,
+    /// Which consent manager decides on the tracking cookie's ids: auto (any common one), one
+    /// manager, or app (only the app's referralConsent). Default auto.
+    ///
+    /// Known values: `auto`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `app`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_provider: Option<String>,
     /// The security part of the referral settings (the `security` object of GET/PATCH
     /// /v1/instance/referrals). Referred sign-ups get stronger bot protection, and the referral
     /// platform receives a risk verdict with each sign-up.
@@ -16363,6 +16401,19 @@ pub struct InstanceUpdateReferralsResponse {
     /// Show an optional "Referral code" field on hosted sign-up (default false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signup_code_field: Option<bool>,
+    /// The referral programs whose script or cookie the browser reads, in order. Defaults to the
+    /// provider's own program (every program for the Atlas referral protocol).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub browser_sources: Vec<String>,
+    /// Whether browser_sources is the provider's default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_sources_default: Option<bool>,
+    /// Which consent manager decides on the tracking cookie's ids: auto (any common one), one
+    /// manager, or app (only the app's referralConsent). Default auto.
+    ///
+    /// Known values: `auto`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `app`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_provider: Option<String>,
     /// The security part of the referral settings (the `security` object of GET/PATCH
     /// /v1/instance/referrals). Referred sign-ups get stronger bot protection, and the referral
     /// platform receives a risk verdict with each sign-up.

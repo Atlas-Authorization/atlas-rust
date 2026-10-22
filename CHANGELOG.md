@@ -2,6 +2,12 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.18.0
+
+### Added
+
+- Referral settings carry browser capture: `browser_sources` (the referral programs whose script or cookie the browser reads; null on update resets to the provider's default), `browser_sources_default`, and `consent_provider` (`auto`, one consent manager, or `app`). Builders `with_browser_sources` / `clear_browser_sources` and `with_consent_provider` (catalog regenerated from the spec).
+
 ## 0.17.0
 
 ### Added

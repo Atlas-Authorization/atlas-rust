@@ -306,3 +306,29 @@ async fn referral_inbound_two_way_sync_fields() {
         json!({ "inbound_secret": null, "inbound_endpoint_id": null })
     );
 }
+
+#[tokio::test]
+async fn referral_browser_capture_fields() {
+    let (c, t) = client_with(
+        r#"{"object":"referral_settings","enabled":true,"provider":"dub","signing_secret_set":false,"api_key_set":true,"url_params":["ref"],"browser_sources":["rewardful","dub"],"browser_sources_default":false,"consent_provider":"onetrust","providers":[]}"#,
+    );
+    let view = c.instance().get_referrals().await.unwrap();
+    assert_eq!(view.browser_sources, vec!["rewardful", "dub"]);
+    assert_eq!(view.browser_sources_default, Some(false));
+    assert_eq!(view.consent_provider.as_deref(), Some("onetrust"));
+
+    let body = types::InstanceUpdateReferralsBody::new()
+        .with_browser_sources(vec!["rewardful".to_string(), "dub".to_string()])
+        .with_consent_provider("app");
+    c.instance().update_referrals(&body, None).await.unwrap();
+    let req = t.requests().pop().unwrap();
+    assert_eq!(
+        body_json(&req),
+        json!({ "browser_sources": ["rewardful", "dub"], "consent_provider": "app" })
+    );
+
+    let body = types::InstanceUpdateReferralsBody::new().clear_browser_sources();
+    c.instance().update_referrals(&body, None).await.unwrap();
+    let req = t.requests().pop().unwrap();
+    assert_eq!(body_json(&req), json!({ "browser_sources": null }));
+}

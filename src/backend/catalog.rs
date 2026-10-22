@@ -1686,7 +1686,9 @@ impl Instance<'_> {
             .await
     }
     /// `POST /v1/instance/hooks/before_user_create/test` — Send a sample sign-up (a user that does
-    /// not exist) to the hook and report its answer. Nothing is stored.
+    /// not exist) to the hook and report its answer. Nothing is stored. The call says it is a test:
+    /// `"test": true` in the body (real calls send false) and an `atlas-test: 1` header, so the
+    /// hook answers without reserving an id or creating anything.
     ///
     /// Returns [`types::InstanceTestBeforeUserCreateHookResponse`].
     pub async fn test_before_user_create_hook(
