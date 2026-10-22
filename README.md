@@ -561,6 +561,12 @@ Enabling without what the provider needs is `422 REFERRALS_NOT_CONFIGURED`; a co
 `409 REFERRAL_CODE_TAKEN`. A late answer from the platform arrives as the `user.referral_attributed` webhook
 (`EventType::UserReferralAttributed`, data `UserReferralAttributedEvent`).
 
+Two-way sync: a provider with the `inbound` capability sends referral changes made after sign-up back to Atlas.
+The settings report `inbound` (`url` to give the platform, `secret_set`, `endpoint_id`, and `last_event` with
+`at`, `type`, `outcome`). Store the platform's event secret with `with_inbound_secret` (write-only, 16-512
+characters) and its subscription id with `with_inbound_endpoint_id`; `clear_inbound_secret` /
+`clear_inbound_endpoint_id` send null.
+
 ### Platform API: Sign in with Atlas apps
 
 Build the client with a platform key (`psk_…`) and use `platform()`:

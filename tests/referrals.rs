@@ -263,3 +263,46 @@ fn user_referral_v2_fields_decode() {
     assert_eq!(r.status, "pending");
     assert!(r.notes.is_empty());
 }
+
+#[tokio::test]
+async fn referral_inbound_two_way_sync_fields() {
+    let (c, t) = client_with(
+        r#"{"object":"referral_settings","enabled":true,"provider":"webhook","signing_secret_set":true,"api_key_set":false,"url_params":["ref"],"inbound":{"url":"https://api.example.test/v1/webhooks/referrals/ins_1","secret_set":true,"endpoint_id":"we_1","last_event":{"at":1700000000000,"type":"referral.updated","outcome":"applied"}},"providers":[{"id":"webhook","name":"Atlas referral protocol","capabilities":{"signup":true,"erase":true,"export":true,"partner":true,"auto_enroll":true,"signal":true,"inbound":true},"needs":["endpoint_url","signing_secret"],"default_context_cookie":null,"docs_url":null}]}"#,
+    );
+    let view = c.instance().get_referrals().await.unwrap();
+    let inbound = view.inbound.expect("inbound");
+    assert_eq!(
+        inbound.url.as_deref(),
+        Some("https://api.example.test/v1/webhooks/referrals/ins_1")
+    );
+    assert_eq!(inbound.secret_set, Some(true));
+    assert_eq!(inbound.endpoint_id.as_deref(), Some("we_1"));
+    let last = inbound.last_event.expect("last event");
+    assert_eq!(last.at, Some(1_700_000_000_000));
+    assert_eq!(last.r#type.as_deref(), Some("referral.updated"));
+    assert_eq!(last.outcome.as_deref(), Some("applied"));
+    assert_eq!(
+        view.providers[0].capabilities.as_ref().and_then(|c| c.inbound),
+        Some(true)
+    );
+
+    let body = types::InstanceUpdateReferralsBody::new()
+        .with_inbound_secret(format!("whsec_{}", "y".repeat(32)))
+        .with_inbound_endpoint_id("we_1");
+    c.instance().update_referrals(&body, None).await.unwrap();
+    let req = t.requests().pop().unwrap();
+    assert_eq!(
+        body_json(&req),
+        json!({ "inbound_secret": format!("whsec_{}", "y".repeat(32)), "inbound_endpoint_id": "we_1" })
+    );
+
+    let body = types::InstanceUpdateReferralsBody::new()
+        .clear_inbound_secret()
+        .clear_inbound_endpoint_id();
+    c.instance().update_referrals(&body, None).await.unwrap();
+    let req = t.requests().pop().unwrap();
+    assert_eq!(
+        body_json(&req),
+        json!({ "inbound_secret": null, "inbound_endpoint_id": null })
+    );
+}

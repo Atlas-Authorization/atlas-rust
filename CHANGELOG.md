@@ -2,6 +2,12 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.17.0
+
+### Added
+
+- **Two-way referral sync.** Referral settings carry two-way sync: `inbound` (`url`, `secret_set`, `endpoint_id`, `last_event`) on reads, write-only `inbound_secret` and `inbound_endpoint_id` on updates (null clears), and provider capability `inbound`. Builders `with_inbound_secret` / `clear_inbound_secret` and `with_inbound_endpoint_id` / `clear_inbound_endpoint_id` (catalog regenerated from the spec).
+
 ## 0.16.0
 
 ### Added

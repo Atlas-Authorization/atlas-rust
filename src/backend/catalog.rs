@@ -1974,9 +1974,9 @@ impl Instance<'_> {
             .await
     }
     /// `PATCH /v1/instance/referrals` — Update the referral attribution settings. Only the fields
-    /// you send change; null clears. signing_secret and api_key are write-only. Enabling requires
-    /// what the provider needs (422 REFERRALS_NOT_CONFIGURED). Every change is audit-logged without
-    /// secret values.
+    /// you send change; null clears. signing_secret, api_key and inbound_secret are write-only.
+    /// Enabling requires what the provider needs (422 REFERRALS_NOT_CONFIGURED). Every change is
+    /// audit-logged without secret values.
     ///
     /// Takes [`types::InstanceUpdateReferralsBody`]. Returns [`types::InstanceUpdateReferralsResponse`].
     pub async fn update_referrals(

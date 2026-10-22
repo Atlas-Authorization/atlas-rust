@@ -4574,6 +4574,22 @@ pub struct InstanceUpdateReferralsBody {
         deserialize_with = "double_option"
     )]
     pub signing_secret: Option<Option<String>>,
+    /// Write-only, 16-512 characters; null clears. Verifies the platform's events to inbound.url:
+    /// Referally's webhook endpoint secret (whsec_…); for the Atlas referral protocol, optional
+    /// (the signing secret is used when unset).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub inbound_secret: Option<Option<String>>,
+    /// The platform's id for Atlas's event subscription, kept for reference.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub inbound_endpoint_id: Option<Option<String>>,
     /// Write-only vendor API key; null clears.
     #[serde(
         default,
@@ -4695,6 +4711,26 @@ impl InstanceUpdateReferralsBody {
     /// Send `signing_secret: null` to clear it.
     pub fn clear_signing_secret(mut self) -> Self {
         self.signing_secret = Some(None);
+        self
+    }
+    /// Set `inbound_secret`.
+    pub fn with_inbound_secret(mut self, v: impl Into<String>) -> Self {
+        self.inbound_secret = Some(Some(v.into()));
+        self
+    }
+    /// Send `inbound_secret: null` to clear it.
+    pub fn clear_inbound_secret(mut self) -> Self {
+        self.inbound_secret = Some(None);
+        self
+    }
+    /// Set `inbound_endpoint_id`.
+    pub fn with_inbound_endpoint_id(mut self, v: impl Into<String>) -> Self {
+        self.inbound_endpoint_id = Some(Some(v.into()));
+        self
+    }
+    /// Send `inbound_endpoint_id: null` to clear it.
+    pub fn clear_inbound_endpoint_id(mut self) -> Self {
+        self.inbound_endpoint_id = Some(None);
         self
     }
     /// Set `api_key`.
@@ -16026,6 +16062,10 @@ pub struct InstanceGetReferralsResponse {
     pub missing: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connection: Option<InstanceGetReferralsResponseConnection>,
+    /// Two-way sync: where the platform sends referral changes made after sign-up, and the latest
+    /// one received.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inbound: Option<InstanceGetReferralsResponseInbound>,
     #[serde(default)]
     pub providers: Vec<InstanceGetReferralsResponseProvidersItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16172,6 +16212,45 @@ pub struct InstanceGetReferralsResponseConnectionAlert {
     pub extra: Map<String, Value>,
 }
 
+/// Two-way sync: where the platform sends referral changes made after sign-up, and the latest
+/// one received.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseInbound {
+    /// Give this URL to the platform (null when the provider sends no events).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// Whether an inbound secret is stored (the value is never returned).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_set: Option<bool>,
+    /// The platform's id for this subscription (e.g. a Referally webhook endpoint id).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_event: Option<InstanceGetReferralsResponseInboundLastEvent>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseInboundLastEvent {
+    /// When Atlas received it (ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    /// Known values: `applied`, `unchanged`, `stale`, `unknown_customer`, `other_program`, `ignored`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceGetReferralsResponseProvidersItem {
@@ -16217,6 +16296,9 @@ pub struct InstanceGetReferralsResponseProvidersItemCapabilities {
     /// Answers a ping for "Test connection" (org, program, clock).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ping: Option<bool>,
+    /// Sends Atlas referral changes made after sign-up (two-way sync).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inbound: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -16303,6 +16385,10 @@ pub struct InstanceUpdateReferralsResponse {
     pub missing: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connection: Option<InstanceUpdateReferralsResponseConnection>,
+    /// Two-way sync: where the platform sends referral changes made after sign-up, and the latest
+    /// one received.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inbound: Option<InstanceUpdateReferralsResponseInbound>,
     #[serde(default)]
     pub providers: Vec<InstanceUpdateReferralsResponseProvidersItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -16417,6 +16503,45 @@ pub struct InstanceUpdateReferralsResponseConnectionAlert {
     pub extra: Map<String, Value>,
 }
 
+/// Two-way sync: where the platform sends referral changes made after sign-up, and the latest
+/// one received.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseInbound {
+    /// Give this URL to the platform (null when the provider sends no events).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// Whether an inbound secret is stored (the value is never returned).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_set: Option<bool>,
+    /// The platform's id for this subscription (e.g. a Referally webhook endpoint id).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_event: Option<InstanceUpdateReferralsResponseInboundLastEvent>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseInboundLastEvent {
+    /// When Atlas received it (ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    /// Known values: `applied`, `unchanged`, `stale`, `unknown_customer`, `other_program`, `ignored`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceUpdateReferralsResponseProvidersItem {
@@ -16462,6 +16587,9 @@ pub struct InstanceUpdateReferralsResponseProvidersItemCapabilities {
     /// Answers a ping for "Test connection" (org, program, clock).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ping: Option<bool>,
+    /// Sends Atlas referral changes made after sign-up (two-way sync).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inbound: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
