@@ -262,6 +262,9 @@ pub enum EventType {
     /// The referral platform answered after `user.created` was sent. The data
     /// is a [`UserReferralAttributedEvent`](super::UserReferralAttributedEvent).
     UserReferralAttributed,
+    /// Attribution finished after `user.created` was sent (attributed, none
+    /// or failed). The data is the full user, with `referral` filled in.
+    UserReferralResolved,
     UserDeleted,
     UserBanned,
     UserUnbanned,
@@ -302,6 +305,7 @@ impl From<&str> for EventType {
             "user.created" => EventType::UserCreated,
             "user.updated" => EventType::UserUpdated,
             "user.referral_attributed" => EventType::UserReferralAttributed,
+            "user.referral_resolved" => EventType::UserReferralResolved,
             "user.deleted" => EventType::UserDeleted,
             "user.banned" => EventType::UserBanned,
             "user.unbanned" => EventType::UserUnbanned,
@@ -342,6 +346,7 @@ impl EventType {
             EventType::UserCreated => "user.created",
             EventType::UserUpdated => "user.updated",
             EventType::UserReferralAttributed => "user.referral_attributed",
+            EventType::UserReferralResolved => "user.referral_resolved",
             EventType::UserDeleted => "user.deleted",
             EventType::UserBanned => "user.banned",
             EventType::UserUnbanned => "user.unbanned",

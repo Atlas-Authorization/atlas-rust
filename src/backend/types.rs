@@ -4226,6 +4226,77 @@ impl InstanceSetCaptchaSecretBody {
     }
 }
 
+/// The request body of `PATCH /v1/instance/hooks/before_user_create`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateBeforeUserCreateHookBody {
+    /// Turning on requires url and signing_secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// https only (http only for localhost on a development instance); null clears.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub url: Option<Option<String>>,
+    /// Write-only, 16-512 characters; null clears.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub signing_secret: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceUpdateBeforeUserCreateHookBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `url`.
+    pub fn with_url(mut self, v: impl Into<String>) -> Self {
+        self.url = Some(Some(v.into()));
+        self
+    }
+    /// Send `url: null` to clear it.
+    pub fn clear_url(mut self) -> Self {
+        self.url = Some(None);
+        self
+    }
+    /// Set `signing_secret`.
+    pub fn with_signing_secret(mut self, v: impl Into<String>) -> Self {
+        self.signing_secret = Some(Some(v.into()));
+        self
+    }
+    /// Send `signing_secret: null` to clear it.
+    pub fn clear_signing_secret(mut self) -> Self {
+        self.signing_secret = Some(None);
+        self
+    }
+    /// Set `timeout_ms`.
+    pub fn with_timeout_ms(mut self, v: impl Into<i64>) -> Self {
+        self.timeout_ms = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `PUT /v1/instance/integrations/chatly`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -4538,10 +4609,33 @@ pub struct InstanceUpdateReferralsBody {
     pub link_template: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i64>,
+    /// 1-128 of A-Z a-z 0-9 _ -; null clears.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub tracking_token: Option<Option<String>>,
+    /// An https URL template containing {code} (http only for localhost on a development instance);
+    /// null clears.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub code_lookup_url: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signup_code_field: Option<bool>,
     /// Partial update of the security settings (see ReferralSecuritySettings); only the fields sent
     /// change.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub security: Option<InstanceUpdateReferralsBodySecurity>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forward_lifecycle: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mirror_to_public_metadata: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_referral_claims: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -4663,9 +4757,49 @@ impl InstanceUpdateReferralsBody {
         self.timeout_ms = Some(v.into());
         self
     }
+    /// Set `tracking_token`.
+    pub fn with_tracking_token(mut self, v: impl Into<String>) -> Self {
+        self.tracking_token = Some(Some(v.into()));
+        self
+    }
+    /// Send `tracking_token: null` to clear it.
+    pub fn clear_tracking_token(mut self) -> Self {
+        self.tracking_token = Some(None);
+        self
+    }
+    /// Set `code_lookup_url`.
+    pub fn with_code_lookup_url(mut self, v: impl Into<String>) -> Self {
+        self.code_lookup_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `code_lookup_url: null` to clear it.
+    pub fn clear_code_lookup_url(mut self) -> Self {
+        self.code_lookup_url = Some(None);
+        self
+    }
+    /// Set `signup_code_field`.
+    pub fn with_signup_code_field(mut self, v: impl Into<bool>) -> Self {
+        self.signup_code_field = Some(v.into());
+        self
+    }
     /// Set `security`.
     pub fn with_security(mut self, v: impl Into<InstanceUpdateReferralsBodySecurity>) -> Self {
         self.security = Some(v.into());
+        self
+    }
+    /// Set `forward_lifecycle`.
+    pub fn with_forward_lifecycle(mut self, v: impl Into<bool>) -> Self {
+        self.forward_lifecycle = Some(v.into());
+        self
+    }
+    /// Set `mirror_to_public_metadata`.
+    pub fn with_mirror_to_public_metadata(mut self, v: impl Into<bool>) -> Self {
+        self.mirror_to_public_metadata = Some(v.into());
+        self
+    }
+    /// Set `include_referral_claims`.
+    pub fn with_include_referral_claims(mut self, v: impl Into<bool>) -> Self {
+        self.include_referral_claims = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -4719,6 +4853,123 @@ impl InstanceUpdateReferralsBodySecurity {
     /// Set `max_referred_signups_per_ip_hour`.
     pub fn with_max_referred_signups_per_ip_hour(mut self, v: impl Into<i64>) -> Self {
         self.max_referred_signups_per_ip_hour = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/instance/referrals/backfill`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceStartReferralBackfillBody {
+    /// Users created at or after this time (ISO 8601, or epoch ms).
+    #[serde(default)]
+    pub since: String,
+    /// customerRef (external_id or user id) → referral code, up to 10,000 per request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codes: Option<HashMap<String, String>>,
+    /// Where each user keeps the code they arrived with, e.g. public_metadata.referral_code.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_metadata_path: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceStartReferralBackfillBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(since: impl Into<String>) -> Self {
+        Self {
+            since: since.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `since`.
+    pub fn with_since(mut self, v: impl Into<String>) -> Self {
+        self.since = v.into();
+        self
+    }
+    /// Set `codes`.
+    pub fn with_codes(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.codes = Some(v.into());
+        self
+    }
+    /// Set `code_metadata_path`.
+    pub fn with_code_metadata_path(mut self, v: impl Into<String>) -> Self {
+        self.code_metadata_path = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/instance/referrals/calls/retry_failed`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceRetryFailedReferralCallsBody {
+    /// Known values: `signup`, `erase`, `partner`, `signal`, `alias`, `user`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// e.g. signature_rejected after replacing the secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceRetryFailedReferralCallsBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `kind`.
+    pub fn with_kind(mut self, v: impl Into<String>) -> Self {
+        self.kind = Some(v.into());
+        self
+    }
+    /// Set `error_code`.
+    pub fn with_error_code(mut self, v: impl Into<String>) -> Self {
+        self.error_code = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/instance/referrals/simulate`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSimulateReferralSignupBody {
+    /// The referral code to try (3-64 of A-Z a-z 0-9 _ -). Omit for a sign-up with no code.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceSimulateReferralSignupBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `code`.
+    pub fn with_code(mut self, v: impl Into<String>) -> Self {
+        self.code = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -14919,6 +15170,143 @@ pub struct InstanceConnection {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `GET /v1/instance/hooks/before_user_create`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetBeforeUserCreateHookResponse {
+    /// Always `before_user_create_hook`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    /// Your endpoint. https only (http only for localhost on a development instance).
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Whether a signing secret is stored (the value is never returned).
+    #[serde(default)]
+    pub signing_secret_set: bool,
+    /// How long a sign-up waits for the hook (500-5000, default 3000).
+    #[serde(default)]
+    pub timeout_ms: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_call: Option<InstanceGetBeforeUserCreateHookResponseLastCall>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetBeforeUserCreateHookResponseLastCall {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    /// Known values: `ok`, `timeout`, `error`, `invalid_response`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `PATCH /v1/instance/hooks/before_user_create`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateBeforeUserCreateHookResponse {
+    /// Always `before_user_create_hook`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub enabled: bool,
+    /// Your endpoint. https only (http only for localhost on a development instance).
+    #[serde(default)]
+    pub url: Option<String>,
+    /// Whether a signing secret is stored (the value is never returned).
+    #[serde(default)]
+    pub signing_secret_set: bool,
+    /// How long a sign-up waits for the hook (500-5000, default 3000).
+    #[serde(default)]
+    pub timeout_ms: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_call: Option<InstanceUpdateBeforeUserCreateHookResponseLastCall>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateBeforeUserCreateHookResponseLastCall {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    /// Known values: `ok`, `timeout`, `error`, `invalid_response`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/instance/hooks/before_user_create/test`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceTestBeforeUserCreateHookResponse {
+    #[serde(default)]
+    pub ok: bool,
+    #[serde(default)]
+    pub latency_ms: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub answer: Option<InstanceTestBeforeUserCreateHookResponseAnswer>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<InstanceTestBeforeUserCreateHookResponseError>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceTestBeforeUserCreateHookResponseAnswer {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub public_metadata: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub private_metadata_set: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unsafe_metadata: Option<Map<String, Value>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceTestBeforeUserCreateHookResponseError {
+    /// timeout, error, invalid_response or not_configured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// enabled:false and nothing else when no Chatly connection is set.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -15604,11 +15992,35 @@ pub struct InstanceGetReferralsResponse {
     /// How long a sign-up waits for the platform (100-5000).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i64>,
+    /// Public tracking token (Referally provider); powers the "Invited by" code lookup. Not a
+    /// secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tracking_token: Option<String>,
+    /// Public, CORS-enabled URL template containing {code}. The hosted sign-up page calls it from
+    /// the browser and shows "X invited you" when it answers {valid: true, partnerDisplayName,
+    /// refereeReward?}. Null = no lookup (a built-in provider may supply its own).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_lookup_url: Option<String>,
+    /// Show an optional "Referral code" field on hosted sign-up (default false).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signup_code_field: Option<bool>,
     /// The security part of the referral settings (the `security` object of GET/PATCH
     /// /v1/instance/referrals). Referred sign-ups get stronger bot protection, and the referral
     /// platform receives a risk verdict with each sign-up.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub security: Option<ReferralSecuritySettings>,
+    /// Forward reported users' email / name changes and suspension status to the platform (default
+    /// true).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forward_lifecycle: Option<bool>,
+    /// Mirror the result into the user's public_metadata.referral {referred_by, partner_id,
+    /// own_code} (default false).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mirror_to_public_metadata: Option<bool>,
+    /// Add the user's own code as a referral_code claim to session tokens and ID tokens (default
+    /// false).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_referral_claims: Option<bool>,
     /// What the chosen provider still needs before referrals can be enabled.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub missing: Vec<String>,
@@ -15661,6 +16073,13 @@ pub struct ReferralSecuritySettings {
 pub struct InstanceGetReferralsResponseConnection {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_test: Option<InstanceGetReferralsResponseConnectionLastTest>,
+    /// The last ping ("Test connection") of a provider that answers one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_ping: Option<InstanceGetReferralsResponseConnectionLastPing>,
+    /// Set while delivery is blocked on something only a person can fix (the newest such failure,
+    /// with nothing succeeding since). Show it as a banner.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alert: Option<InstanceGetReferralsResponseConnectionAlert>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failed_calls_7d: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -15684,6 +16103,69 @@ pub struct InstanceGetReferralsResponseConnectionLastTest {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The last ping ("Test connection") of a provider that answers one.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseConnectionLastPing {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ok: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+    /// e.g. signature_rejected, connection_paused, timeout, network_error, ping_not_ok.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_name: Option<String>,
+    /// The platform connection's own auto-enrol setting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_enroll_users: Option<bool>,
+    /// The platform's clock as it reported it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_time: Option<String>,
+    /// The platform's clock minus Atlas's, in ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock_skew_ms: Option<i64>,
+    /// True when the skew is over 60 seconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock_skew_warning: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Set while delivery is blocked on something only a person can fix (the newest such failure,
+/// with nothing succeeding since). Show it as a banner.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseConnectionAlert {
+    /// Known values: `signature_rejected`, `connection_paused`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -15726,6 +16208,15 @@ pub struct InstanceGetReferralsResponseProvidersItemCapabilities {
     pub auto_enroll: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signal: Option<bool>,
+    /// Re-keys a customer whose external_id changed after sign-up.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alias: Option<bool>,
+    /// Takes user lifecycle updates (email, name, suspension).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<bool>,
+    /// Answers a ping for "Test connection" (org, program, clock).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ping: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -15778,11 +16269,35 @@ pub struct InstanceUpdateReferralsResponse {
     /// How long a sign-up waits for the platform (100-5000).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i64>,
+    /// Public tracking token (Referally provider); powers the "Invited by" code lookup. Not a
+    /// secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tracking_token: Option<String>,
+    /// Public, CORS-enabled URL template containing {code}. The hosted sign-up page calls it from
+    /// the browser and shows "X invited you" when it answers {valid: true, partnerDisplayName,
+    /// refereeReward?}. Null = no lookup (a built-in provider may supply its own).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_lookup_url: Option<String>,
+    /// Show an optional "Referral code" field on hosted sign-up (default false).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signup_code_field: Option<bool>,
     /// The security part of the referral settings (the `security` object of GET/PATCH
     /// /v1/instance/referrals). Referred sign-ups get stronger bot protection, and the referral
     /// platform receives a risk verdict with each sign-up.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub security: Option<ReferralSecuritySettings>,
+    /// Forward reported users' email / name changes and suspension status to the platform (default
+    /// true).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forward_lifecycle: Option<bool>,
+    /// Mirror the result into the user's public_metadata.referral {referred_by, partner_id,
+    /// own_code} (default false).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mirror_to_public_metadata: Option<bool>,
+    /// Add the user's own code as a referral_code claim to session tokens and ID tokens (default
+    /// false).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include_referral_claims: Option<bool>,
     /// What the chosen provider still needs before referrals can be enabled.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub missing: Vec<String>,
@@ -15803,6 +16318,13 @@ pub struct InstanceUpdateReferralsResponse {
 pub struct InstanceUpdateReferralsResponseConnection {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_test: Option<InstanceUpdateReferralsResponseConnectionLastTest>,
+    /// The last ping ("Test connection") of a provider that answers one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_ping: Option<InstanceUpdateReferralsResponseConnectionLastPing>,
+    /// Set while delivery is blocked on something only a person can fix (the newest such failure,
+    /// with nothing succeeding since). Show it as a banner.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alert: Option<InstanceUpdateReferralsResponseConnectionAlert>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failed_calls_7d: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -15826,6 +16348,69 @@ pub struct InstanceUpdateReferralsResponseConnectionLastTest {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The last ping ("Test connection") of a provider that answers one.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseConnectionLastPing {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ok: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+    /// e.g. signature_rejected, connection_paused, timeout, network_error, ping_not_ok.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_name: Option<String>,
+    /// The platform connection's own auto-enrol setting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_enroll_users: Option<bool>,
+    /// The platform's clock as it reported it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_time: Option<String>,
+    /// The platform's clock minus Atlas's, in ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock_skew_ms: Option<i64>,
+    /// True when the skew is over 60 seconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock_skew_warning: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Set while delivery is blocked on something only a person can fix (the newest such failure,
+/// with nothing succeeding since). Show it as a banner.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseConnectionAlert {
+    /// Known values: `signature_rejected`, `connection_paused`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -15868,6 +16453,141 @@ pub struct InstanceUpdateReferralsResponseProvidersItemCapabilities {
     pub auto_enroll: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signal: Option<bool>,
+    /// Re-keys a customer whose external_id changed after sign-up.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alias: Option<bool>,
+    /// Takes user lifecycle updates (email, name, suspension).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<bool>,
+    /// Answers a ping for "Test connection" (org, program, clock).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ping: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/instance/referrals/backfill`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceStartReferralBackfillResponse {
+    /// Always `referral_backfill`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    /// completed once every queued call has an outcome.
+    ///
+    /// Known values: `running`, `completed`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub since: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_metadata_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codes_given: Option<i64>,
+    #[serde(default)]
+    pub users_scanned: i64,
+    /// Already reported, or no code while auto-enrol is off.
+    #[serde(default)]
+    pub users_skipped: i64,
+    #[serde(default)]
+    pub calls_queued: i64,
+    /// More users matched than one backfill takes (10,000). Run again from next_since.
+    #[serde(default)]
+    pub truncated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_since: Option<i64>,
+    #[serde(default)]
+    pub calls: InstanceStartReferralBackfillResponseCalls,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub finished_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceStartReferralBackfillResponseCalls {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub succeeded: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failed: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skipped: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub held: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/instance/referrals/backfill/{id}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralBackfillResponse {
+    /// Always `referral_backfill`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    /// completed once every queued call has an outcome.
+    ///
+    /// Known values: `running`, `completed`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub since: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_metadata_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub codes_given: Option<i64>,
+    #[serde(default)]
+    pub users_scanned: i64,
+    /// Already reported, or no code while auto-enrol is off.
+    #[serde(default)]
+    pub users_skipped: i64,
+    #[serde(default)]
+    pub calls_queued: i64,
+    /// More users matched than one backfill takes (10,000). Run again from next_since.
+    #[serde(default)]
+    pub truncated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_since: Option<i64>,
+    #[serde(default)]
+    pub calls: InstanceGetReferralBackfillResponseCalls,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub finished_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralBackfillResponseCalls {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pending: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub succeeded: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failed: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skipped: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub held: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -15900,7 +16620,7 @@ pub struct InstanceListReferralCallsResponseDataItem {
     /// Also the signed atlas-id header of every attempt.
     #[serde(default)]
     pub id: String,
-    /// Known values: `signup`, `erase`, `export`, `partner`, `signal`, `test`.
+    /// Known values: `signup`, `erase`, `export`, `partner`, `signal`, `test`, `alias`, `user`, `ping`.
     #[serde(default)]
     pub kind: String,
     /// Known values: `pending`, `succeeded`, `retrying`, `failed`, `held`, `skipped`.
@@ -15917,6 +16637,17 @@ pub struct InstanceListReferralCallsResponseDataItem {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_error: Option<String>,
+    /// Why the last attempt failed: signature_rejected (401, no auto-retry), connection_paused (the
+    /// merchant paused the connection, no auto-retry), rate_limited, timeout, network_error,
+    /// alias_conflict, http_&lt;status&gt;, …
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    /// Duration of the last attempt.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
+    /// The platform's request id for its last answer, when it sent one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
     #[serde(default)]
     pub attempts: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -15927,6 +16658,15 @@ pub struct InstanceListReferralCallsResponseDataItem {
     /// What was sent (never secrets).
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub payload: Map<String, Value>,
+    /// The platform's last answer, personal fields redacted; null for exports.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response: Option<Map<String, Value>>,
+    /// Sign-up calls: how the platform matched the referral and why.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub highlights: Option<InstanceListReferralCallsResponseDataItemHighlights>,
+    /// The backfill that queued the call.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub batch_id: Option<String>,
     #[serde(default)]
     pub created_at: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -15960,6 +16700,37 @@ pub struct ReferralRisk {
     pub extra: Map<String, Value>,
 }
 
+/// Sign-up calls: how the platform matched the referral and why.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceListReferralCallsResponseDataItemHighlights {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matched_via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner_external_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notes: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/instance/referrals/calls/retry_failed`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceRetryFailedReferralCallsResponse {
+    /// Always `referral_retry`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub requeued: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `POST /v1/instance/referrals/calls/{id}/retry`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -15970,7 +16741,7 @@ pub struct InstanceRetryReferralCallResponse {
     /// Also the signed atlas-id header of every attempt.
     #[serde(default)]
     pub id: String,
-    /// Known values: `signup`, `erase`, `export`, `partner`, `signal`, `test`.
+    /// Known values: `signup`, `erase`, `export`, `partner`, `signal`, `test`, `alias`, `user`, `ping`.
     #[serde(default)]
     pub kind: String,
     /// Known values: `pending`, `succeeded`, `retrying`, `failed`, `held`, `skipped`.
@@ -15987,6 +16758,17 @@ pub struct InstanceRetryReferralCallResponse {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_error: Option<String>,
+    /// Why the last attempt failed: signature_rejected (401, no auto-retry), connection_paused (the
+    /// merchant paused the connection, no auto-retry), rate_limited, timeout, network_error,
+    /// alias_conflict, http_&lt;status&gt;, …
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    /// Duration of the last attempt.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
+    /// The platform's request id for its last answer, when it sent one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
     #[serde(default)]
     pub attempts: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -15997,10 +16779,126 @@ pub struct InstanceRetryReferralCallResponse {
     /// What was sent (never secrets).
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub payload: Map<String, Value>,
+    /// The platform's last answer, personal fields redacted; null for exports.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response: Option<Map<String, Value>>,
+    /// Sign-up calls: how the platform matched the referral and why.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub highlights: Option<InstanceRetryReferralCallResponseHighlights>,
+    /// The backfill that queued the call.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub batch_id: Option<String>,
     #[serde(default)]
     pub created_at: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Sign-up calls: how the platform matched the referral and why.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceRetryReferralCallResponseHighlights {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matched_via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner_external_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notes: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/instance/referrals/simulate`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSimulateReferralSignupResponse {
+    /// Always `referral_simulation`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub ok: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
+    /// The made-up customer: atlas_test_&lt;random&gt;. No user is created.
+    #[serde(default)]
+    pub customer_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<InstanceSimulateReferralSignupResponseResult>,
+    /// The platform's raw answer, personal fields redacted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<InstanceSimulateReferralSignupResponseError>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSimulateReferralSignupResponseResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub referral: Option<InstanceSimulateReferralSignupResponseResultReferral>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner: Option<InstanceSimulateReferralSignupResponseResultPartner>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub notes: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSimulateReferralSignupResponseResultReferral {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner_external_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matched_via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSimulateReferralSignupResponseResultPartner {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSimulateReferralSignupResponseError {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -16017,8 +16915,62 @@ pub struct InstanceTestReferralsResponse {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub latency_ms: Option<i64>,
+    /// ping when the platform answered a ping; probe for the signed export probe.
+    ///
+    /// Known values: `ping`, `probe`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    /// The last ping ("Test connection") of a provider that answers one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ping: Option<InstanceTestReferralsResponsePing>,
+    /// e.g. a clock skew over 60 seconds.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<InstanceTestReferralsResponseError>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The last ping ("Test connection") of a provider that answers one.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceTestReferralsResponsePing {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ok: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+    /// e.g. signature_rejected, connection_paused, timeout, network_error, ping_not_ok.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_name: Option<String>,
+    /// The platform connection's own auto-enrol setting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_enroll_users: Option<bool>,
+    /// The platform's clock as it reported it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server_time: Option<String>,
+    /// The platform's clock minus Atlas's, in ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock_skew_ms: Option<i64>,
+    /// True when the skew is over 60 seconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock_skew_warning: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -16243,9 +17195,10 @@ pub struct User {
     /// apply an update only if its version is higher than the one you hold.
     #[serde(default)]
     pub version: i64,
-    /// How the user arrived through a referral program (referral attribution on): the referral the
-    /// platform matched, or null when not referred, not yet answered, or referrals are off. Present
-    /// on read, list, create and update responses.
+    /// How the user arrived through a referral program (referral attribution on). Null only when
+    /// the user was never reported to the referral platform; otherwise `status` says where
+    /// attribution stands (`pending` until the platform answers). Present on read, list, create and
+    /// update responses.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub referral: Option<UserReferral>,
     /// The user's own referral code, when they are a referrer.
@@ -16260,14 +17213,23 @@ pub struct User {
     pub extra: Map<String, Value>,
 }
 
-/// The inbound referral the referral platform matched for a user.
+/// A user's inbound referral: where attribution stands and, once attributed, who referred them.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct UserReferral {
+    /// Where attribution stands: pending (the platform has not answered yet), attributed, none (not
+    /// referred), failed, held or flagged.
+    ///
+    /// Known values: `pending`, `attributed`, `none`, `failed`, `held`, `flagged`.
+    #[serde(default)]
+    pub status: String,
     /// The platform's id for the referring partner.
     #[serde(default)]
     pub partner_id: Option<String>,
     /// The referrer as the platform knows them (your external_id for that user, or their Atlas id).
+    #[serde(default)]
+    pub partner_external_ref: Option<String>,
+    /// Same as partner_external_ref.
     #[serde(default)]
     pub referrer_external_id: Option<String>,
     /// The referrer's Atlas user id, when they are a user of this instance.
@@ -16276,9 +17238,12 @@ pub struct UserReferral {
     /// How the platform matched the referral, e.g. code, click, coupon.
     #[serde(default)]
     pub matched_via: Option<String>,
-    /// The platform's own status for the referral.
+    /// The platform's own status for the referral (e.g. active).
     #[serde(default)]
-    pub status: Option<String>,
+    pub referral_status: Option<String>,
+    /// The platform's reasoning notes for its answer.
+    #[serde(default)]
+    pub notes: Vec<String>,
     /// The risk level assessed at sign-up, when one was.
     ///
     /// Known values: `low`, `medium`, `high`.
@@ -22962,6 +23927,69 @@ pub struct ProgressionEvent {
     pub level_changed: bool,
     #[serde(default)]
     pub delta: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/users/{id}/referral`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UsersGetReferralResponse {
+    /// Always `user_referral`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub user_id: String,
+    /// Where attribution stands.
+    ///
+    /// Known values: `pending`, `attributed`, `none`, `failed`, `held`, `flagged`.
+    #[serde(default)]
+    pub status: String,
+    /// The id the referral platform knows the user by: their external_id, else their user id.
+    #[serde(default)]
+    pub customer_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner_id: Option<String>,
+    /// Who referred the user, as the platform knows them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner_external_ref: Option<String>,
+    /// The referrer's user id, when they are a user of this instance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub referrer_user_id: Option<String>,
+    /// e.g. code, click, coupon.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub matched_via: Option<String>,
+    /// The platform's own status for the referral.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub referral_status: Option<String>,
+    /// The platform's reasoning notes.
+    #[serde(default)]
+    pub notes: Vec<String>,
+    /// The user's own referral code.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub referral_code: Option<String>,
+    /// The user's own referral link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub referral_link: Option<String>,
+    /// The referral context captured at sign-up (code, clickId, anonId, capturedAt, consent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk_level: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flagged: Option<bool>,
+    /// Why the sign-up report is held, while status is held.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hold_reason: Option<String>,
+    /// Epoch-ms.
+    #[serde(default)]
+    pub signed_up_at: i64,
+    /// Epoch-ms.
+    #[serde(default)]
+    pub updated_at: i64,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

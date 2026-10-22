@@ -1645,6 +1645,63 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/hooks/before_user_create` — Read the instance's before_user_create hook:
+    /// the endpoint Atlas calls for every self-service sign-up so your app can set the user's
+    /// external_id and metadata first. The signing secret is reported as signing_secret_set only.
+    ///
+    /// Returns [`types::InstanceGetBeforeUserCreateHookResponse`].
+    pub async fn get_before_user_create_hook(
+        &self,
+    ) -> Result<types::InstanceGetBeforeUserCreateHookResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/hooks/before_user_create",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PATCH /v1/instance/hooks/before_user_create` — Update the before_user_create hook. Only the
+    /// fields you send change; null clears. The hook is called (signed like a webhook) after the
+    /// user id is assigned and before user.created, the referral call and any session. It may
+    /// answer {external_id, public_metadata, private_metadata, unsafe_metadata}. A slow or failing
+    /// hook never blocks the sign-up.
+    ///
+    /// Takes [`types::InstanceUpdateBeforeUserCreateHookBody`]. Returns [`types::InstanceUpdateBeforeUserCreateHookResponse`].
+    pub async fn update_before_user_create_hook(
+        &self,
+        body: &types::InstanceUpdateBeforeUserCreateHookBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceUpdateBeforeUserCreateHookResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Patch,
+                "/v1/instance/hooks/before_user_create",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/instance/hooks/before_user_create/test` — Send a sample sign-up (a user that does
+    /// not exist) to the hook and report its answer. Nothing is stored.
+    ///
+    /// Returns [`types::InstanceTestBeforeUserCreateHookResponse`].
+    pub async fn test_before_user_create_hook(
+        &self,
+    ) -> Result<types::InstanceTestBeforeUserCreateHookResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/hooks/before_user_create/test",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/instance/integrations/chatly` — Read the Chatly connection: the channel, and the
     /// issuer / JWKS / audience the channel's identity verification uses for getToken({ template:
     /// 'chatly' }) tokens.
@@ -1937,11 +1994,48 @@ impl Instance<'_> {
             )
             .await
     }
-    /// `GET /v1/instance/referrals/calls` — The referral call log, newest first (default 50):
-    /// sign-up reports, erasures, exports, partner codes, signals and tests, with status, attempts
-    /// and the next retry.
+    /// `POST /v1/instance/referrals/backfill` — Backfill: queue sign-up calls for existing users
+    /// created since a date, each with its real sign-up time, so the platform dates the referrals
+    /// correctly and replays the payments since. Codes come from `codes` or a metadata path; users
+    /// with no code are reported only when auto_enroll_users is on; users already reported are
+    /// skipped. Calls go out at about 10 per second. Up to 10,000 users per request. Requires
+    /// referrals to be on (422 REFERRALS_NOT_CONFIGURED).
     ///
-    /// Query parameters: `limit`, `status`, `kind`, `user_id`.
+    /// Takes [`types::InstanceStartReferralBackfillBody`]. Returns [`types::InstanceStartReferralBackfillResponse`].
+    pub async fn start_referral_backfill(
+        &self,
+        body: &types::InstanceStartReferralBackfillBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceStartReferralBackfillResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/referrals/backfill",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/instance/referrals/backfill/{id}` — A backfill and the live progress of its calls.
+    ///
+    /// Returns [`types::InstanceGetReferralBackfillResponse`].
+    pub async fn get_referral_backfill(
+        &self,
+        id: &str,
+    ) -> Result<types::InstanceGetReferralBackfillResponse, BackendError> {
+        let path = format!("/v1/instance/referrals/backfill/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/instance/referrals/calls` — The referral delivery log, newest first (default 50, up
+    /// to 1,000 per page; page with starting_after): sign-up reports, erasures, exports, partner
+    /// codes, signals, aliases, user updates and tests, with status, error code, latency, attempts,
+    /// the next retry and the platform's answer (personal fields redacted; matched_via and notes
+    /// highlighted).
+    ///
+    /// Query parameters: `limit`, `starting_after`, `error_code`, `status`, `kind`, `user_id`.
     ///
     /// Returns [`types::InstanceListReferralCallsResponse`].
     pub async fn list_referral_calls(
@@ -1955,6 +2049,27 @@ impl Instance<'_> {
                 &query.as_pairs(),
                 None,
                 None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/referrals/calls/retry_failed` — Retry all failed calls: re-queues up to
+    /// 1,000 of the newest failed calls (optionally only one kind or error code) for delivery,
+    /// spread out over time. Tests, exports and simulated sign-ups are not re-queued. Each call is
+    /// signed with the current secret when it goes out.
+    ///
+    /// Takes [`types::InstanceRetryFailedReferralCallsBody`]. Returns [`types::InstanceRetryFailedReferralCallsResponse`].
+    pub async fn retry_failed_referral_calls(
+        &self,
+        body: &types::InstanceRetryFailedReferralCallsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceRetryFailedReferralCallsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/referrals/calls/retry_failed",
+                &[],
+                body_of(body)?,
+                idempotency_key,
             )
             .await
     }
@@ -1972,9 +2087,31 @@ impl Instance<'_> {
             .request(HttpMethod::Post, &path, &[], None, idempotency_key)
             .await
     }
-    /// `POST /v1/instance/referrals/test` — Test the connection: a signed POST to the export
-    /// endpoint with {"op":"export","customerRef":"atlas_connection_test","test":true}. 2xx or 404
-    /// is ok; 401/403 means the platform rejected the signature or key.
+    /// `POST /v1/instance/referrals/simulate` — Simulate a sign-up: sends a real sign-up call for a
+    /// made-up customer (atlas_test_&lt;random&gt;) with the code you choose, and returns the
+    /// platform's answer. No user is created. Works before referrals are turned on.
+    ///
+    /// Takes [`types::InstanceSimulateReferralSignupBody`]. Returns [`types::InstanceSimulateReferralSignupResponse`].
+    pub async fn simulate_referral_signup(
+        &self,
+        body: &types::InstanceSimulateReferralSignupBody,
+    ) -> Result<types::InstanceSimulateReferralSignupResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/referrals/simulate",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/referrals/test` — Test the connection. A provider that answers a ping is
+    /// pinged (POST {endpoint}/ping): the answer reports the org, program, auto-enrol and the
+    /// platform clock, cached as connection.last_ping, with a warning past 60 seconds of clock
+    /// skew. Otherwise (or when the ping endpoint answers 404/405/501) a signed POST to the export
+    /// endpoint with {"op":"export","customerRef":"atlas_connection_test","test":true}: 2xx or 404
+    /// is ok. 401/403 means the platform rejected the signature or key.
     ///
     /// Returns [`types::InstanceTestReferralsResponse`].
     pub async fn test_referrals(
@@ -5828,6 +5965,21 @@ impl Users<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
+            .await
+    }
+    /// `GET /v1/users/{id}/referral` — The user's stored referral result: where attribution stands
+    /// (pending, attributed, none, failed, held, flagged), who referred them, the platform's notes,
+    /// the id the platform knows them by, and their own code. Read from Atlas, never from the
+    /// platform. 404 when the user was never reported.
+    ///
+    /// Returns [`types::UsersGetReferralResponse`].
+    pub async fn get_referral(
+        &self,
+        user_id: &str,
+    ) -> Result<types::UsersGetReferralResponse, BackendError> {
+        let path = format!("/v1/users/{}/referral", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
     /// `POST /v1/users/{id}/reset_mfa` — Remove every second factor and its recovery codes.

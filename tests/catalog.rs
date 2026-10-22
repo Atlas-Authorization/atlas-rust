@@ -665,6 +665,33 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance().get_before_user_create_hook().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/hooks/before_user_create".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .update_before_user_create_hook(
+            &types::InstanceUpdateBeforeUserCreateHookBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/instance/hooks/before_user_create".into(),
+        B::Obj,
+        true,
+    ));
+    c.instance().test_before_user_create_hook().await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/hooks/before_user_create/test".into(),
+        B::None,
+        false,
+    ));
     c.instance().get_chatly_integration().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -807,12 +834,45 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.instance()
+        .start_referral_backfill(
+            &types::InstanceStartReferralBackfillBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/referrals/backfill".into(),
+        B::Obj,
+        true,
+    ));
+    c.instance().get_referral_backfill("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/referrals/backfill/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.instance().list_referral_calls(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
         "/v1/instance/referrals/calls?limit=2".into(),
         B::None,
         false,
+    ));
+    c.instance()
+        .retry_failed_referral_calls(
+            &types::InstanceRetryFailedReferralCallsBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/referrals/calls/retry_failed".into(),
+        B::Obj,
+        true,
     ));
     c.instance()
         .retry_referral_call("p0_id", Some("idem_1"))
@@ -823,6 +883,16 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/instance/referrals/calls/p0_id/retry".into(),
         B::None,
         true,
+    ));
+    c.instance()
+        .simulate_referral_signup(&types::InstanceSimulateReferralSignupBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/referrals/simulate".into(),
+        B::Obj,
+        false,
     ));
     c.instance().test_referrals().await.unwrap();
     expected.push((
@@ -2789,6 +2859,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.users().get_referral("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/referral".into(),
+        B::None,
+        false,
+    ));
     c.users().reset_mfa("p0_id", Some("idem_1")).await.unwrap();
     expected.push((
         HttpMethod::Post,
@@ -2909,4 +2986,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 332 operations, 332 typed; 332 calls.
+// 340 operations, 340 typed; 340 calls.

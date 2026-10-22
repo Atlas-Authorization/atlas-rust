@@ -2,6 +2,19 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.16.0
+
+### Added
+- **Referral delivery v2.** `instance().simulate_referral_signup(&body)` (a sign-up call for a throwaway `atlas_test_…` customer; no user is created), `instance().start_referral_backfill(&body)` and `instance().get_referral_backfill(id)`, `instance().retry_failed_referral_calls(&body)`. `instance().list_referral_calls` gains `starting_after` and `error_code` (`limit` up to 1000); calls carry `latency_ms`, `error_code`, `request_id`, `batch_id`, `response` and `highlights`.
+- **Settings.** `get_referrals` / `update_referrals` gain `tracking_token`, `code_lookup_url`, `signup_code_field`, `forward_lifecycle`, `mirror_to_public_metadata`, `include_referral_claims`, and `connection.last_ping` / `connection.alert`. Provider id `referally`.
+- **Sign-up hook.** `instance().get_before_user_create_hook()`, `update_before_user_create_hook(&body)` and `test_before_user_create_hook()`.
+- **Users.** `users().get_referral(id)` returns the stored attribution. `types::UserReferral` gains `partner_external_ref`, `referral_status` and `notes`.
+- **Webhooks.** `EventType::UserReferralResolved` (`user.referral_resolved`): attribution finished after `user.created`; the data is the full user.
+- Preflight can report `referrals_secret_invalid`, `referrals_program_inactive`, `referrals_unreachable`, `referrals_clock_skew` and `referrals_external_id_unset`.
+
+### Changed
+- `UserReferral.status` is now where attribution stands (`pending`, `attributed`, `none`, `failed`, `held`, `flagged`) and is always present; the platform's own status moved to `referral_status`. `EventType` has a new variant, so exhaustive matches need updating.
+
 ## 0.15.0
 
 ### Added

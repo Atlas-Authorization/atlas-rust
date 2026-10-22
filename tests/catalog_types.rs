@@ -346,6 +346,18 @@ fn decode_instance() {
     round_trip::<types::InstanceConnectionsResponse>(
         r#"{"checked_at":7,"data":[{"check":"x","details":{"k":"v"},"fix_hint":"x","kind":"privacy_webhook","last_checked_at":7,"object":"connection","ok":true,"severity":"error","subject":{"k":"x"}}],"object":"instance_connections","ok":true}"#,
     );
+    // GET /v1/instance/hooks/before_user_create
+    round_trip::<types::InstanceGetBeforeUserCreateHookResponse>(
+        r#"{"enabled":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
+    );
+    // PATCH /v1/instance/hooks/before_user_create
+    round_trip::<types::InstanceUpdateBeforeUserCreateHookResponse>(
+        r#"{"enabled":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
+    );
+    // POST /v1/instance/hooks/before_user_create/test
+    round_trip::<types::InstanceTestBeforeUserCreateHookResponse>(
+        r#"{"answer":{"external_id":"x","private_metadata_set":true,"public_metadata":{"k":"v"},"unsafe_metadata":{"k":"v"}},"error":{"code":"x","message":"x"},"latency_ms":7,"ok":true}"#,
+    );
     // GET /v1/instance/integrations/chatly
     round_trip::<types::InstanceGetChatlyIntegrationResponse>(
         r#"{"audience":"x","channel":"x","enabled":true,"identity_verification":{"audience":"x","issuer":"x","jwks_url":"x","mode":"oidc"},"issuer":"x","jwks_url":"x","object":"chatly_integration","template":"chatly","token_ttl_seconds":7}"#,
@@ -404,23 +416,39 @@ fn decode_instance() {
     );
     // GET /v1/instance/referrals
     round_trip::<types::InstanceGetReferralsResponse>(
-        r#"{"api_key_set":true,"auto_enroll_users":true,"connection":{"failed_calls_7d":7,"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","context_cookie":"x","enabled":true,"endpoint_url":"x","link_template":"x","missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"auto_enroll":true,"erase":true,"export":true,"partner":true,"signal":true,"signup":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url_params":["x"]}"#,
+        r#"{"api_key_set":true,"auto_enroll_users":true,"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","context_cookie":"x","enabled":true,"endpoint_url":"x","forward_lifecycle":true,"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
     );
     // PATCH /v1/instance/referrals
     round_trip::<types::InstanceUpdateReferralsResponse>(
-        r#"{"api_key_set":true,"auto_enroll_users":true,"connection":{"failed_calls_7d":7,"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","context_cookie":"x","enabled":true,"endpoint_url":"x","link_template":"x","missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"auto_enroll":true,"erase":true,"export":true,"partner":true,"signal":true,"signup":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url_params":["x"]}"#,
+        r#"{"api_key_set":true,"auto_enroll_users":true,"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","context_cookie":"x","enabled":true,"endpoint_url":"x","forward_lifecycle":true,"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
+    );
+    // POST /v1/instance/referrals/backfill
+    round_trip::<types::InstanceStartReferralBackfillResponse>(
+        r#"{"calls":{"failed":7,"held":7,"pending":7,"skipped":7,"succeeded":7},"calls_queued":7,"code_metadata_path":"x","codes_given":7,"created_at":7,"finished_at":7,"id":"x","next_since":7,"object":"referral_backfill","since":7,"status":"running","truncated":true,"users_scanned":7,"users_skipped":7}"#,
+    );
+    // GET /v1/instance/referrals/backfill/{id}
+    round_trip::<types::InstanceGetReferralBackfillResponse>(
+        r#"{"calls":{"failed":7,"held":7,"pending":7,"skipped":7,"succeeded":7},"calls_queued":7,"code_metadata_path":"x","codes_given":7,"created_at":7,"finished_at":7,"id":"x","next_since":7,"object":"referral_backfill","since":7,"status":"running","truncated":true,"users_scanned":7,"users_skipped":7}"#,
     );
     // GET /v1/instance/referrals/calls
     round_trip::<types::InstanceListReferralCallsResponse>(
-        r#"{"data":[{"attempts":7,"created_at":7,"customer_ref":"x","http_status":7,"id":"x","kind":"signup","last_error":"x","next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}],"has_more":true,"object":"list"}"#,
+        r#"{"data":[{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}],"has_more":true,"object":"list"}"#,
+    );
+    // POST /v1/instance/referrals/calls/retry_failed
+    round_trip::<types::InstanceRetryFailedReferralCallsResponse>(
+        r#"{"object":"referral_retry","requeued":7}"#,
     );
     // POST /v1/instance/referrals/calls/{id}/retry
     round_trip::<types::InstanceRetryReferralCallResponse>(
-        r#"{"attempts":7,"created_at":7,"customer_ref":"x","http_status":7,"id":"x","kind":"signup","last_error":"x","next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
+        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
+    );
+    // POST /v1/instance/referrals/simulate
+    round_trip::<types::InstanceSimulateReferralSignupResponse>(
+        r#"{"call_id":"x","customer_ref":"x","error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"object":"referral_simulation","ok":true,"response":{"k":"v"},"result":{"notes":["x"],"partner":{"code":"x","id":"x","link":"x"},"referral":{"matched_via":"x","partner_external_ref":"x","partner_id":"x","status":"x"}}}"#,
     );
     // POST /v1/instance/referrals/test
     round_trip::<types::InstanceTestReferralsResponse>(
-        r#"{"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"ok":true}"#,
+        r#"{"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"method":"ping","ok":true,"ping":{"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"warnings":["x"]}"#,
     );
     // GET /v1/instance/security
     round_trip::<types::InstanceSecurity>(
@@ -440,11 +468,11 @@ fn decode_invitations() {
 fn decode_jobs() {
     // GET /v1/jobs
     round_trip::<types::JobsListResponse>(
-        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","partner_id":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"x"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x"}"#,
+        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x"}"#,
     );
     // GET /v1/jobs/{id}
     round_trip::<types::Job>(
-        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","partner_id":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"x"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
+        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
     );
     // GET /v1/jobs/{id}/errors
     round_trip::<types::JobsListErrorsResponse>(r#"{"data":[{"k":"v"}],"object":"list"}"#);
@@ -1274,7 +1302,7 @@ fn decode_users() {
     );
     // PUT /v1/users/{id}/metadata
     round_trip::<types::User>(
-        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","partner_id":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"x"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}"#,
+        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}"#,
     );
     // DELETE /v1/users/{id}/mfa/{factorId}
     round_trip::<types::UsersDeleteMfaFactorResponse>(
@@ -1307,6 +1335,10 @@ fn decode_users() {
     // POST /v1/users/{id}/progression/events
     round_trip::<types::ProgressionEvent>(
         r#"{"delta":7,"level":7,"level_changed":true,"object":"progression_event","track":"x","xp":7}"#,
+    );
+    // GET /v1/users/{id}/referral
+    round_trip::<types::UsersGetReferralResponse>(
+        r#"{"context":{"k":"v"},"customer_ref":"x","flagged":true,"hold_reason":"x","matched_via":"x","notes":["x"],"object":"user_referral","partner_external_ref":"x","partner_id":"x","referral_code":"x","referral_link":"x","referral_status":"x","referrer_user_id":"x","risk_level":"low","signed_up_at":7,"status":"pending","updated_at":7,"user_id":"x"}"#,
     );
     // POST /v1/users/{id}/reset_mfa
     round_trip::<types::UsersResetMfaResponse>(r#"{"id":"x","mfa_enabled":true,"object":"x"}"#);

@@ -232,7 +232,7 @@ fn referral_attributed_event_type_and_data() {
         "user.referral_attributed"
     );
     let data: UserReferralAttributedEvent = serde_json::from_str(
-        r#"{"object":"user_referral","user_id":"user_1","attribution_status":"attributed","referral":{"partner_id":"pn_1","referrer_external_id":null,"referrer_user_id":null,"matched_via":"click","status":null},"referral_code":null,"referral_link":null,"signed_up_at":1,"updated_at":2}"#,
+        r#"{"object":"user_referral","user_id":"user_1","attribution_status":"attributed","referral":{"partner_id":"pn_1","referrer_external_id":null,"referrer_user_id":null,"matched_via":"click","status":"attributed","partner_external_ref":"usr_77","referral_status":"active","notes":["coupon matched"]},"referral_code":null,"referral_link":null,"signed_up_at":1,"updated_at":2}"#,
     )
     .unwrap();
     assert_eq!(data.attribution_status, "attributed");
@@ -240,4 +240,26 @@ fn referral_attributed_event_type_and_data() {
         data.referral.expect("referral").matched_via.as_deref(),
         Some("click")
     );
+}
+
+#[test]
+fn referral_resolved_event_type() {
+    assert_eq!(
+        EventType::from("user.referral_resolved"),
+        EventType::UserReferralResolved
+    );
+    assert_eq!(
+        EventType::UserReferralResolved.as_str(),
+        "user.referral_resolved"
+    );
+}
+
+#[test]
+fn user_referral_v2_fields_decode() {
+    let r: atlasauth::backend::types::UserReferral = serde_json::from_str(
+        r#"{"status":"pending","partner_id":null,"partner_external_ref":null,"referrer_external_id":null,"referrer_user_id":null,"matched_via":null,"referral_status":null,"notes":[]}"#,
+    )
+    .unwrap();
+    assert_eq!(r.status, "pending");
+    assert!(r.notes.is_empty());
 }
