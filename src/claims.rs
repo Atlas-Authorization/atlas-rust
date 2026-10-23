@@ -114,6 +114,22 @@ impl Claims {
         self.app_permissions().contains(&permission)
     }
 
+    /// The `pol` claim: the accepted version of every required policy, keyed
+    /// by policy key (for example `{"tos": "2026-10-24"}`). Present only when
+    /// the instance turned on the policy session claim; empty otherwise.
+    pub fn pol(&self) -> std::collections::BTreeMap<&str, &str> {
+        self.extra
+            .get("pol")
+            .and_then(Value::as_object)
+            .map(|m| m.iter().filter_map(|(k, v)| v.as_str().map(|v| (k.as_str(), v))).collect())
+            .unwrap_or_default()
+    }
+
+    /// Whether the token records acceptance of `version` of the policy `key`.
+    pub fn has_accepted_policy(&self, key: &str, version: &str) -> bool {
+        self.pol().get(key).copied() == Some(version)
+    }
+
     /// The subject's real email from the `email` claim, or `None` when the claim
     /// is absent, empty, or the `@no-email.invalid` placeholder Atlas seeds for a
     /// provider that shares no email.

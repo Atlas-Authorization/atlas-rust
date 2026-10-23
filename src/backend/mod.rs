@@ -26,6 +26,7 @@ mod machines;
 mod pagination;
 mod platform;
 mod platform_api;
+mod policies;
 mod resources;
 mod settings_helpers;
 mod testing;

@@ -242,6 +242,11 @@ pub struct Permissions<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Policy acceptance: policies, versions and acceptances. Reached via [`BackendClient::policies`].
+pub struct Policies<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// RADIUS clients. Reached via [`BackendClient::radius_clients`].
 pub struct RadiusClients<'a> {
     pub(super) client: &'a BackendClient,
@@ -2902,6 +2907,151 @@ impl Instance<'_> {
                 "/v1/instance/move_origin",
                 &[],
                 body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/policy_settings` — Policy settings: the optional pol session claim.
+    ///
+    /// Returns [`types::InstanceGetPolicySettingsResponse`].
+    pub async fn get_policy_settings(
+        &self,
+    ) -> Result<types::InstanceGetPolicySettingsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/policy_settings",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PATCH /v1/instance/policy_settings` — Turn the pol session claim on or off (tokens minted
+    /// after the change; up to 30 seconds to take effect everywhere).
+    ///
+    /// Takes [`types::InstanceUpdatePolicySettingsBody`]. Returns [`types::InstanceUpdatePolicySettingsResponse`].
+    pub async fn update_policy_settings(
+        &self,
+        body: &types::InstanceUpdatePolicySettingsBody,
+    ) -> Result<types::InstanceUpdatePolicySettingsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Patch,
+                "/v1/instance/policy_settings",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/policy_source` — The external policy source (Atlas policy source protocol
+    /// v1): endpoint, sync mode, the webhook URL to give the source, and the last sync outcome. The
+    /// signing secret is reported as signing_secret_set only.
+    ///
+    /// Returns [`types::InstanceGetPolicySourceResponse`].
+    pub async fn get_policy_source(
+        &self,
+    ) -> Result<types::InstanceGetPolicySourceResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/policy_source",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/policy_source` — Configure the policy source. Only the fields sent change;
+    /// null clears. Enabling needs endpoint_url and signing_secret. sync webhook: the source sends
+    /// signed policy.published / policy.retired events to webhook_url and Atlas re-fetches; poll:
+    /// Atlas fetches every poll_interval_minutes.
+    ///
+    /// Takes [`types::InstanceSetPolicySourceBody`]. Returns [`types::InstanceSetPolicySourceResponse`].
+    pub async fn set_policy_source(
+        &self,
+        body: &types::InstanceSetPolicySourceBody,
+    ) -> Result<types::InstanceSetPolicySourceResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/policy_source",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/policy_source` — Disconnect the policy source (its policies and their
+    /// history stay; they stop syncing).
+    ///
+    /// Returns [`types::InstanceDeletePolicySourceResponse`].
+    pub async fn delete_policy_source(
+        &self,
+    ) -> Result<types::InstanceDeletePolicySourceResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/policy_source",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/policy_source/deliveries` — The policy source delivery log: every fetch,
+    /// test, poll and inbound event (rejected signatures included), newest first.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `kind`, `status`.
+    ///
+    /// Returns [`types::InstanceListPolicySourceDeliveriesResponse`].
+    pub async fn list_policy_source_deliveries(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceListPolicySourceDeliveriesResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/policy_source/deliveries",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/policy_source/sync` — Fetch the feed now and store it: new policies and
+    /// versions are snapshotted (sanitised, hashed); a published version whose content changed at
+    /// the source is refused (publish a new version there).
+    ///
+    /// Returns [`types::InstanceSyncPolicySourceResponse`].
+    pub async fn sync_policy_source(
+        &self,
+    ) -> Result<types::InstanceSyncPolicySourceResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/policy_source/sync",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/policy_source/test` — A signed GET {endpoint_url}/policies, validated but
+    /// not stored: reports what the feed holds, warnings for unreadable entries, or why it failed.
+    /// Logged as kind test.
+    ///
+    /// Returns [`types::InstanceTestPolicySourceResponse`].
+    pub async fn test_policy_source(
+        &self,
+    ) -> Result<types::InstanceTestPolicySourceResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/policy_source/test",
+                &[],
+                None,
                 None,
             )
             .await
@@ -5838,6 +5988,204 @@ impl PlatformApi<'_> {
     }
 }
 
+impl Policies<'_> {
+    /// `GET /v1/policies` — List the policies (active; include_retired=true for all), each with its
+    /// current, upcoming and latest version.
+    ///
+    /// Query parameters: `include_retired`.
+    ///
+    /// Returns [`types::PoliciesListResponse`].
+    pub async fn list(&self, query: &Query) -> Result<types::PoliciesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/policies",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/policies` — Create a policy. key and title are required. display: checkbox
+    /// (default), scroll (an unskippable reader; acceptance needs scrolled_to_end) or link
+    /// (clickwrap). applies_to: sign_up (default) or sign_in_and_sign_up (existing users re-accept
+    /// new versions per reaccept: none, next_sign_in, or grace with grace_days). It asks nobody
+    /// anything until a version is published.
+    ///
+    /// Takes [`types::PoliciesCreateBody`]. Returns [`types::PoliciesCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::PoliciesCreateBody,
+    ) -> Result<types::PoliciesCreateResponse, BackendError> {
+        self.client
+            .request(HttpMethod::Post, "/v1/policies", &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/policies/{id}` — One policy, by id or key.
+    ///
+    /// Returns [`types::PoliciesGetResponse`].
+    pub async fn get(&self, id: &str) -> Result<types::PoliciesGetResponse, BackendError> {
+        let path = format!("/v1/policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/policies/{id}` — Update a policy (the key cannot change). status: retired stops
+    /// it gating (history is kept); active brings it back. On an external policy the changed fields
+    /// are kept across syncs (overrides).
+    ///
+    /// Takes [`types::PoliciesUpdateBody`]. Returns [`types::PoliciesUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::PoliciesUpdateBody,
+    ) -> Result<types::PoliciesUpdateResponse, BackendError> {
+        let path = format!("/v1/policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/policies/{id}` — Delete a policy that was never published; one with a published
+    /// version is retired instead (acceptances are evidence and stay).
+    ///
+    /// Returns [`types::PoliciesDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::PoliciesDeleteResponse, BackendError> {
+        let path = format!("/v1/policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/policies/{id}/acceptances` — Who accepted the policy (optionally one version),
+    /// newest first, with the evidence (version id, content hash, display, scrolled_to_end,
+    /// view_ms, locale, source, IP, user agent). format=csv returns text/csv (up to 100,000 rows).
+    ///
+    /// Query parameters: `version`, `status`, `limit`, `starting_after`, `format`.
+    ///
+    /// Returns [`types::PoliciesListAcceptancesResponse`].
+    pub async fn list_acceptances(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::PoliciesListAcceptancesResponse, BackendError> {
+        let path = format!("/v1/policies/{}/acceptances", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `GET /v1/policies/{id}/versions` — The policy's versions, newest first, each with
+    /// acceptance_count.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::PoliciesListVersionsResponse`].
+    pub async fn list_versions(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::PoliciesListVersionsResponse, BackendError> {
+        let path = format!("/v1/policies/{}/versions", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/policies/{id}/versions` — Create a version: a draft, or published at once with
+    /// publish: true (and effective_at). content_markdown is rendered and sanitised, content_html
+    /// is sanitised; content_sha256 is the hash of the result. 400 for an external policy (its
+    /// versions come from the policy source).
+    ///
+    /// Takes [`types::PoliciesCreateVersionBody`]. Returns [`types::PoliciesCreateVersionResponse`].
+    pub async fn create_version(
+        &self,
+        id: &str,
+        body: &types::PoliciesCreateVersionBody,
+    ) -> Result<types::PoliciesCreateVersionResponse, BackendError> {
+        let path = format!("/v1/policies/{}/versions", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/policies/{id}/versions/{versionId}` — One version, by id or label.
+    ///
+    /// Returns [`types::PoliciesGetVersionResponse`].
+    pub async fn get_version(
+        &self,
+        id: &str,
+        version_id: &str,
+    ) -> Result<types::PoliciesGetVersionResponse, BackendError> {
+        let path = format!("/v1/policies/{}/versions/{}", seg(id), seg(version_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/policies/{id}/versions/{versionId}` — Edit a draft (409 for a published version:
+    /// publish a new version instead).
+    ///
+    /// Takes [`types::PoliciesUpdateVersionBody`]. Returns [`types::PoliciesUpdateVersionResponse`].
+    pub async fn update_version(
+        &self,
+        id: &str,
+        version_id: &str,
+        body: &types::PoliciesUpdateVersionBody,
+    ) -> Result<types::PoliciesUpdateVersionResponse, BackendError> {
+        let path = format!("/v1/policies/{}/versions/{}", seg(id), seg(version_id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/policies/{id}/versions/{versionId}` — Delete a draft (409 for a published
+    /// version: retire it instead).
+    ///
+    /// Returns [`types::PoliciesDeleteVersionResponse`].
+    pub async fn delete_version(
+        &self,
+        id: &str,
+        version_id: &str,
+    ) -> Result<types::PoliciesDeleteVersionResponse, BackendError> {
+        let path = format!("/v1/policies/{}/versions/{}", seg(id), seg(version_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/policies/{id}/versions/{versionId}/publish` — Publish a draft. effective_at (epoch
+    /// ms or ISO, default now) is when sign-ups must accept it and sign-ins re-ask per the reaccept
+    /// rule; it can be accepted early once published. Fires policy.version_published.
+    ///
+    /// Takes [`types::PoliciesPublishVersionBody`]. Returns [`types::PoliciesPublishVersionResponse`].
+    pub async fn publish_version(
+        &self,
+        id: &str,
+        version_id: &str,
+        body: &types::PoliciesPublishVersionBody,
+    ) -> Result<types::PoliciesPublishVersionResponse, BackendError> {
+        let path = format!(
+            "/v1/policies/{}/versions/{}/publish",
+            seg(id),
+            seg(version_id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/policies/{id}/versions/{versionId}/retire` — Retire a published version: it no
+    /// longer gates or is offered; its acceptances stay.
+    ///
+    /// Returns [`types::PoliciesRetireVersionResponse`].
+    pub async fn retire_version(
+        &self,
+        id: &str,
+        version_id: &str,
+    ) -> Result<types::PoliciesRetireVersionResponse, BackendError> {
+        let path = format!(
+            "/v1/policies/{}/versions/{}/retire",
+            seg(id),
+            seg(version_id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+}
+
 impl RadiusClients<'_> {
     /// `GET /v1/radius_clients` — List the RADIUS NAS clients — the VPN/WiFi/firewall devices
     /// allowed to authenticate this instance's users over RADIUS. The per-NAS shared secret is
@@ -7675,6 +8023,22 @@ impl Users<'_> {
             .request(HttpMethod::Post, &path, &[], None, idempotency_key)
             .await
     }
+    /// `GET /v1/users/{id}/policies` — A user's standing on every policy (accepted / current
+    /// version, needs_reaccept, blocking, grace_ends_at).
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::UsersGetPoliciesResponse`].
+    pub async fn get_policies(
+        &self,
+        user_id: &str,
+        query: &Query,
+    ) -> Result<types::UsersGetPoliciesResponse, BackendError> {
+        let path = format!("/v1/users/{}/policies", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
     /// `DELETE /v1/users/{id}/profile_image` — Clear a user’s profile image (Clerk
     /// deleteUserProfileImage).
     ///
@@ -8073,6 +8437,10 @@ impl BackendClient {
     /// Permissions.
     pub fn permissions(&self) -> Permissions<'_> {
         Permissions { client: self }
+    }
+    /// Policy acceptance: policies, versions and acceptances.
+    pub fn policies(&self) -> Policies<'_> {
+        Policies { client: self }
     }
     /// RADIUS clients.
     pub fn radius_clients(&self) -> RadiusClients<'_> {

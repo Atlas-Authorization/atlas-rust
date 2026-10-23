@@ -48,6 +48,8 @@ mod botid;
 mod error;
 mod jwks;
 mod legacy_issuers;
+#[cfg(feature = "backend")]
+mod policy_source;
 mod logout;
 mod user;
 mod verify;
@@ -93,6 +95,12 @@ pub use access_token::{
 };
 #[cfg(any(feature = "backend", feature = "client"))]
 pub use introspection::{IntrospectionError, IntrospectionOptions, Introspector};
+#[cfg(feature = "backend")]
+pub use policy_source::{
+    sign_policy_source_body, sign_policy_source_event, sign_policy_source_event_at, verify_policy_feed_request,
+    PolicyFeedFailure, PolicyFeedRequest, PolicySourceEvent, SignedPolicyEvent, VerifiedPolicyFeedRequest,
+    POLICY_SOURCE_PROTOCOL_VERSION, POLICY_SOURCE_TOLERANCE_MS, POLICY_SOURCE_VERSION_HEADER,
+};
 #[cfg(feature = "backend")]
 pub use botid::{
     create_botid_attestation, BOTID_ATTESTATION_MAX_TTL_SECONDS, BOTID_ATTESTATION_PREFIX, BOTID_SECRET_MIN_LENGTH,

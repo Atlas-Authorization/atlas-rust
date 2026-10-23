@@ -2,6 +2,15 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.22.0 — 2026-10-24
+
+### Added
+
+- **Policy acceptance.** `policies()` (catalog regenerated from the current API, nothing removed): `list`, `create`, `get`, `update`, `delete` (a never-published policy is deleted, one with history is retired), `list_versions`, `create_version` (a draft, or `publish` with `effective_at`), `get_version`, `update_version` / `delete_version` (drafts only), `publish_version` (`effective_at`), `retire_version`, `list_acceptances`, and the hand-written `export_acceptances_csv(id, &Query)`. `users().get_policies(id, &Query)` returns a user's standing on every policy. `instance()`: `get_policy_settings` / `update_policy_settings` (the `pol` session claim) and `get_policy_source` / `set_policy_source` (the signing secret is write-only) / `delete_policy_source` / `test_policy_source` / `sync_policy_source` / `list_policy_source_deliveries`.
+- **Policy source protocol helpers** (feature `backend`). `verify_policy_feed_request(&PolicyFeedRequest { .. })` checks Atlas's signed `GET {endpoint_url}/policies` (`atlas-signature` `v1,<base64 HMAC-SHA256>` over `{id}.{timestamp}.GET\n{path+query}`, millisecond timestamps, several `v1` values accepted, 5-minute window; the result carries the `key` query parameter), and `sign_policy_source_event(&PolicySourceEvent::Published { key, version } | Retired { key }, secret)` signs `policy.published` / `policy.retired` events for Atlas. Cross-checked against the TypeScript reference vectors.
+- `Claims::pol()` and `Claims::has_accepted_policy(key, version)` read the `pol` claim. Webhook `EventType::UserPolicyAccepted` (`user.policy_accepted`) and `EventType::PolicyVersionPublished` (`policy.version_published`).
+- `scripts/gen_catalog.py` knows the `/v1/policies` namespace and the method names of the policy routes.
+
 ## 0.21.0 — 2026-10-24
 
 ### Added

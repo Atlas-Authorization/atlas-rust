@@ -299,6 +299,10 @@ pub enum EventType {
     EntitlementOverrideCreated,
     EntitlementOverrideDeleted,
     EntitlementOverrideExpired,
+    /// A user accepted a policy version. The data is the policy acceptance with its evidence.
+    UserPolicyAccepted,
+    /// A policy version was published.
+    PolicyVersionPublished,
     /// Any event type not modelled above — carries the raw dotted string.
     Other(String),
 }
@@ -340,6 +344,8 @@ impl From<&str> for EventType {
             "entitlement.override.created" => EventType::EntitlementOverrideCreated,
             "entitlement.override.deleted" => EventType::EntitlementOverrideDeleted,
             "entitlement.override.expired" => EventType::EntitlementOverrideExpired,
+            "user.policy_accepted" => EventType::UserPolicyAccepted,
+            "policy.version_published" => EventType::PolicyVersionPublished,
             other => EventType::Other(other.to_string()),
         }
     }
@@ -383,6 +389,8 @@ impl EventType {
             EventType::EntitlementOverrideCreated => "entitlement.override.created",
             EventType::EntitlementOverrideDeleted => "entitlement.override.deleted",
             EventType::EntitlementOverrideExpired => "entitlement.override.expired",
+            EventType::UserPolicyAccepted => "user.policy_accepted",
+            EventType::PolicyVersionPublished => "policy.version_published",
             EventType::Other(s) => s,
         }
     }

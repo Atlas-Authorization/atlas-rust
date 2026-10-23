@@ -1295,6 +1295,71 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.instance().get_policy_settings().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/policy_settings".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .update_policy_settings(&types::InstanceUpdatePolicySettingsBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/instance/policy_settings".into(),
+        B::Obj,
+        false,
+    ));
+    c.instance().get_policy_source().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/policy_source".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .set_policy_source(&types::InstanceSetPolicySourceBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/instance/policy_source".into(),
+        B::Obj,
+        false,
+    ));
+    c.instance().delete_policy_source().await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/policy_source".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .list_policy_source_deliveries(&q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/policy_source/deliveries?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.instance().sync_policy_source().await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/policy_source/sync".into(),
+        B::None,
+        false,
+    ));
+    c.instance().test_policy_source().await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/policy_source/test".into(),
+        B::None,
+        false,
+    ));
     c.instance().get_proxy_secret().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -2780,6 +2845,119 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.policies().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/policies?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.policies()
+        .create(&types::PoliciesCreateBody::default())
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Post, "/v1/policies".into(), B::Obj, false));
+    c.policies().get("p0_id").await.unwrap();
+    expected.push((HttpMethod::Get, "/v1/policies/p0_id".into(), B::None, false));
+    c.policies()
+        .update("p0_id", &types::PoliciesUpdateBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/policies/p0_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.policies().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/policies/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.policies().list_acceptances("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/policies/p0_id/acceptances?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.policies().list_versions("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/policies/p0_id/versions?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.policies()
+        .create_version("p0_id", &types::PoliciesCreateVersionBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/policies/p0_id/versions".into(),
+        B::Obj,
+        false,
+    ));
+    c.policies()
+        .get_version("p0_id", "p1_version_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/policies/p0_id/versions/p1_version_id".into(),
+        B::None,
+        false,
+    ));
+    c.policies()
+        .update_version(
+            "p0_id",
+            "p1_version_id",
+            &types::PoliciesUpdateVersionBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/policies/p0_id/versions/p1_version_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.policies()
+        .delete_version("p0_id", "p1_version_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/policies/p0_id/versions/p1_version_id".into(),
+        B::None,
+        false,
+    ));
+    c.policies()
+        .publish_version(
+            "p0_id",
+            "p1_version_id",
+            &types::PoliciesPublishVersionBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/policies/p0_id/versions/p1_version_id/publish".into(),
+        B::Obj,
+        false,
+    ));
+    c.policies()
+        .retire_version("p0_id", "p1_version_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/policies/p0_id/versions/p1_version_id/retire".into(),
+        B::None,
+        false,
+    ));
     c.radius_clients().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -3753,6 +3931,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         true,
     ));
+    c.users().get_policies("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/policies?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.users()
         .delete_profile_image("p0_id", Some("idem_1"))
         .await
@@ -3904,4 +4089,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 440 operations, 440 typed; 440 calls.
+// 462 operations, 462 typed; 462 calls.

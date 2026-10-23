@@ -533,6 +533,28 @@ Platform rotations take an overlap too: `platform().apps().rotate_instance_secre
 `platform().atlas_id_apps().rotate_secret_with(..)` (default 24 hours) and `rotate_webhook_secret_with(..)`
 (default 0).
 
+### Policy acceptance
+
+Terms of service, a privacy policy or any policy your users accept at sign-up (and again at sign-in when a new
+version takes effect):
+
+```rust,ignore
+let tos = atlas.policies().create(&types::PoliciesCreateBody::default()
+    .with_key("tos").with_title("Terms of service")).await?;
+atlas.policies().create_version("tos", &version_body).await?;      // a draft, or publish at once
+atlas.policies().publish_version("tos", "2026-10-24", &publish_body).await?; // effective_at in epoch ms
+let standing = atlas.users().get_policies("user_123", &Query::new()).await?;
+let csv = atlas.policies().export_acceptances_csv("tos", &Query::new()).await?;
+```
+
+`instance().set_policy_source(..)` connects an external system that serves your policy text (the signing secret is
+write-only); `instance().update_policy_settings(..)` turns on the `pol` session claim, which `Claims::pol()` and
+`Claims::has_accepted_policy(key, version)` read.
+
+To serve the feed yourself (feature `backend`), `verify_policy_feed_request(&PolicyFeedRequest { .. })` checks Atlas's
+signed `GET {endpoint_url}/policies` request, and `sign_policy_source_event(&PolicySourceEvent::Published { key, version }, secret)`
+produces the signed body and headers to POST to the source's `webhook_url`.
+
 ### Referral attribution
 
 With referral attribution on, Atlas reports every interactive sign-up to your referral platform before

@@ -588,6 +588,38 @@ fn decode_instance() {
     round_trip::<types::OriginMove>(
         r#"{"app":{"k":"v"},"applied":true,"changes":[{"after":"sample","before":"sample","field":"x","id":"x","object":"instance"}],"dry_run":true,"from":"x","object":"origin_move","problems":[{"field":"x","id":"x","message":"x","object":"x","url":"x"}],"to":"x"}"#,
     );
+    // GET /v1/instance/policy_settings
+    round_trip::<types::InstanceGetPolicySettingsResponse>(
+        r#"{"object":"policy_settings","session_claim":true}"#,
+    );
+    // PATCH /v1/instance/policy_settings
+    round_trip::<types::InstanceUpdatePolicySettingsResponse>(
+        r#"{"object":"policy_settings","session_claim":true}"#,
+    );
+    // GET /v1/instance/policy_source
+    round_trip::<types::InstanceGetPolicySourceResponse>(
+        r#"{"enabled":true,"endpoint_url":"x","last_sync_error":"x","last_sync_ok":true,"last_synced_at":7,"next_poll_at":7,"object":"policy_source","poll_interval_minutes":7,"protocol_version":"x","signing_secret_set":true,"sync":"webhook","webhook_url":"x"}"#,
+    );
+    // PUT /v1/instance/policy_source
+    round_trip::<types::InstanceSetPolicySourceResponse>(
+        r#"{"enabled":true,"endpoint_url":"x","last_sync_error":"x","last_sync_ok":true,"last_synced_at":7,"next_poll_at":7,"object":"policy_source","poll_interval_minutes":7,"protocol_version":"x","signing_secret_set":true,"sync":"webhook","webhook_url":"x"}"#,
+    );
+    // DELETE /v1/instance/policy_source
+    round_trip::<types::InstanceDeletePolicySourceResponse>(
+        r#"{"enabled":true,"endpoint_url":"x","last_sync_error":"x","last_sync_ok":true,"last_synced_at":7,"next_poll_at":7,"object":"policy_source","poll_interval_minutes":7,"protocol_version":"x","signing_secret_set":true,"sync":"webhook","webhook_url":"x"}"#,
+    );
+    // GET /v1/instance/policy_source/deliveries
+    round_trip::<types::InstanceListPolicySourceDeliveriesResponse>(
+        r#"{"data":[{"changes":{"k":"v"},"created_at":7,"direction":"outbound","error":"x","event_type":"x","http_status":7,"id":"x","kind":"fetch","latency_ms":7,"object":"policy_source_delivery","policy":"x","status":"ok","url":"x","version":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/instance/policy_source/sync
+    round_trip::<types::InstanceSyncPolicySourceResponse>(
+        r#"{"changes":{"created":["x"],"published":["x"],"rejected":["x"],"retired":["x"],"unchanged":["x"],"updated":["x"]},"delivery":{"changes":{"k":"v"},"created_at":7,"direction":"outbound","error":"x","event_type":"x","http_status":7,"id":"x","kind":"fetch","latency_ms":7,"object":"policy_source_delivery","policy":"x","status":"ok","url":"x","version":"x"},"error":"x","object":"policy_source_sync","ok":true,"warnings":["x"]}"#,
+    );
+    // POST /v1/instance/policy_source/test
+    round_trip::<types::InstanceTestPolicySourceResponse>(
+        r#"{"delivery":{"changes":{"k":"v"},"created_at":7,"direction":"outbound","error":"x","event_type":"x","http_status":7,"id":"x","kind":"fetch","latency_ms":7,"object":"policy_source_delivery","policy":"x","status":"ok","url":"x","version":"x"},"error":"x","http_status":7,"latency_ms":7,"object":"policy_source_test","ok":true,"policies":[{"key":"x","title":"x","versions":["x"]}],"warnings":["x"]}"#,
+    );
     // GET /v1/instance/proxy_secret
     round_trip::<types::ProxySecret>(
         r#"{"client_ip_header":"X-Atlas-Client-IP","created_at":7,"object":"proxy_secret","previous_expires_at":7,"secret_header":"X-Atlas-Proxy-Secret","set":true}"#,
@@ -1263,6 +1295,62 @@ fn decode_platform_api() {
 }
 
 #[test]
+fn decode_policies() {
+    // GET /v1/policies
+    round_trip::<types::PoliciesListResponse>(
+        r#"{"data":[{"applies_to":"sign_up","created_at":7,"current_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"display":"checkbox","grace_days":7,"id":"x","key":"x","latest_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"object":"policy","overrides":["x"],"position":7,"reaccept":"none","required":true,"retired_at":7,"source":"atlas","status":"active","title":"x","upcoming_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"updated_at":7}],"object":"list"}"#,
+    );
+    // POST /v1/policies
+    round_trip::<types::PoliciesCreateResponse>(
+        r#"{"applies_to":"sign_up","created_at":7,"current_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"display":"checkbox","grace_days":7,"id":"x","key":"x","latest_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"object":"policy","overrides":["x"],"position":7,"reaccept":"none","required":true,"retired_at":7,"source":"atlas","status":"active","title":"x","upcoming_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"updated_at":7}"#,
+    );
+    // GET /v1/policies/{id}
+    round_trip::<types::PoliciesGetResponse>(
+        r#"{"applies_to":"sign_up","created_at":7,"current_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"display":"checkbox","grace_days":7,"id":"x","key":"x","latest_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"object":"policy","overrides":["x"],"position":7,"reaccept":"none","required":true,"retired_at":7,"source":"atlas","status":"active","title":"x","upcoming_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"updated_at":7}"#,
+    );
+    // PATCH /v1/policies/{id}
+    round_trip::<types::PoliciesUpdateResponse>(
+        r#"{"applies_to":"sign_up","created_at":7,"current_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"display":"checkbox","grace_days":7,"id":"x","key":"x","latest_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"object":"policy","overrides":["x"],"position":7,"reaccept":"none","required":true,"retired_at":7,"source":"atlas","status":"active","title":"x","upcoming_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"updated_at":7}"#,
+    );
+    // DELETE /v1/policies/{id}
+    round_trip::<types::PoliciesDeleteResponse>(
+        r#"{"deleted":true,"id":"x","key":"x","object":"policy","policy":{"applies_to":"sign_up","created_at":7,"current_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"display":"checkbox","grace_days":7,"id":"x","key":"x","latest_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"object":"policy","overrides":["x"],"position":7,"reaccept":"none","required":true,"retired_at":7,"source":"atlas","status":"active","title":"x","upcoming_version":{"content_sha256":"x","effective_at":7,"id":"x","published_at":7,"status":"x","version":"x"},"updated_at":7},"retired":true}"#,
+    );
+    // GET /v1/policies/{id}/acceptances
+    round_trip::<types::PoliciesListAcceptancesResponse>(
+        r#"{"data":[{"accepted_at":7,"content_sha256":"x","display":"x","id":"x","ip":"x","locale":"x","object":"policy_acceptance","policy":"x","policy_version_id":"x","scrolled_to_end":true,"source":"x","status":"accepted","user_agent":"x","user_id":"x","version":"x","view_ms":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // GET /v1/policies/{id}/versions
+    round_trip::<types::PoliciesListVersionsResponse>(
+        r#"{"data":[{"acceptance_count":7,"content_html":"x","content_markdown":"x","content_sha256":"x","content_url":"x","created_at":7,"effective_at":7,"id":"x","locale":"x","object":"policy_version","policy":"x","policy_id":"x","published_at":7,"retired_at":7,"status":"draft","summary_of_changes":"x","updated_at":7,"version":"x"}],"object":"list"}"#,
+    );
+    // POST /v1/policies/{id}/versions
+    round_trip::<types::PoliciesCreateVersionResponse>(
+        r#"{"acceptance_count":7,"content_html":"x","content_markdown":"x","content_sha256":"x","content_url":"x","created_at":7,"effective_at":7,"id":"x","locale":"x","object":"policy_version","policy":"x","policy_id":"x","published_at":7,"retired_at":7,"status":"draft","summary_of_changes":"x","updated_at":7,"version":"x"}"#,
+    );
+    // GET /v1/policies/{id}/versions/{versionId}
+    round_trip::<types::PoliciesGetVersionResponse>(
+        r#"{"acceptance_count":7,"content_html":"x","content_markdown":"x","content_sha256":"x","content_url":"x","created_at":7,"effective_at":7,"id":"x","locale":"x","object":"policy_version","policy":"x","policy_id":"x","published_at":7,"retired_at":7,"status":"draft","summary_of_changes":"x","updated_at":7,"version":"x"}"#,
+    );
+    // PATCH /v1/policies/{id}/versions/{versionId}
+    round_trip::<types::PoliciesUpdateVersionResponse>(
+        r#"{"acceptance_count":7,"content_html":"x","content_markdown":"x","content_sha256":"x","content_url":"x","created_at":7,"effective_at":7,"id":"x","locale":"x","object":"policy_version","policy":"x","policy_id":"x","published_at":7,"retired_at":7,"status":"draft","summary_of_changes":"x","updated_at":7,"version":"x"}"#,
+    );
+    // DELETE /v1/policies/{id}/versions/{versionId}
+    round_trip::<types::PoliciesDeleteVersionResponse>(
+        r#"{"deleted":true,"id":"x","object":"policy_version"}"#,
+    );
+    // POST /v1/policies/{id}/versions/{versionId}/publish
+    round_trip::<types::PoliciesPublishVersionResponse>(
+        r#"{"acceptance_count":7,"content_html":"x","content_markdown":"x","content_sha256":"x","content_url":"x","created_at":7,"effective_at":7,"id":"x","locale":"x","object":"policy_version","policy":"x","policy_id":"x","published_at":7,"retired_at":7,"status":"draft","summary_of_changes":"x","updated_at":7,"version":"x"}"#,
+    );
+    // POST /v1/policies/{id}/versions/{versionId}/retire
+    round_trip::<types::PoliciesRetireVersionResponse>(
+        r#"{"acceptance_count":7,"content_html":"x","content_markdown":"x","content_sha256":"x","content_url":"x","created_at":7,"effective_at":7,"id":"x","locale":"x","object":"policy_version","policy":"x","policy_id":"x","published_at":7,"retired_at":7,"status":"draft","summary_of_changes":"x","updated_at":7,"version":"x"}"#,
+    );
+}
+
+#[test]
 fn decode_radius_clients() {
     // GET /v1/radius_clients
     round_trip::<types::RadiusClientsListResponse>(
@@ -1612,11 +1700,11 @@ fn decode_users() {
     );
     // POST /v1/users/{id}/consents
     round_trip::<types::Consent>(
-        r#"{"created_at":7,"id":"x","metadata":{"k":"v"},"object":"consent","policy":"x","source":"x","status":"x","version":"x"}"#,
+        r#"{"content_sha256":"x","created_at":7,"display":"x","id":"x","locale":"x","metadata":{"k":"v"},"object":"consent","policy":"x","policy_version_id":"x","scrolled_to_end":true,"source":"x","status":"x","version":"x","view_ms":7}"#,
     );
     // GET /v1/users/{id}/consents
     round_trip::<types::UsersListConsentsResponse>(
-        r#"{"data":[{"created_at":7,"id":"x","metadata":{"k":"v"},"object":"consent","policy":"x","source":"x","status":"x","version":"x"}],"object":"x"}"#,
+        r#"{"data":[{"content_sha256":"x","created_at":7,"display":"x","id":"x","locale":"x","metadata":{"k":"v"},"object":"consent","policy":"x","policy_version_id":"x","scrolled_to_end":true,"source":"x","status":"x","version":"x","view_ms":7}],"object":"x"}"#,
     );
     // POST /v1/users/{id}/directives
     round_trip::<types::Directive>(
@@ -1681,6 +1769,10 @@ fn decode_users() {
     // DELETE /v1/users/{id}/phone_numbers/{pid}
     round_trip::<types::UsersDeletePhoneNumberResponse>(
         r#"{"deleted":true,"id":"x","object":"phone_number"}"#,
+    );
+    // GET /v1/users/{id}/policies
+    round_trip::<types::UsersGetPoliciesResponse>(
+        r#"{"data":[{"accepted_at":7,"accepted_version":"x","accepted_version_id":"x","applies_to":"sign_up","blocking":true,"content_sha256":"x","current_version":"x","current_version_id":"x","display":"checkbox","grace_ends_at":7,"needs_reaccept":true,"object":"policy_standing","policy":"x","policy_id":"x","reaccept":"none","required":true,"summary_of_changes":"x","title":"x"}],"needs_acceptance":true,"object":"list","user_id":"x"}"#,
     );
     // POST /v1/users/{id}/progression/events
     round_trip::<types::ProgressionEvent>(
