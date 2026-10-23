@@ -51,6 +51,84 @@ pub struct Jwk {
     pub n: Option<String>,
     #[serde(default)]
     pub e: Option<String>,
+    /// EC curve (`P-256` for an ES256 key).
+    #[serde(default)]
+    pub crv: Option<String>,
+    /// EC public point, base64url.
+    #[serde(default)]
+    pub x: Option<String>,
+    #[serde(default)]
+    pub y: Option<String>,
+}
+
+impl Jwk {
+    /// The one algorithm this key verifies (RS256 for an RSA key, ES256 for a
+    /// P-256 key), or `None` for a key Atlas never signs with or whose own `alg`
+    /// contradicts its type.
+    pub fn signing_alg(&self) -> Option<jsonwebtoken::Algorithm> {
+        let alg = match (self.kty.as_deref(), self.crv.as_deref()) {
+            (Some("RSA"), _) => jsonwebtoken::Algorithm::RS256,
+            (Some("EC"), Some("P-256")) => jsonwebtoken::Algorithm::ES256,
+            _ => return None,
+        };
+        match self.alg.as_deref() {
+            None => Some(alg),
+            Some(declared) if (declared == "RS256" && alg == jsonwebtoken::Algorithm::RS256)
+                || (declared == "ES256" && alg == jsonwebtoken::Algorithm::ES256) => Some(alg),
+            Some(_) => None,
+        }
+    }
+
+    /// The decoding key for `alg`, when this key verifies exactly that algorithm.
+    pub(crate) fn decoding_key(&self, alg: jsonwebtoken::Algorithm) -> Option<jsonwebtoken::DecodingKey> {
+        if self.signing_alg() != Some(alg) {
+            return None;
+        }
+        match alg {
+            jsonwebtoken::Algorithm::RS256 => {
+                jsonwebtoken::DecodingKey::from_rsa_components(self.n.as_deref()?, self.e.as_deref()?).ok()
+            }
+            jsonwebtoken::Algorithm::ES256 => {
+                jsonwebtoken::DecodingKey::from_ec_components(self.x.as_deref()?, self.y.as_deref()?).ok()
+            }
+            _ => None,
+        }
+    }
+}
+
+/// The JWS algorithms Atlas signs tokens with: an instance key is RS256 (the
+/// default) or ES256, and an API may use either. Every verifier in this crate is
+/// pinned to exactly this list — `none` and HMAC never verify — and the token's
+/// `kid` selects one published key whose type fixes which of the two applies.
+pub const SIGNING_ALGS: [jsonwebtoken::Algorithm; 2] = [jsonwebtoken::Algorithm::RS256, jsonwebtoken::Algorithm::ES256];
+
+/// Decode `token` with the first key of `set` (matching `kid` when given) that
+/// verifies `alg`. `alg` must be one of [`SIGNING_ALGS`].
+pub(crate) fn decode_with_set<T: serde::de::DeserializeOwned>(
+    token: &str,
+    set: &Jwks,
+    kid: Option<&str>,
+    alg: jsonwebtoken::Algorithm,
+    validation: &jsonwebtoken::Validation,
+) -> Option<T> {
+    if !SIGNING_ALGS.contains(&alg) {
+        return None;
+    }
+    for jwk in set.keys.iter() {
+        if let Some(want) = kid {
+            if jwk.kid.as_deref() != Some(want) {
+                continue;
+            }
+        }
+        let key = match jwk.decoding_key(alg) {
+            Some(k) => k,
+            None => continue,
+        };
+        if let Ok(data) = jsonwebtoken::decode::<T>(token, &key, validation) {
+            return Some(data.claims);
+        }
+    }
+    None
 }
 
 /// A JSON Web Key Set.

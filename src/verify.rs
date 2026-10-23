@@ -9,13 +9,13 @@
 
 use std::sync::Arc;
 
-use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use jsonwebtoken::{decode_header, Validation};
 use serde_json::Value;
 
 use crate::claims::Claims;
 use crate::clock::Clock;
 use crate::error::{ConfigError, VerifyError};
-use crate::jwks::{JwksCache, JwksSource};
+use crate::jwks::{decode_with_set, JwksCache, JwksSource, SIGNING_ALGS};
 
 /// §7.3: five seconds either side, matching the server's minting tolerance.
 pub const CLOCK_SKEW_SECONDS: u64 = 5;
@@ -241,8 +241,9 @@ impl AtlasBackend {
     /// Verify a session token locally. No network call unless the `kid` is
     /// unknown, and at most one of those a minute.
     ///
-    /// RS256 ONLY — a token whose header says `alg: none`, `HS256`, or anything
-    /// else is rejected before any key is touched.
+    /// RS256 or ES256 ONLY ([`SIGNING_ALGS`]) — a token whose header says
+    /// `alg: none`, `HS256`, or anything else is rejected before any key is
+    /// touched, and the selected key's type must match the header.
     pub async fn verify(&self, token: &str) -> Result<Claims, VerifyError> {
         if token.is_empty() || token.split('.').count() != 3 {
             return Err(VerifyError::Malformed);
@@ -257,7 +258,7 @@ impl AtlasBackend {
             Ok(h) => h,
             Err(_) => return Err(VerifyError::Invalid),
         };
-        if header.alg != Algorithm::RS256 {
+        if !SIGNING_ALGS.contains(&header.alg) {
             return Err(VerifyError::Invalid);
         }
         let kid = header.kid.as_deref();
@@ -269,7 +270,7 @@ impl AtlasBackend {
 
         // Candidate keys: the kid match, or every RSA key when the header
         // carries no kid.
-        let mut validation = Validation::new(Algorithm::RS256);
+        let mut validation = Validation::new(header.alg);
         validation.set_issuer(&[self.options.issuer.as_str()]);
         validation.set_required_spec_claims(&["exp", "iss"]);
         validation.leeway = CLOCK_SKEW_SECONDS;
@@ -279,29 +280,7 @@ impl AtlasBackend {
         // jsonwebtoken's audience validation entirely.
         validation.validate_aud = false;
 
-        let mut claims: Option<Claims> = None;
-        for jwk in set.keys.iter() {
-            if jwk.kty.as_deref() != Some("RSA") {
-                continue;
-            }
-            if let Some(want) = kid {
-                if jwk.kid.as_deref() != Some(want) {
-                    continue;
-                }
-            }
-            let (n, e) = match (jwk.n.as_deref(), jwk.e.as_deref()) {
-                (Some(n), Some(e)) => (n, e),
-                _ => continue,
-            };
-            let key = match DecodingKey::from_rsa_components(n, e) {
-                Ok(k) => k,
-                Err(_) => continue,
-            };
-            if let Ok(data) = decode::<Claims>(token, &key, &validation) {
-                claims = Some(data.claims);
-                break;
-            }
-        }
+        let claims: Option<Claims> = decode_with_set(token, &set, kid, header.alg, &validation);
 
         let claims = match claims {
             Some(c) => c,

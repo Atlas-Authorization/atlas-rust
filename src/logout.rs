@@ -12,7 +12,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use jsonwebtoken::{decode_header, Validation};
 use serde_json::Value;
 
 use crate::error::VerifyError;
@@ -68,7 +68,7 @@ impl AtlasBackend {
             return Err(VerifyError::Malformed);
         }
         let header = decode_header(token).map_err(|_| VerifyError::Invalid)?;
-        if header.alg != Algorithm::RS256 {
+        if !crate::jwks::SIGNING_ALGS.contains(&header.alg) {
             return Err(VerifyError::Invalid);
         }
         if let Some(typ) = header.typ.as_deref() {
@@ -94,36 +94,14 @@ impl AtlasBackend {
 
         // Signature + issuer here; time and the logout-specific claims below,
         // against this verifier's clock.
-        let mut validation = Validation::new(Algorithm::RS256);
+        let mut validation = Validation::new(header.alg);
         validation.set_issuer(&[self.options.issuer.as_str()]);
         validation.set_required_spec_claims(&["iss"]);
         validation.validate_exp = false;
         validation.validate_nbf = false;
         validation.validate_aud = false;
 
-        let mut claims: Option<Value> = None;
-        for jwk in set.keys.iter() {
-            if jwk.kty.as_deref() != Some("RSA") {
-                continue;
-            }
-            if let Some(want) = kid {
-                if jwk.kid.as_deref() != Some(want) {
-                    continue;
-                }
-            }
-            let (n, e) = match (jwk.n.as_deref(), jwk.e.as_deref()) {
-                (Some(n), Some(e)) => (n, e),
-                _ => continue,
-            };
-            let key = match DecodingKey::from_rsa_components(n, e) {
-                Ok(k) => k,
-                Err(_) => continue,
-            };
-            if let Ok(data) = decode::<Value>(token, &key, &validation) {
-                claims = Some(data.claims);
-                break;
-            }
-        }
+        let claims: Option<Value> = crate::jwks::decode_with_set(token, &set, kid, header.alg, &validation);
         let claims = claims.ok_or(VerifyError::Invalid)?;
         let now = ((self.clock)() / 1000) as i64;
         check_logout_claims(&claims, client_id, now)

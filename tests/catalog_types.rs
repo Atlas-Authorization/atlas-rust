@@ -91,10 +91,36 @@ fn decode_api_keys() {
 }
 
 #[test]
+fn decode_app_roles() {
+    // GET /v1/app_roles
+    round_trip::<types::AppRolesListResponse>(
+        r#"{"data":[{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/app_roles
+    round_trip::<types::AppRolesCreateResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}"#,
+    );
+    // GET /v1/app_roles/{id}
+    round_trip::<types::AppRolesGetResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}"#,
+    );
+    // PATCH /v1/app_roles/{id}
+    round_trip::<types::AppRolesUpdateResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}"#,
+    );
+    // DELETE /v1/app_roles/{id}
+    round_trip::<types::AppRolesDeleteResponse>(r#"{"deleted":true,"id":"x","object":"app_role"}"#);
+    // GET /v1/app_roles/{id}/users
+    round_trip::<types::AppRolesListUsersResponse>(
+        r#"{"data":[{"object":"user_app_role","role":"x","user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+}
+
+#[test]
 fn decode_attack_protection() {
     // GET /v1/attack_protection
     round_trip::<types::AttackProtection>(
-        r#"{"breached_password":{"enabled":true},"brute_force":{"enabled":true,"tiers":[{"flag_for_admin":true,"lock_ms":7,"notify_user":true,"threshold":7,"window_ms":7}]},"captcha":{"managed_by":"auth_config_and_captcha_secret","provider":"x","secret_set":true,"site_key_set":true},"object":"attack_protection","suspicious_ip":{"enabled":true,"ip_allowlist":["x"],"managed_by":"dashboard_security"}}"#,
+        r#"{"breached_password":{"enabled":true},"brute_force":{"enabled":true,"tiers":[{"flag_for_admin":true,"lock_ms":7,"notify_user":true,"threshold":7,"window_ms":7}]},"captcha":{"managed_by":"auth_config_and_captcha_secret","provider":"x","secret_set":true,"site_key_set":true},"country_restrictions":{"block_unknown":true,"countries":["x"],"managed_by":"auth_config","mode":"off","sign_in":true,"sign_up":true},"device_accounts":{"enabled":true,"managed_by":"auth_config","max_accounts":7,"window_days":7},"object":"attack_protection","suspicious_ip":{"enabled":true,"ip_allowlist":["x"],"managed_by":"dashboard_security"}}"#,
     );
 }
 
@@ -111,6 +137,26 @@ fn decode_billing() {
     // PATCH /v1/billing/plans/{id}
     round_trip::<types::BillingPlan>(
         r#"{"active":true,"amount":"x","audience":"user","created_at":7,"currency":"x","features":["x"],"free":true,"id":"x","interval":"month","limits":{"k":"v"},"name":"x","object":"billing_plan","pricing_model":"flat","slug":"x","stripe_meter_id":"x","stripe_price_id":"x","trial_days":7,"updated_at":7,"usage_unit":"x"}"#,
+    );
+    // GET /v1/billing/providers
+    round_trip::<types::BillingListProvidersResponse>(
+        r#"{"data":[{"capabilities":{"k":"v"},"config":{"k":"x"},"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // GET /v1/billing/providers/{provider}
+    round_trip::<types::BillingGetProviderResponse>(
+        r#"{"capabilities":{"k":"v"},"config":{"k":"x"},"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}"#,
+    );
+    // PUT /v1/billing/providers/{provider}
+    round_trip::<types::BillingSetProviderResponse>(
+        r#"{"capabilities":{"k":"v"},"config":{"k":"x"},"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}"#,
+    );
+    // DELETE /v1/billing/providers/{provider}
+    round_trip::<types::BillingDeleteProviderResponse>(
+        r#"{"deleted":true,"object":"billing_provider","provider":"x"}"#,
+    );
+    // POST /v1/billing/providers/{provider}/test
+    round_trip::<types::BillingTestProviderResponse>(
+        r#"{"account":"x","error":"x","object":"billing_provider_test","ok":true,"provider":"x"}"#,
     );
     // POST /v1/billing/subjects/{type}/{id}/sync_seats
     round_trip::<types::BillingSyncSeatsResponse>(
@@ -348,11 +394,15 @@ fn decode_instance() {
     );
     // GET /v1/instance/hooks/before_user_create
     round_trip::<types::InstanceGetBeforeUserCreateHookResponse>(
-        r#"{"enabled":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
+        r#"{"enabled":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","recent":{"calls_24h":7,"failed_24h":7,"last_failed_at":7,"p95_latency_ms":7,"timeouts_24h":7},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
     );
     // PATCH /v1/instance/hooks/before_user_create
     round_trip::<types::InstanceUpdateBeforeUserCreateHookResponse>(
-        r#"{"enabled":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
+        r#"{"enabled":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","recent":{"calls_24h":7,"failed_24h":7,"last_failed_at":7,"p95_latency_ms":7,"timeouts_24h":7},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
+    );
+    // GET /v1/instance/hooks/before_user_create/calls
+    round_trip::<types::InstanceListBeforeUserCreateCallsResponse>(
+        r#"{"data":[{"answer":{"external_id":"x","private_metadata_keys":["x"],"public_metadata_keys":["x"],"unsafe_metadata_keys":["x"]},"created_at":7,"error":"x","http_status":7,"id":"x","latency_ms":7,"object":"before_user_create_hook_call","status":"ok","test":true,"user_id":"x"}],"has_more":true,"object":"list"}"#,
     );
     // POST /v1/instance/hooks/before_user_create/test
     round_trip::<types::InstanceTestBeforeUserCreateHookResponse>(
@@ -432,19 +482,23 @@ fn decode_instance() {
     );
     // GET /v1/instance/referrals/calls
     round_trip::<types::InstanceListReferralCallsResponse>(
-        r#"{"data":[{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}],"has_more":true,"object":"list"}"#,
+        r#"{"data":[{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}],"has_more":true,"object":"list"}"#,
     );
     // POST /v1/instance/referrals/calls/retry_failed
     round_trip::<types::InstanceRetryFailedReferralCallsResponse>(
         r#"{"object":"referral_retry","requeued":7}"#,
     );
+    // GET /v1/instance/referrals/calls/{id}
+    round_trip::<types::InstanceGetReferralCallResponse>(
+        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
+    );
     // POST /v1/instance/referrals/calls/{id}/retry
     round_trip::<types::InstanceRetryReferralCallResponse>(
-        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
+        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
     );
     // POST /v1/instance/referrals/simulate
     round_trip::<types::InstanceSimulateReferralSignupResponse>(
-        r#"{"call_id":"x","customer_ref":"x","error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"object":"referral_simulation","ok":true,"response":{"k":"v"},"result":{"notes":["x"],"partner":{"code":"x","id":"x","link":"x"},"referral":{"matched_via":"x","partner_external_ref":"x","partner_id":"x","status":"x"}}}"#,
+        r#"{"call_id":"x","cleanup":{"call_id":"x","erased":true},"customer_ref":"x","error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"object":"referral_simulation","ok":true,"response":{"k":"v"},"result":{"notes":["x"],"partner":{"code":"x","id":"x","link":"x"},"referral":{"matched_via":"x","partner_external_ref":"x","partner_id":"x","status":"x"}}}"#,
     );
     // POST /v1/instance/referrals/test
     round_trip::<types::InstanceTestReferralsResponse>(
@@ -453,6 +507,14 @@ fn decode_instance() {
     // GET /v1/instance/security
     round_trip::<types::InstanceSecurity>(
         r#"{"ip_allowlist":["x"],"kill_switches":{"k":true},"object":"instance_security","warning":"x"}"#,
+    );
+    // GET /v1/instance/signing_keys
+    round_trip::<types::InstanceListSigningKeysResponse>(
+        r#"{"data":[{"alg":"x","kid":"x","object":"signing_key","retires_at":7,"role":"main","status":"current"}],"object":"list"}"#,
+    );
+    // POST /v1/instance/signing_keys/rotate
+    round_trip::<types::InstanceRotateSigningKeyResponse>(
+        r#"{"alg":"RS256","emergency":true,"kid":"x","object":"signing_key_rotation","previous_kid":"x","previous_retires_at":7}"#,
     );
 }
 
@@ -682,15 +744,15 @@ fn decode_network_acls() {
 fn decode_oauth_clients() {
     // GET /v1/oauth_clients
     round_trip::<types::OAuthClientsListResponse>(
-        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/oauth_clients
     round_trip::<types::OAuthClientsCreateResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // POST /v1/oauth_clients/import
     round_trip::<types::OAuthClientsImportResponse>(
-        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // GET /v1/oauth_clients/{clientId}/grants
     round_trip::<types::OAuthClientsListGrantsResponse>(
@@ -706,11 +768,11 @@ fn decode_oauth_clients() {
     );
     // GET /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsGetResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // PATCH /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsUpdateResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","updated_at":7}"#,
     );
     // DELETE /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsDeleteResponse>(
@@ -726,7 +788,23 @@ fn decode_oauth_clients() {
     );
     // POST /v1/oauth_clients/{id}/rotate_secret
     round_trip::<types::OAuthClientsRotateSecretResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","created_at":7,"first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","note":"x","object":"oauth_client","overlap_seconds":7,"post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_prefix":"x","skip_logout_confirmation":true,"token_endpoint_auth_method":"x","updated_at":7}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","note":"x","object":"oauth_client","overlap_seconds":7,"post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","updated_at":7}"#,
+    );
+}
+
+#[test]
+fn decode_oauth_initial_access_tokens() {
+    // GET /v1/oauth_initial_access_tokens
+    round_trip::<types::OAuthInitialAccessTokensListResponse>(
+        r#"{"data":[{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/oauth_initial_access_tokens
+    round_trip::<types::OAuthInitialAccessTokensCreateResponse>(
+        r#"{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}"#,
+    );
+    // DELETE /v1/oauth_initial_access_tokens/{id}
+    round_trip::<types::OAuthInitialAccessTokensRevokeResponse>(
+        r#"{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}"#,
     );
 }
 
@@ -810,6 +888,14 @@ fn decode_org_settings_schema_api() {
 
 #[test]
 fn decode_organizations() {
+    // GET /v1/organizations/by_slug/{slug}
+    round_trip::<types::Organization>(
+        r#"{"created_at":7,"created_by":"x","id":"x","image_url":"x","max_allowed_memberships":7,"name":"x","object":"organization","parent_organization_id":"x","public_metadata":{"k":"v"},"slug":"x","updated_at":7}"#,
+    );
+    // GET /v1/organizations/check_slug
+    round_trip::<types::OrganizationsCheckSlugResponse>(
+        r#"{"available":true,"object":"organization_slug_check","slug":"x","valid":true}"#,
+    );
     // GET /v1/organizations/{id}/audit_streams
     round_trip::<types::OrganizationsListAuditStreamsResponse>(
         r#"{"data":[{"active":true,"created_at":7,"format":"x","has_secret":true,"id":"x","object":"org_audit_stream","organization_id":"x","url":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
@@ -826,13 +912,61 @@ fn decode_organizations() {
     round_trip::<types::OrganizationsHierarchyResponse>(
         r#"{"ancestors":["x"],"children":[{"id":"x","name":"x","slug":"x"}],"object":"organization_hierarchy","organization_id":"x"}"#,
     );
-    // PUT /v1/organizations/{id}/metadata
-    round_trip::<types::Organization>(
-        r#"{"created_at":7,"created_by":"x","id":"x","image_url":"x","max_allowed_memberships":7,"name":"x","object":"organization","parent_organization_id":"x","public_metadata":{"k":"v"},"slug":"x","updated_at":7}"#,
+    // POST /v1/organizations/{id}/invitations/{invitationId}/resend
+    round_trip::<types::OrganizationsResendInvitationResponse>(
+        r#"{"email":"x","expires_at":7,"id":"x","object":"organization_invitation","organization_id":"x","status":"x"}"#,
+    );
+    // GET /v1/organizations/{id}/roles
+    round_trip::<types::OrganizationsListRolesResponse>(
+        r#"{"data":[{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"],"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/organizations/{id}/roles
+    round_trip::<types::OrganizationsCreateRoleResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"],"updated_at":7}"#,
+    );
+    // PATCH /v1/organizations/{id}/roles/{roleId}
+    round_trip::<types::OrganizationsUpdateRoleResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"],"updated_at":7}"#,
+    );
+    // DELETE /v1/organizations/{id}/roles/{roleId}
+    round_trip::<types::OrganizationsDeleteRoleResponse>(
+        r#"{"deleted":true,"id":"x","key":"x","members_reassigned":7,"object":"role"}"#,
     );
     // PATCH /v1/organizations/{id}/settings
     round_trip::<types::OrganizationsPatchSettingsResponse>(
         r#"{"object":"organization_settings","organization_id":"x","updated_at":7,"updated_by":"x","values":{"k":"v"},"version":7}"#,
+    );
+    // GET /v1/organizations/{id}/teams
+    round_trip::<types::OrganizationsListTeamsResponse>(
+        r#"{"data":[{"created_at":7,"description":"x","id":"x","members_count":7,"name":"x","object":"team","organization_id":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/organizations/{id}/teams
+    round_trip::<types::OrganizationsCreateTeamResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","members_count":7,"name":"x","object":"team","organization_id":"x","updated_at":7}"#,
+    );
+    // GET /v1/organizations/{id}/teams/{teamId}
+    round_trip::<types::OrganizationsGetTeamResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","members_count":7,"name":"x","object":"team","organization_id":"x","updated_at":7}"#,
+    );
+    // PATCH /v1/organizations/{id}/teams/{teamId}
+    round_trip::<types::OrganizationsUpdateTeamResponse>(
+        r#"{"created_at":7,"description":"x","id":"x","members_count":7,"name":"x","object":"team","organization_id":"x","updated_at":7}"#,
+    );
+    // DELETE /v1/organizations/{id}/teams/{teamId}
+    round_trip::<types::OrganizationsDeleteTeamResponse>(
+        r#"{"deleted":true,"id":"x","object":"team"}"#,
+    );
+    // GET /v1/organizations/{id}/teams/{teamId}/members
+    round_trip::<types::OrganizationsListTeamMembersResponse>(
+        r#"{"data":[{"deleted":true,"object":"team_membership","team_id":"x","user":{"first_name":"x","id":"x","image_url":"x","last_name":"x"},"user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/organizations/{id}/teams/{teamId}/members
+    round_trip::<types::OrganizationsAddTeamMemberResponse>(
+        r#"{"deleted":true,"object":"team_membership","team_id":"x","user":{"first_name":"x","id":"x","image_url":"x","last_name":"x"},"user_id":"x"}"#,
+    );
+    // DELETE /v1/organizations/{id}/teams/{teamId}/members/{userId}
+    round_trip::<types::OrganizationsRemoveTeamMemberResponse>(
+        r#"{"deleted":true,"object":"team_membership","team_id":"x","user":{"first_name":"x","id":"x","image_url":"x","last_name":"x"},"user_id":"x"}"#,
     );
     // GET /v1/organizations/{orgId}/end_users
     round_trip::<types::OrganizationsListEndUsersResponse>(
@@ -1008,11 +1142,11 @@ fn decode_redirect_urls() {
 fn decode_resource_servers() {
     // GET /v1/resource_servers
     round_trip::<types::ResourceServersListResponse>(
-        r#"{"data":[{"created_at":7,"id":"x","identifier":"x","name":"x","object":"resource_server","scopes":[{"description":"x","value":"x"}],"token_ttl_seconds":7,"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"created_at":7,"id":"x","identifier":"x","name":"x","object":"resource_server","publish_resource_metadata":true,"scopes":[{"description":"x","value":"x"}],"signing_alg":"RS256","token_ttl_seconds":7,"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/resource_servers
     round_trip::<types::ResourceServer>(
-        r#"{"created_at":7,"id":"x","identifier":"x","name":"x","object":"resource_server","scopes":[{"description":"x","value":"x"}],"token_ttl_seconds":7,"updated_at":7}"#,
+        r#"{"created_at":7,"id":"x","identifier":"x","name":"x","object":"resource_server","publish_resource_metadata":true,"scopes":[{"description":"x","value":"x"}],"signing_alg":"RS256","token_ttl_seconds":7,"updated_at":7}"#,
     );
     // DELETE /v1/resource_servers/{id}
     round_trip::<types::ResourceServersDeleteResponse>(
@@ -1032,11 +1166,11 @@ fn decode_risk_based_mfa() {
 fn decode_roles() {
     // GET /v1/roles
     round_trip::<types::RolesListResponse>(
-        r#"{"data":[{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","permissions":["x"]}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"]}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/roles
     round_trip::<types::Role>(
-        r#"{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","permissions":["x"]}"#,
+        r#"{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"]}"#,
     );
     // DELETE /v1/roles/{id}
     round_trip::<types::RolesDeleteResponse>(
@@ -1088,11 +1222,15 @@ fn decode_scim_provisioning_targets() {
 fn decode_scim_tokens() {
     // GET /v1/scim_tokens
     round_trip::<types::ScimTokensListResponse>(
-        r#"{"data":[{"connection_id":"x","created_at":7,"expires_at":7,"id":"x","last_used_at":7,"name":"x","object":"scim_token","organization_id":"x","prefix":"x","revoked_at":7,"token":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"connection_id":"x","created_at":7,"expires_at":7,"id":"x","last_used_at":7,"name":"x","object":"scim_token","organization_id":"x","prefix":"x","revoked_at":7,"role_mappings":[{"role":"x","value":"x"}],"scopes":["read"],"token":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/scim_tokens
     round_trip::<types::ScimTokensCreateResponse>(
-        r#"{"connection_id":"x","created_at":7,"expires_at":7,"id":"x","last_used_at":7,"name":"x","object":"scim_token","organization_id":"x","prefix":"x","revoked_at":7,"token":"x"}"#,
+        r#"{"connection_id":"x","created_at":7,"expires_at":7,"id":"x","last_used_at":7,"name":"x","object":"scim_token","organization_id":"x","prefix":"x","revoked_at":7,"role_mappings":[{"role":"x","value":"x"}],"scopes":["read"],"token":"x"}"#,
+    );
+    // PATCH /v1/scim_tokens/{id}
+    round_trip::<types::ScimTokensUpdateResponse>(
+        r#"{"connection_id":"x","created_at":7,"expires_at":7,"id":"x","last_used_at":7,"name":"x","object":"scim_token","organization_id":"x","prefix":"x","revoked_at":7,"role_mappings":[{"role":"x","value":"x"}],"scopes":["read"],"token":"x"}"#,
     );
     // POST /v1/scim_tokens/{id}/revoke
     round_trip::<types::ScimTokensRevokeResponse>(
@@ -1166,19 +1304,19 @@ fn decode_sms_templates() {
 fn decode_sso_connections() {
     // GET /v1/sso_connections
     round_trip::<types::SsoConnectionsListResponse>(
-        r#"{"data":[{"allowed_domains":["x"],"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allowed_domains":["x"],"attribute_mapping":{"k":"x"},"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","domain_warnings":[{"code":"unverified_organization_domain","domain":"x"}],"has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","oidc_scopes":["x"],"organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/sso_connections
     round_trip::<types::SsoConnectionsCreateResponse>(
-        r#"{"allowed_domains":["x"],"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}"#,
+        r#"{"allowed_domains":["x"],"attribute_mapping":{"k":"x"},"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","domain_warnings":[{"code":"unverified_organization_domain","domain":"x"}],"has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","oidc_scopes":["x"],"organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}"#,
     );
     // GET /v1/sso_connections/{id}
     round_trip::<types::SsoConnectionsGetResponse>(
-        r#"{"allowed_domains":["x"],"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}"#,
+        r#"{"allowed_domains":["x"],"attribute_mapping":{"k":"x"},"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","domain_warnings":[{"code":"unverified_organization_domain","domain":"x"}],"has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","oidc_scopes":["x"],"organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}"#,
     );
     // PATCH /v1/sso_connections/{id}
     round_trip::<types::SsoConnectionsUpdateResponse>(
-        r#"{"allowed_domains":["x"],"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}"#,
+        r#"{"allowed_domains":["x"],"attribute_mapping":{"k":"x"},"claim_role_mappings":["sample"],"created_at":7,"default_role_id":"x","discourse_provider_url":"x","domain_warnings":[{"code":"unverified_organization_domain","domain":"x"}],"has_discourse_secret":true,"has_saml_certificate":true,"has_secret":true,"id":"x","manual_endpoints":{"k":"v"},"object":"sso_connection","oidc_client_id":"x","oidc_issuer":"x","oidc_scopes":["x"],"organization_id":"x","provisioning_mode":"member","saml_allow_idp_initiated":true,"saml_idp_entity_id":"x","saml_idp_sso_url":"x","saml_sign_authn_requests":true,"saml_sp_entity_id":"x","saml_want_response_signed":true,"status":"x","type":"x","updated_at":7}"#,
     );
     // DELETE /v1/sso_connections/{id}
     round_trip::<types::SsoConnectionsDeleteResponse>(
@@ -1251,6 +1389,18 @@ fn decode_users() {
     // POST /v1/users/by_emails
     round_trip::<types::UsersByEmailsResponse>(
         r#"{"data":[{"email_address":"x","user_id":"x","verified":true}],"object":"x"}"#,
+    );
+    // GET /v1/users/{id}/app_roles
+    round_trip::<types::UsersGetAppRolesResponse>(
+        r#"{"object":"user_app_roles","permissions":["x"],"role_keys":["x"],"roles":[{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}],"user_id":"x"}"#,
+    );
+    // POST /v1/users/{id}/app_roles
+    round_trip::<types::UsersSetAppRolesResponse>(
+        r#"{"object":"user_app_roles","permissions":["x"],"role_keys":["x"],"roles":[{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}],"user_id":"x"}"#,
+    );
+    // DELETE /v1/users/{id}/app_roles/{roleId}
+    round_trip::<types::UsersRemoveAppRoleResponse>(
+        r#"{"object":"user_app_roles","permissions":["x"],"role_keys":["x"],"roles":[{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}],"user_id":"x"}"#,
     );
     // POST /v1/users/{id}/approval_requests
     round_trip::<types::UsersCreateApprovalRequestResponse>(

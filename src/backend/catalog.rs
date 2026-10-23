@@ -52,6 +52,11 @@ pub struct AllowlistIdentifiers<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// App roles: instance-wide user roles (the app_roles / app_permissions claims). Reached via [`BackendClient::app_roles`].
+pub struct AppRoles<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Attack protection settings. Reached via [`BackendClient::attack_protection`].
 pub struct AttackProtection<'a> {
     pub(super) client: &'a BackendClient,
@@ -184,6 +189,11 @@ pub struct NetworkAcls<'a> {
 
 /// OAuth clients (Atlas as an OAuth provider). Reached via [`BackendClient::oauth_clients`].
 pub struct OAuthClients<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Initial access tokens for OAuth dynamic client registration (RFC 7591). Reached via [`BackendClient::oauth_initial_access_tokens`].
+pub struct OAuthInitialAccessTokens<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -499,8 +509,12 @@ impl ApiKeys<'_> {
     /// `POST /v1/api_keys/verify` — Verify a presented end-user API key secret. Any secret works: a
     /// natively minted ak_ key AND an imported key of any format or prefix (resolved by its
     /// SHA-256). Returns the subject, name, claims, scopes, constraints, spend caps (limits) and
-    /// their current-window usage, or valid:false alone (unknown, revoked, expired or subject
-    /// deleted; never says which). Rate-limited.
+    /// their current-window usage, or valid:false alone (unknown, revoked, expired, disabled or
+    /// subject deleted; never says which). Send required_scopes to require scopes the key must
+    /// carry. A live key refused by its own policy answers valid:false with a code:
+    /// insufficient_scope (missing_scopes), rate_limited (retry_after_ms, from the key rate_limit)
+    /// or usage_exhausted (no remaining uses left). Each successful verify spends one remaining
+    /// use, atomically. Rate-limited.
     ///
     /// Takes [`types::ApiKeysVerifyBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn verify(&self, body: &types::ApiKeysVerifyBody) -> Result<Value, BackendError> {
@@ -547,6 +561,94 @@ impl ApiKeys<'_> {
         let path = format!("/v1/api_keys/{}/usage", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+}
+
+impl AppRoles<'_> {
+    /// `GET /v1/app_roles` — List the instance's app-level user roles with how many users hold
+    /// each.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::AppRolesListResponse`].
+    pub async fn list(&self, query: &Query) -> Result<types::AppRolesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/app_roles",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/app_roles` — Create an app-level user role: a role not tied to any organization,
+    /// granting permission keys. Users holding it carry app_roles / app_permissions on their
+    /// session token. Emits appRole.created.
+    ///
+    /// Takes [`types::AppRolesCreateBody`]. Returns [`types::AppRolesCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::AppRolesCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AppRolesCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/app_roles",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/app_roles/{id}` — Fetch an app role by id or key.
+    ///
+    /// Returns [`types::AppRolesGetResponse`].
+    pub async fn get(&self, id: &str) -> Result<types::AppRolesGetResponse, BackendError> {
+        let path = format!("/v1/app_roles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/app_roles/{id}` — Rename an app role or replace its description or permissions.
+    /// Holders' tokens pick up the change at their next refresh. Emits appRole.updated.
+    ///
+    /// Takes [`types::AppRolesUpdateBody`]. Returns [`types::AppRolesUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::AppRolesUpdateBody,
+    ) -> Result<types::AppRolesUpdateResponse, BackendError> {
+        let path = format!("/v1/app_roles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/app_roles/{id}` — Delete an app role. Every holder loses it (and its
+    /// permissions); user.app_roles_updated is sent for each and appRole.deleted once.
+    ///
+    /// Returns [`types::AppRolesDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::AppRolesDeleteResponse, BackendError> {
+        let path = format!("/v1/app_roles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/app_roles/{id}/users` — The users holding an app role, oldest assignment first.
+    ///
+    /// Query parameters: `limit`, `offset`.
+    ///
+    /// Returns [`types::AppRolesListUsersResponse`].
+    pub async fn list_users(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::AppRolesListUsersResponse, BackendError> {
+        let path = format!("/v1/app_roles/{}/users", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
 }
@@ -617,6 +719,88 @@ impl Billing<'_> {
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `GET /v1/billing/providers` — The billing providers this instance has credentials for
+    /// (stripe, polar, dodo, creem). End-user billing runs on the instance's OWN provider account;
+    /// secrets are reported as *_set markers only, never returned. Each entry carries the webhook
+    /// URL to register with the provider.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::BillingListProvidersResponse`].
+    pub async fn list_providers(
+        &self,
+        query: &Query,
+    ) -> Result<types::BillingListProvidersResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/billing/providers",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/billing/providers/{provider}` — One billing provider's settings: environment, which
+    /// credentials are set, public fields (e.g. Stripe publishable key), status and the webhook URL
+    /// to register.
+    ///
+    /// Returns [`types::BillingGetProviderResponse`].
+    pub async fn get_provider(
+        &self,
+        provider: &str,
+    ) -> Result<types::BillingGetProviderResponse, BackendError> {
+        let path = format!("/v1/billing/providers/{}", seg(provider));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/billing/providers/{provider}` — Set the instance's own credentials for a billing
+    /// provider (merged onto what is stored; secrets are write-only and encrypted at rest). Stripe:
+    /// secret_key (sk_/rk_), webhook_secret (whsec_), publishable_key. Polar: access_token,
+    /// webhook_secret. Dodo Payments and Creem: api_key, webhook_secret. Stripe's environment
+    /// follows the key's mode.
+    ///
+    /// Takes [`types::BillingSetProviderBody`]. Returns [`types::BillingSetProviderResponse`].
+    pub async fn set_provider(
+        &self,
+        provider: &str,
+        body: &types::BillingSetProviderBody,
+    ) -> Result<types::BillingSetProviderResponse, BackendError> {
+        let path = format!("/v1/billing/providers/{}", seg(provider));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/billing/providers/{provider}` — Remove a provider's credentials. Refused while
+    /// live subscriptions or plans depend on it, unless `force=true`.
+    ///
+    /// Query parameters: `force`.
+    ///
+    /// Returns [`types::BillingDeleteProviderResponse`].
+    pub async fn delete_provider(
+        &self,
+        provider: &str,
+        query: &Query,
+    ) -> Result<types::BillingDeleteProviderResponse, BackendError> {
+        let path = format!("/v1/billing/providers/{}", seg(provider));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/billing/providers/{provider}/test` — Make one read-only call to the provider with
+    /// the stored credentials and report whether they work.
+    ///
+    /// Returns [`types::BillingTestProviderResponse`].
+    pub async fn test_provider(
+        &self,
+        provider: &str,
+    ) -> Result<types::BillingTestProviderResponse, BackendError> {
+        let path = format!("/v1/billing/providers/{}/test", seg(provider));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
     /// `POST /v1/billing/subjects/{type}/{id}/sync_seats` — Sync a per-seat subscription's Stripe
     /// quantity to the org's current member count (proration applied). Never changes the paid
     /// status.
@@ -657,6 +841,49 @@ impl Billing<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
+            .await
+    }
+    /// `POST /v1/billing/subscriptions/{id}/cancel` — Cancel a subscription at the end of the
+    /// current period (default), or now with `immediately: true`. Emits
+    /// billing.subscription.updated or billing.subscription.canceled.
+    ///
+    /// Takes [`types::BillingCancelSubscriptionBody`]. Returns [`types::Subscription`].
+    pub async fn cancel_subscription(
+        &self,
+        id: &str,
+        body: &types::BillingCancelSubscriptionBody,
+    ) -> Result<types::Subscription, BackendError> {
+        let path = format!("/v1/billing/subscriptions/{}/cancel", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/billing/subscriptions/{id}/change` — Switch a subscription to another plan or
+    /// billing interval on the billing provider, now (prorated) or at the end of the current period
+    /// (`schedule_at_period_end: true`). Emits billing.subscription.updated.
+    ///
+    /// Takes [`types::BillingChangeSubscriptionBody`]. Returns [`types::Subscription`].
+    pub async fn change_subscription(
+        &self,
+        id: &str,
+        body: &types::BillingChangeSubscriptionBody,
+    ) -> Result<types::Subscription, BackendError> {
+        let path = format!("/v1/billing/subscriptions/{}/change", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/billing/subscriptions/{id}/restore` — Undo a cancellation scheduled for the end of
+    /// the period. A subscription that already ended cannot be restored.
+    ///
+    /// Returns [`types::Subscription`].
+    pub async fn restore_subscription(
+        &self,
+        id: &str,
+    ) -> Result<types::Subscription, BackendError> {
+        let path = format!("/v1/billing/subscriptions/{}/restore", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
     /// `POST /v1/billing/usage` — Report metered usage for a subject (idempotent on
@@ -1685,10 +1912,33 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/hooks/before_user_create/calls` — The hook's delivery log, newest first,
+    /// kept 30 days: every call (sign-ups and tests, flagged) with its status, HTTP code, latency,
+    /// error and what the hook answered (external_id and metadata keys only). A failed or timed-out
+    /// call let the sign-up continue without your answer.
+    ///
+    /// Query parameters: `limit`, `status`, `test`, `starting_after`.
+    ///
+    /// Returns [`types::InstanceListBeforeUserCreateCallsResponse`].
+    pub async fn list_before_user_create_calls(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceListBeforeUserCreateCallsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/hooks/before_user_create/calls",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
     /// `POST /v1/instance/hooks/before_user_create/test` — Send a sample sign-up (a user that does
-    /// not exist) to the hook and report its answer. Nothing is stored. The call says it is a test:
-    /// `"test": true` in the body (real calls send false) and an `atlas-test: 1` header, so the
-    /// hook answers without reserving an id or creating anything.
+    /// not exist) to the hook and report its answer. Nothing is stored on any user; the call
+    /// appears in the delivery log flagged test, and does not change last_call. The call says it is
+    /// a test: `"test": true` in the body (real calls send false) and an `atlas-test: 1` header, so
+    /// the hook answers without reserving an id or creating anything.
     ///
     /// Returns [`types::InstanceTestBeforeUserCreateHookResponse`].
     pub async fn test_before_user_create_hook(
@@ -2075,6 +2325,21 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/referrals/calls/{id}` — One call from the referral delivery log, the same
+    /// object the list returns (including the request as sent and the platform's answer). The id
+    /// may also be the platform's request id for an answer (request_id); the newest matching call
+    /// is returned.
+    ///
+    /// Returns [`types::InstanceGetReferralCallResponse`].
+    pub async fn get_referral_call(
+        &self,
+        id: &str,
+    ) -> Result<types::InstanceGetReferralCallResponse, BackendError> {
+        let path = format!("/v1/instance/referrals/calls/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
     /// `POST /v1/instance/referrals/calls/{id}/retry` — Retry a failed, retrying or skipped call
     /// now. A late sign-up answer emits user.referral_attributed.
     ///
@@ -2091,7 +2356,10 @@ impl Instance<'_> {
     }
     /// `POST /v1/instance/referrals/simulate` — Simulate a sign-up: sends a real sign-up call for a
     /// made-up customer (atlas_test_&lt;random&gt;) with the code you choose, and returns the
-    /// platform's answer. No user is created. Works before referrals are turned on.
+    /// platform's answer. No user is created. The call says it is a test (an `atlas-test: 1`
+    /// header; on the Atlas referral protocol also `"test": true` in the body) so a platform can
+    /// skip storing it, and Atlas erases the made-up customer right after (cleanup). Works before
+    /// referrals are turned on.
     ///
     /// Takes [`types::InstanceSimulateReferralSignupBody`]. Returns [`types::InstanceSimulateReferralSignupResponse`].
     pub async fn simulate_referral_signup(
@@ -2153,6 +2421,51 @@ impl Instance<'_> {
             .request(
                 HttpMethod::Patch,
                 "/v1/instance/security",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/signing_keys` — The instance's published token-signing keys, newest first:
+    /// the `current` key (signs every new token) and, inside a rotation's grace window, the
+    /// `previous` key with `retires_at` (epoch ms) — when it leaves the JWKS.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::InstanceListSigningKeysResponse`].
+    pub async fn list_signing_keys(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceListSigningKeysResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/signing_keys",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/signing_keys/rotate` — Rotate the instance signing key, optionally
+    /// switching its algorithm (`alg`: RS256 or ES256; RS256 is the default for new instances). A
+    /// new key signs from now on, and a secondary key (for APIs set to the other algorithm) rotates
+    /// with it; the previous public key stays in the JWKS for `grace_period_seconds` (default
+    /// 86400, at most 2592000) so issued tokens and relying-party JWKS caches keep verifying. A
+    /// second rotation inside a running grace window is a 409 unless `emergency: true`, which
+    /// publishes ONLY the new key (every token signed by the old one stops verifying at once — for
+    /// a suspected compromise). Audited as signing_key.rotated.
+    ///
+    /// Takes [`types::InstanceRotateSigningKeyBody`]. Returns [`types::InstanceRotateSigningKeyResponse`].
+    pub async fn rotate_signing_key(
+        &self,
+        body: &types::InstanceRotateSigningKeyBody,
+    ) -> Result<types::InstanceRotateSigningKeyResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/signing_keys/rotate",
                 &[],
                 body_of(body)?,
                 None,
@@ -3309,6 +3622,65 @@ impl OAuthClients<'_> {
     }
 }
 
+impl OAuthInitialAccessTokens<'_> {
+    /// `GET /v1/oauth_initial_access_tokens` — List the initial access tokens for dynamic client
+    /// registration (RFC 7591 §3), newest first, with status (active, expired, used_up, revoked)
+    /// and use counts. The tokens themselves are never returned.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::OAuthInitialAccessTokensListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::OAuthInitialAccessTokensListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/oauth_initial_access_tokens",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/oauth_initial_access_tokens` — Mint an initial access token for dynamic client
+    /// registration. Only holders can register clients at POST /oauth2/register (Authorization:
+    /// Bearer &lt;token&gt;) once oauthProvider.requireInitialAccessToken is on. The token is
+    /// returned exactly once and stored hashed; optional expiry and use limit. Audited as
+    /// oauth_initial_access_token.created.
+    ///
+    /// Takes [`types::OAuthInitialAccessTokensCreateBody`]. Returns [`types::OAuthInitialAccessTokensCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::OAuthInitialAccessTokensCreateBody,
+    ) -> Result<types::OAuthInitialAccessTokensCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/oauth_initial_access_tokens",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/oauth_initial_access_tokens/{id}` — Revoke an initial access token: it stops
+    /// working at once. Clients it already registered are unaffected. Audited as
+    /// oauth_initial_access_token.revoked.
+    ///
+    /// Returns [`types::OAuthInitialAccessTokensRevokeResponse`].
+    pub async fn revoke(
+        &self,
+        id: &str,
+    ) -> Result<types::OAuthInitialAccessTokensRevokeResponse, BackendError> {
+        let path = format!("/v1/oauth_initial_access_tokens/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
 impl OpenFga<'_> {
     /// `GET /v1/openfga/stores` — List the instance's OpenFGA (ReBAC) authorization stores.
     ///
@@ -3620,6 +3992,36 @@ impl OrgSettingsSchemaApi<'_> {
 }
 
 impl Organizations<'_> {
+    /// `GET /v1/organizations/by_slug/{slug}` — Fetch an organization by its slug
+    /// (case-insensitive).
+    ///
+    /// Returns [`types::Organization`].
+    pub async fn get_by_slug(&self, slug: &str) -> Result<types::Organization, BackendError> {
+        let path = format!("/v1/organizations/by_slug/{}", seg(slug));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/organizations/check_slug` — Check whether a slug is valid and free, for a
+    /// create-organization form.
+    ///
+    /// Query parameters: `slug`.
+    ///
+    /// Returns [`types::OrganizationsCheckSlugResponse`].
+    pub async fn check_slug(
+        &self,
+        query: &Query,
+    ) -> Result<types::OrganizationsCheckSlugResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/organizations/check_slug",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/organizations/{id}/audit_streams` — List an organization's registered audit stream
     /// destinations. Reports has_secret, never the signing secret. Another instance's or org's id
     /// is a 404, never a 403.
@@ -3691,6 +4093,26 @@ impl Organizations<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
+    /// `POST /v1/organizations/{id}/invitations/{invitationId}/resend` — Resend a pending
+    /// invitation: same id and role, a fresh expiry, and organizationInvitation.resent so your
+    /// mailer sends it again. 404 for an invitation of another organization; 409 when it is no
+    /// longer pending.
+    ///
+    /// Returns [`types::OrganizationsResendInvitationResponse`].
+    pub async fn resend_invitation(
+        &self,
+        org_id: &str,
+        invitation_id: &str,
+    ) -> Result<types::OrganizationsResendInvitationResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/invitations/{}/resend",
+            seg(org_id),
+            seg(invitation_id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
     /// `PUT /v1/organizations/{id}/metadata` — Replace the organization public and private metadata
     /// bags wholesale.
     ///
@@ -3720,6 +4142,70 @@ impl Organizations<'_> {
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `GET /v1/organizations/{id}/roles` — The roles an organization can assign: the instance-wide
+    /// roles plus its own custom roles (organization_id set). ?own=true lists only its own.
+    ///
+    /// Query parameters: `own`.
+    ///
+    /// Returns [`types::OrganizationsListRolesResponse`].
+    pub async fn list_roles(
+        &self,
+        org_id: &str,
+        query: &Query,
+    ) -> Result<types::OrganizationsListRolesResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/roles", seg(org_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/organizations/{id}/roles` — Create a custom role for one organization, from any of
+    /// the instance's permissions. Its key must not be an instance-wide role key or one of this
+    /// organization's; other organizations may reuse it. Emits role.created.
+    ///
+    /// Takes [`types::OrganizationsCreateRoleBody`]. Returns [`types::OrganizationsCreateRoleResponse`].
+    pub async fn create_role(
+        &self,
+        org_id: &str,
+        body: &types::OrganizationsCreateRoleBody,
+    ) -> Result<types::OrganizationsCreateRoleResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/roles", seg(org_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `PATCH /v1/organizations/{id}/roles/{roleId}` — Rename one of the organization's own roles
+    /// or replace its permissions. Emits role.updated.
+    ///
+    /// Takes [`types::OrganizationsUpdateRoleBody`]. Returns [`types::OrganizationsUpdateRoleResponse`].
+    pub async fn update_role(
+        &self,
+        org_id: &str,
+        role_id: &str,
+        body: &types::OrganizationsUpdateRoleBody,
+    ) -> Result<types::OrganizationsUpdateRoleResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/roles/{}", seg(org_id), seg(role_id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/organizations/{id}/roles/{roleId}` — Delete one of the organization's own roles;
+    /// ?reassign_to=&lt;role key&gt; moves members and pending invitations first (409 ROLE_IN_USE
+    /// without it). Emits role.deleted.
+    ///
+    /// Query parameters: `reassign_to`.
+    ///
+    /// Returns [`types::OrganizationsDeleteRoleResponse`].
+    pub async fn delete_role(
+        &self,
+        org_id: &str,
+        role_id: &str,
+        query: &Query,
+    ) -> Result<types::OrganizationsDeleteRoleResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/roles/{}", seg(org_id), seg(role_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
     /// `PATCH /v1/organizations/{id}/settings` — Merge a partial object into an organization's
     /// settings values (RFC 7396 shallow merge): a key set to null is REMOVED, any other value
     /// sets/overwrites it, untouched keys are preserved — so a single settings key can be removed
@@ -3744,6 +4230,137 @@ impl Organizations<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
+            .await
+    }
+    /// `GET /v1/organizations/{id}/teams` — List the organization's teams with member counts.
+    /// ?user_id= narrows to the teams that user is in.
+    ///
+    /// Query parameters: `user_id`.
+    ///
+    /// Returns [`types::OrganizationsListTeamsResponse`].
+    pub async fn list_teams(
+        &self,
+        org_id: &str,
+        query: &Query,
+    ) -> Result<types::OrganizationsListTeamsResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/teams", seg(org_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/organizations/{id}/teams` — Create a team inside the organization. Emits
+    /// team.created.
+    ///
+    /// Takes [`types::OrganizationsCreateTeamBody`]. Returns [`types::OrganizationsCreateTeamResponse`].
+    pub async fn create_team(
+        &self,
+        org_id: &str,
+        body: &types::OrganizationsCreateTeamBody,
+    ) -> Result<types::OrganizationsCreateTeamResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/teams", seg(org_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/organizations/{id}/teams/{teamId}` — Fetch one team of the organization.
+    ///
+    /// Returns [`types::OrganizationsGetTeamResponse`].
+    pub async fn get_team(
+        &self,
+        org_id: &str,
+        team_id: &str,
+    ) -> Result<types::OrganizationsGetTeamResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/teams/{}", seg(org_id), seg(team_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/organizations/{id}/teams/{teamId}` — Rename a team or change its description.
+    /// Emits team.updated.
+    ///
+    /// Takes [`types::OrganizationsUpdateTeamBody`]. Returns [`types::OrganizationsUpdateTeamResponse`].
+    pub async fn update_team(
+        &self,
+        org_id: &str,
+        team_id: &str,
+        body: &types::OrganizationsUpdateTeamBody,
+    ) -> Result<types::OrganizationsUpdateTeamResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/teams/{}", seg(org_id), seg(team_id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/organizations/{id}/teams/{teamId}` — Delete a team (its memberships go with it;
+    /// the organization memberships stay). Emits team.deleted.
+    ///
+    /// Returns [`types::OrganizationsDeleteTeamResponse`].
+    pub async fn delete_team(
+        &self,
+        org_id: &str,
+        team_id: &str,
+    ) -> Result<types::OrganizationsDeleteTeamResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/teams/{}", seg(org_id), seg(team_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/organizations/{id}/teams/{teamId}/members` — List a team's members.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::OrganizationsListTeamMembersResponse`].
+    pub async fn list_team_members(
+        &self,
+        org_id: &str,
+        team_id: &str,
+        query: &Query,
+    ) -> Result<types::OrganizationsListTeamMembersResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/teams/{}/members",
+            seg(org_id),
+            seg(team_id)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/organizations/{id}/teams/{teamId}/members` — Add an organization member to the
+    /// team (201; 200 if already in it).
+    ///
+    /// Takes [`types::OrganizationsAddTeamMemberBody`]. Returns [`types::OrganizationsAddTeamMemberResponse`].
+    pub async fn add_team_member(
+        &self,
+        org_id: &str,
+        team_id: &str,
+        body: &types::OrganizationsAddTeamMemberBody,
+    ) -> Result<types::OrganizationsAddTeamMemberResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/teams/{}/members",
+            seg(org_id),
+            seg(team_id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/organizations/{id}/teams/{teamId}/members/{userId}` — Remove a user from the
+    /// team.
+    ///
+    /// Returns [`types::OrganizationsRemoveTeamMemberResponse`].
+    pub async fn remove_team_member(
+        &self,
+        org_id: &str,
+        team_id: &str,
+        user_id: &str,
+    ) -> Result<types::OrganizationsRemoveTeamMemberResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/teams/{}/members/{}",
+            seg(org_id),
+            seg(team_id),
+            seg(user_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `GET /v1/organizations/{orgId}/end_users` — List an organization's end-user (reader) pool —
@@ -4827,7 +5444,8 @@ impl ScimTokens<'_> {
             .await
     }
     /// `POST /v1/scim_tokens` — Mint a SCIM provisioning token for an organization. The token is
-    /// revealed exactly once.
+    /// revealed exactly once. scopes \["read"\] makes it read-only; role_mappings maps the SCIM
+    /// user roles attribute to organization roles.
     ///
     /// Takes [`types::ScimTokensCreateBody`]. Returns [`types::ScimTokensCreateResponse`].
     pub async fn create(
@@ -4843,6 +5461,20 @@ impl ScimTokens<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
+            .await
+    }
+    /// `PATCH /v1/scim_tokens/{id}` — Change a SCIM token's name, scopes (\['read'\] = read-only)
+    /// or role mappings (SCIM roles values to organization role keys). The secret is unchanged.
+    ///
+    /// Takes [`types::ScimTokensUpdateBody`]. Returns [`types::ScimTokensUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::ScimTokensUpdateBody,
+    ) -> Result<types::ScimTokensUpdateResponse, BackendError> {
+        let path = format!("/v1/scim_tokens/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
     /// `POST /v1/scim_tokens/{id}/revoke` — Revoke a SCIM token; provisioning with it fails
@@ -5428,12 +6060,17 @@ impl ImportExport<'_> {
             .await
     }
     /// `POST /v1/user_imports` — Bulk-create users from an array, deduping by verified email,
-    /// through the same path sign-up uses. Plaintext passwords are Argon2id-hashed; an Argon2id
-    /// hash is imported verbatim; other hash formats are rejected per row. Per-row failures are
-    /// recorded, never fatal. Body: an array of users, or { users, upsert?, notify? }. An import
-    /// never notifies the imported users: with notify false (the default) no email, SMS or push is
-    /// sent as a consequence of the import, whatever templates are configured; notify:true is
-    /// reserved for future welcome messages and currently sends nothing.
+    /// through the same path sign-up uses. Plaintext passwords are Argon2id-hashed; Argon2id,
+    /// bcrypt, PBKDF2/scrypt (Django, passlib), Firebase scrypt (with
+    /// password_hash_config.firebase) and Better Auth scrypt hashes are imported verbatim and
+    /// upgraded on first sign-in; other formats are rejected per row. Each row may also carry
+    /// external_id, created_at, phone_number / phone_numbers and organization_memberships (org by
+    /// id, external id or slug, plus a role); create_organizations:true creates a missing org.
+    /// Per-row failures are recorded, never fatal. Body: an array of users, or { users, upsert?,
+    /// notify?, create_organizations?, password_hash_config? }. An import never notifies the
+    /// imported users: with notify false (the default) no email, SMS or push is sent as a
+    /// consequence of the import, whatever templates are configured; notify:true is reserved for
+    /// future welcome messages and currently sends nothing.
     ///
     /// Takes [`types::ImportExportImportUsersBody`]. Returns [`types::Job`].
     pub async fn import_users(
@@ -5480,6 +6117,55 @@ impl Users<'_> {
                 body_of(body)?,
                 None,
             )
+            .await
+    }
+    /// `GET /v1/users/{id}/app_roles` — A user's app roles and the permissions they grant.
+    ///
+    /// Returns [`types::UsersGetAppRolesResponse`].
+    pub async fn get_app_roles(
+        &self,
+        user_id: &str,
+    ) -> Result<types::UsersGetAppRolesResponse, BackendError> {
+        let path = format!("/v1/users/{}/app_roles", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/users/{id}/app_roles` — Change a user's app roles: roles replaces the whole set,
+    /// add / remove change it (role keys or ids; send one form). At most 50 roles per user. Emits
+    /// user.app_roles_updated when anything changed; the user's session token carries the new
+    /// app_roles / app_permissions from its next refresh.
+    ///
+    /// Takes [`types::UsersSetAppRolesBody`]. Returns [`types::UsersSetAppRolesResponse`].
+    pub async fn set_app_roles(
+        &self,
+        user_id: &str,
+        body: &types::UsersSetAppRolesBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::UsersSetAppRolesResponse, BackendError> {
+        let path = format!("/v1/users/{}/app_roles", seg(user_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/app_roles/{roleId}` — Take one app role (id or key) from a user.
+    /// Emits user.app_roles_updated when they held it.
+    ///
+    /// Returns [`types::UsersRemoveAppRoleResponse`].
+    pub async fn remove_app_role(
+        &self,
+        user_id: &str,
+        role_id: &str,
+    ) -> Result<types::UsersRemoveAppRoleResponse, BackendError> {
+        let path = format!("/v1/users/{}/app_roles/{}", seg(user_id), seg(role_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/users/{id}/approval_requests` — Request a transaction approval from a user: push a
@@ -6181,6 +6867,10 @@ impl BackendClient {
     pub fn allowlist_identifiers(&self) -> AllowlistIdentifiers<'_> {
         AllowlistIdentifiers { client: self }
     }
+    /// App roles: instance-wide user roles (the app_roles / app_permissions claims).
+    pub fn app_roles(&self) -> AppRoles<'_> {
+        AppRoles { client: self }
+    }
     /// Attack protection settings.
     pub fn attack_protection(&self) -> AttackProtection<'_> {
         AttackProtection { client: self }
@@ -6288,6 +6978,10 @@ impl BackendClient {
     /// OAuth clients (Atlas as an OAuth provider).
     pub fn oauth_clients(&self) -> OAuthClients<'_> {
         OAuthClients { client: self }
+    }
+    /// Initial access tokens for OAuth dynamic client registration (RFC 7591).
+    pub fn oauth_initial_access_tokens(&self) -> OAuthInitialAccessTokens<'_> {
+        OAuthInitialAccessTokens { client: self }
     }
     /// The OpenFGA-compatible API.
     pub fn openfga(&self) -> OpenFga<'_> {

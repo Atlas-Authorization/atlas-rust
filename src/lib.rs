@@ -36,6 +36,7 @@
 
 #![forbid(unsafe_code)]
 
+mod access_token;
 mod apikey;
 mod claims;
 mod clock;
@@ -80,10 +81,15 @@ pub use apikey::{
     HttpResponse,
     DEFAULT_BASE_URL, DEFAULT_MAX_ENTRIES, DEFAULT_NEGATIVE_TTL_MS, DEFAULT_POSITIVE_TTL_MS,
 };
+pub use access_token::{
+    build_www_authenticate, protected_resource_metadata, protected_resource_metadata_path, AccessTokenOptions,
+    AccessTokenResult,
+};
 pub use claims::Claims;
 pub use clock::{system_clock, Clock};
 pub use error::{ApiKeyError, ConfigError, TransportError, VerifyError};
 pub use jwks::{
+    SIGNING_ALGS,
     BoxFuture, FetchOutcome, Jwk, Jwks, JwksCache, JwksSource, DEFAULT_TTL_MS, REFETCH_INTERVAL_MS,
 };
 pub use user::{real_email, EmailAddress, User, NO_EMAIL_SENTINEL_DOMAIN};

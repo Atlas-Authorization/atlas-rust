@@ -94,6 +94,26 @@ impl Claims {
             .unwrap_or(false)
     }
 
+    /// The `app_roles` claim: the user's instance-wide app roles.
+    pub fn app_roles(&self) -> Vec<&str> {
+        claim_strings(&self.extra, "app_roles")
+    }
+
+    /// The `app_permissions` claim: the union of the user's app roles' permissions.
+    pub fn app_permissions(&self) -> Vec<&str> {
+        claim_strings(&self.extra, "app_permissions")
+    }
+
+    /// Whether the user holds the app role. Needs no active organization.
+    pub fn has_app_role(&self, role: &str) -> bool {
+        self.app_roles().contains(&role)
+    }
+
+    /// Whether the user's app roles grant the permission. Needs no active organization.
+    pub fn has_app_permission(&self, permission: &str) -> bool {
+        self.app_permissions().contains(&permission)
+    }
+
     /// The subject's real email from the `email` claim, or `None` when the claim
     /// is absent, empty, or the `@no-email.invalid` placeholder Atlas seeds for a
     /// provider that shares no email.
@@ -111,4 +131,12 @@ impl Claims {
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
     }
+}
+
+fn claim_strings<'a>(extra: &'a Map<String, Value>, name: &str) -> Vec<&'a str> {
+    extra
+        .get(name)
+        .and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default()
 }

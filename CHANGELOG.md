@@ -2,6 +2,18 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.19.0 — 2026-10-23
+
+### Added
+
+- **Backend client, regenerated from the current API.** App roles (`app_roles()`: list, create, get, update, delete, `list_users`; per user `users().get_app_roles` / `set_app_roles` / `remove_app_role`), organization teams (`list_teams`, `create_team`, `get_team`, `update_team`, `delete_team`, `list_team_members`, `add_team_member`, `remove_team_member`) and org-scoped roles (`list_roles`, `create_role`, `update_role`, `delete_role`), `get_by_slug`, `check_slug`, `resend_invitation`; billing providers (`list_providers`, `get_provider`, `set_provider`, `test_provider`, `delete_provider`) and `change_subscription` / `cancel_subscription` / `restore_subscription`; `list_signing_keys` / `rotate_signing_key` (RS256 or ES256); `oauth_initial_access_tokens()`; `scim_tokens().update`; `list_before_user_create_calls`, `get_referral_call`. Request and response types carry the new fields: user search filters and `ban_expires_at`, timed-ban bodies, API key controls (`enabled`, `rate_limit`, `remaining`, `prefix`, `expires_in_seconds`, `required_scopes`, coded verify refusals), OAuth client `disabled` / `require_pkce` / `subject_type` / `sector_identifier_uri` / `client_secret_expires_at`, resource server `publish_resource_metadata` / `signing_alg`, plan `provider` / `annual_price_id`, import `external_id` / `created_at` / phones / `organization_memberships` / `create_organizations` / `password_hash_config`.
+- `Claims::app_roles` / `app_permissions` / `has_app_role` / `has_app_permission` (no active organization needed).
+- **Access-token verification for your API.** `AtlasBackend::verify_access_token(authorization, &AccessTokenOptions)` checks an Atlas-issued OAuth access token locally (issuer, expiry, `token_use`, audience, scopes) and returns `AccessTokenResult::Refused` with the RFC 6750 / RFC 9728 `WWW-Authenticate` challenge; `build_www_authenticate`, `protected_resource_metadata`, `protected_resource_metadata_path`. DPoP-bound tokens are refused.
+
+### Changed
+
+- Session and logout-token verification accept **ES256** as well as RS256 (`SIGNING_ALGS`), and nothing else; `Jwk` reads `crv` / `x` / `y`, and the token's `kid` selects one key whose type fixes the algorithm.
+
 ## 0.18.0
 
 ### Added

@@ -157,6 +157,49 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.app_roles().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/app_roles?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.app_roles()
+        .create(&types::AppRolesCreateBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Post, "/v1/app_roles".into(), B::Obj, true));
+    c.app_roles().get("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/app_roles/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.app_roles()
+        .update("p0_id", &types::AppRolesUpdateBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/app_roles/p0_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.app_roles().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/app_roles/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.app_roles().list_users("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/app_roles/p0_id/users?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.attack_protection().get().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -191,6 +234,47 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.billing().list_providers(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/billing/providers?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.billing().get_provider("p0_provider").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/billing/providers/p0_provider".into(),
+        B::None,
+        false,
+    ));
+    c.billing()
+        .set_provider("p0_provider", &types::BillingSetProviderBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/billing/providers/p0_provider".into(),
+        B::Obj,
+        false,
+    ));
+    c.billing()
+        .delete_provider("p0_provider", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/billing/providers/p0_provider?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.billing().test_provider("p0_provider").await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/providers/p0_provider/test".into(),
+        B::None,
+        false,
+    ));
     c.billing().sync_seats("p0_type", "p1_id").await.unwrap();
     expected.push((
         HttpMethod::Post,
@@ -210,6 +294,33 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/billing/subscriptions/import".into(),
         B::Obj,
         true,
+    ));
+    c.billing()
+        .cancel_subscription("p0_id", &types::BillingCancelSubscriptionBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/subscriptions/p0_id/cancel".into(),
+        B::Obj,
+        false,
+    ));
+    c.billing()
+        .change_subscription("p0_id", &types::BillingChangeSubscriptionBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/subscriptions/p0_id/change".into(),
+        B::Obj,
+        false,
+    ));
+    c.billing().restore_subscription("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/subscriptions/p0_id/restore".into(),
+        B::None,
+        false,
     ));
     c.billing()
         .report_usage(&types::BillingReportUsageBody::default())
@@ -685,6 +796,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.instance()
+        .list_before_user_create_calls(&q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/hooks/before_user_create/calls?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.instance().test_before_user_create_hook().await.unwrap();
     expected.push((
         HttpMethod::Post,
@@ -874,6 +995,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.instance().get_referral_call("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/referrals/calls/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.instance()
         .retry_referral_call("p0_id", Some("idem_1"))
         .await
@@ -915,6 +1043,23 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((
         HttpMethod::Patch,
         "/v1/instance/security".into(),
+        B::Obj,
+        false,
+    ));
+    c.instance().list_signing_keys(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/signing_keys?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .rotate_signing_key(&types::InstanceRotateSigningKeyBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/signing_keys/rotate".into(),
         B::Obj,
         false,
     ));
@@ -1450,6 +1595,33 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.oauth_initial_access_tokens().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/oauth_initial_access_tokens?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_initial_access_tokens()
+        .create(&types::OAuthInitialAccessTokensCreateBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/oauth_initial_access_tokens".into(),
+        B::Obj,
+        false,
+    ));
+    c.oauth_initial_access_tokens()
+        .revoke("p0_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/oauth_initial_access_tokens/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.openfga().list_stores(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1636,6 +1808,20 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.organizations().get_by_slug("p0_slug").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/by_slug/p0_slug".into(),
+        B::None,
+        false,
+    ));
+    c.organizations().check_slug(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/check_slug?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.organizations()
         .list_audit_streams("p0_id", &q)
         .await
@@ -1678,6 +1864,16 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.organizations()
+        .resend_invitation("p0_id", "p1_invitation_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/organizations/p0_id/invitations/p1_invitation_id/resend".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
         .set_metadata(
             "p0_id",
             &types::OrganizationsSetMetadataBody::default(),
@@ -1701,6 +1897,47 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.organizations().list_roles("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/roles?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .create_role("p0_id", &types::OrganizationsCreateRoleBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/organizations/p0_id/roles".into(),
+        B::Obj,
+        false,
+    ));
+    c.organizations()
+        .update_role(
+            "p0_id",
+            "p1_role_id",
+            &types::OrganizationsUpdateRoleBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/organizations/p0_id/roles/p1_role_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.organizations()
+        .delete_role("p0_id", "p1_role_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/roles/p1_role_id?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.organizations()
         .patch_settings(
             "p0_id",
@@ -1714,6 +1951,91 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/organizations/p0_id/settings".into(),
         B::Obj,
         true,
+    ));
+    c.organizations().list_teams("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/teams?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .create_team("p0_id", &types::OrganizationsCreateTeamBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/organizations/p0_id/teams".into(),
+        B::Obj,
+        false,
+    ));
+    c.organizations()
+        .get_team("p0_id", "p1_team_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/teams/p1_team_id".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .update_team(
+            "p0_id",
+            "p1_team_id",
+            &types::OrganizationsUpdateTeamBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/organizations/p0_id/teams/p1_team_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.organizations()
+        .delete_team("p0_id", "p1_team_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/teams/p1_team_id".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .list_team_members("p0_id", "p1_team_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/teams/p1_team_id/members?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .add_team_member(
+            "p0_id",
+            "p1_team_id",
+            &types::OrganizationsAddTeamMemberBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/organizations/p0_id/teams/p1_team_id/members".into(),
+        B::Obj,
+        false,
+    ));
+    c.organizations()
+        .remove_team_member("p0_id", "p1_team_id", "p2_user_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/teams/p1_team_id/members/p2_user_id".into(),
+        B::None,
+        false,
     ));
     c.organizations()
         .list_end_users("p0_org_id", &q)
@@ -2264,6 +2586,16 @@ async fn every_catalog_operation_hits_its_route() {
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/scim_tokens".into(), B::Obj, true));
     c.scim_tokens()
+        .update("p0_id", &types::ScimTokensUpdateBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/scim_tokens/p0_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.scim_tokens()
         .revoke("p0_id", Some("idem_1"))
         .await
         .unwrap();
@@ -2557,6 +2889,37 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/users/by_emails".into(),
         B::Obj,
+        false,
+    ));
+    c.users().get_app_roles("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/app_roles".into(),
+        B::None,
+        false,
+    ));
+    c.users()
+        .set_app_roles(
+            "p0_id",
+            &types::UsersSetAppRolesBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/app_roles".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .remove_app_role("p0_id", "p1_role_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/app_roles/p1_role_id".into(),
+        B::None,
         false,
     ));
     c.users()
@@ -2986,4 +3349,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 340 operations, 340 typed; 340 calls.
+// 380 operations, 380 typed; 380 calls.
