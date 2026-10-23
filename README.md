@@ -571,6 +571,68 @@ Browser capture: `browser_sources` lists the referral programs whose script or c
 (`clear_browser_sources` goes back to the provider's default, reported by `browser_sources_default`), and
 `consent_provider` picks the consent manager that decides (`auto`, one manager, or `app`).
 
+### Migrate from Better Auth
+
+Import the sealed bundle the Better Auth exporter wrote (`npx atlas-better-auth-export --public-key <kid:key>`;
+the key is `better_auth_imports().get_public_key()` → `compact`):
+
+```rust
+use atlasauth::backend::{types, BackendClient, UploadOptions, WaitOptions};
+
+# async fn demo(bundle: String) -> Result<(), Box<dyn std::error::Error>> {
+let atlas = BackendClient::new("sk_live_...")?;
+let imports = atlas.better_auth_imports();
+let imp = imports.upload(&bundle, UploadOptions::default()).await?;   // parts of ≤ 8 MiB, then finalize
+let imp = imports.wait_for(&imp.id, WaitOptions::default()).await?;    // a large bundle is analyzed in the background
+// Read imp.report (models, conflicts, skipped, action items), then:
+let done = imports.apply(&imp.id, &types::BetterAuthImportsApplyBody::new().with_confirm_conflicts(true)).await?;
+let done = imports.wait_for(&done.id, WaitOptions::default()).await?;  // `completed`, or `failed` (apply again resumes)
+# let _ = done; Ok(()) }
+```
+
+**No forced logout.** Turn the session bridge on (`better_auth_bridge().update(...)` with `enabled`, `ends_at`,
+`cookie_prefix` and an optional `live_fallback`), then put the bridge in front of your routes. A returning user's
+Better Auth cookie is exchanged once, server to server with your secret key (forwarding the user's IP and user
+agent), for Atlas session cookies:
+
+```rust
+use std::sync::Arc;
+use atlasauth::backend::{BackendClient, BetterAuthBridge};
+use atlasauth::axum::{AtlasLayer, BetterAuthBridgeLayer};
+
+# fn demo(backend: Arc<atlasauth::AtlasBackend>) -> Result<(), Box<dyn std::error::Error>> {
+let bridge = Arc::new(BetterAuthBridge::new(BackendClient::new("sk_live_...")?).sign_in_url("/sign-in"));
+let session = AtlasLayer::new(backend).with_better_auth_bridge(bridge.clone()); // or BetterAuthBridgeLayer::new(bridge)
+# let _ = session; Ok(()) }
+```
+
+Without Axum, call `bridge.decide(cookie_header, client_ip, user_agent).await` and render the `BridgeDecision`
+(`should_redirect()`, `cookies[i].to_set_cookie()`, `continuation_url(..)`), or use
+`exchange_better_auth_session` directly. Better Auth cookies are cleared only when the refusal is final, so a
+closed bridge, a 429 or an outage retries on a later request.
+
+**Better Auth JWTs** your API clients still hold can be accepted until a cutover date:
+
+```rust
+use std::sync::Arc;
+use atlasauth::{AtlasBackend, BackendSubjectResolver, LegacyIssuer};
+
+# fn demo(client: atlasauth::backend::BackendClient) -> Result<(), Box<dyn std::error::Error>> {
+let backend = AtlasBackend::builder("https://your-instance-fapi.atlasauth.net")
+    .jwks_url("https://your-instance-fapi.atlasauth.net/.well-known/jwks.json")
+    .legacy_issuer(
+        LegacyIssuer::until_rfc3339("https://app.example.com", "2026-12-31T00:00:00Z")
+            .jwks_url("https://app.example.com/api/auth/jwks"),
+    )
+    .legacy_subject_resolver(Arc::new(BackendSubjectResolver::new(client))) // sub → Atlas user via external_id
+    .build()?;
+# let _ = backend; Ok(()) }
+```
+
+Verified claims carry `sub` (the Atlas id), `external_id` (the Better Auth id) and `extra["legacy"]`. EdDSA,
+ES256, RS256 and PS256 are accepted; **ES512 is not supported by this crate** (its signature backend has no
+P-521), so ES512 tokens are refused — let them expire, or verify them elsewhere during the window.
+
 ### Platform API: Sign in with Atlas apps
 
 Build the client with a platform key (`psk_…`) and use `platform()`:

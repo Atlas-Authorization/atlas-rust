@@ -77,6 +77,11 @@ pub struct AuditLogs<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Migrate from Better Auth: import a sealed bundle made by the Better Auth exporter. Reached via [`BackendClient::better_auth_imports`].
+pub struct BetterAuthImports<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Sign-up blocklist. Reached via [`BackendClient::blocklist_identifiers`].
 pub struct BlocklistIdentifiers<'a> {
     pub(super) client: &'a BackendClient,
@@ -194,6 +199,11 @@ pub struct Mcp<'a> {
 
 /// The remote MCP connector. Reached via [`BackendClient::mcp_connector`].
 pub struct McpConnector<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The Better Auth session bridge: exchange a returning user's Better Auth session for an Atlas session during the migration window. Reached via [`BackendClient::better_auth_bridge`].
+pub struct BetterAuthBridgeApi<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -372,6 +382,27 @@ impl ActionGallery<'_> {
                 &[],
                 body_of(body)?,
                 idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/action_gallery_installs` — The actions in this instance that were installed from
+    /// the gallery, with the installed and latest versions, update_available and the secrets still
+    /// missing.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::ActionGalleryInstallsResponse`].
+    pub async fn installs(
+        &self,
+        query: &Query,
+    ) -> Result<types::ActionGalleryInstallsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/action_gallery_installs",
+                &query.as_pairs(),
+                None,
+                None,
             )
             .await
     }
@@ -886,7 +917,8 @@ impl AppRoles<'_> {
 
 impl AttackProtection<'_> {
     /// `GET /v1/attack_protection` — Read the instance's attack-protection settings: brute-force
-    /// lockout, breached-password checking, IP allowlist and captcha status.
+    /// lockout, breached-password checking, IP allowlist, captcha status, country restrictions, the
+    /// accounts-per-device limit and dormant-account reactivation alerts.
     ///
     /// Returns [`types::AttackProtection`].
     pub async fn get(&self) -> Result<types::AttackProtection, BackendError> {
@@ -894,8 +926,9 @@ impl AttackProtection<'_> {
             .request(HttpMethod::Get, "/v1/attack_protection", &[], None, None)
             .await
     }
-    /// `PATCH /v1/attack_protection` — Toggle attack protections — the brute-force lockout and the
-    /// breached-password (HIBP) check.
+    /// `PATCH /v1/attack_protection` — Toggle attack protections — the brute-force lockout, the
+    /// breached-password (HIBP) check, and dormant-account reactivation alerts (threshold, optional
+    /// second-factor step-up, user notice).
     ///
     /// Takes [`types::AttackProtectionUpdateBody`]. Returns [`types::AttackProtection`].
     pub async fn update(
@@ -931,6 +964,195 @@ impl AuditLogs<'_> {
                 None,
                 None,
             )
+            .await
+    }
+}
+
+impl BetterAuthImports<'_> {
+    /// `POST /v1/better_auth_imports` — Start a Better Auth import (status `uploading`). Then
+    /// upload the sealed bundle with PUT …/parts/{part} and call …/finalize. Nothing is written to
+    /// users until apply.
+    ///
+    /// Takes [`types::BetterAuthImportsCreateBody`]. Returns [`types::BetterAuthImport`].
+    pub async fn create(
+        &self,
+        body: &types::BetterAuthImportsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::BetterAuthImport, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/better_auth_imports",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/better_auth_imports` — List Better Auth imports, newest first (cursor pagination).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::BetterAuthImportsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::BetterAuthImportsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/better_auth_imports",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/better_auth_imports/jwks` — Better Auth JWT verification keys published in this
+    /// instance's JWKS for the cutover window, so tokens Better Auth signed keep verifying.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::BetterAuthImportsListJwksResponse`].
+    pub async fn list_jwks(
+        &self,
+        query: &Query,
+    ) -> Result<types::BetterAuthImportsListJwksResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/better_auth_imports/jwks",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/better_auth_imports/jwks/{kid}` — Stop publishing one imported key in the JWKS
+    /// (tokens it signed stop verifying).
+    ///
+    /// Returns [`types::BetterAuthImportsDeleteJwkResponse`].
+    pub async fn delete_jwk(
+        &self,
+        kid: &str,
+    ) -> Result<types::BetterAuthImportsDeleteJwkResponse, BackendError> {
+        let path = format!("/v1/better_auth_imports/jwks/{}", seg(kid));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/better_auth_imports/public_key` — The instance's import public key (created on
+    /// first read). Seal a Better Auth export to it; only this instance can open the bundle. A key
+    /// with jobs:write may read it too.
+    ///
+    /// Returns [`types::BetterAuthImportKey`].
+    pub async fn get_public_key(&self) -> Result<types::BetterAuthImportKey, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/better_auth_imports/public_key",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/better_auth_imports/public_key/rotate` — Replace the import key with a new one. A
+    /// bundle sealed to the old key no longer finalizes; export again with the new key.
+    ///
+    /// Returns [`types::BetterAuthImportKey`].
+    pub async fn rotate_public_key(&self) -> Result<types::BetterAuthImportKey, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/better_auth_imports/public_key/rotate",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/better_auth_imports/{id}` — Fetch one import: status, the dry-run report, live
+    /// progress and the apply result.
+    ///
+    /// Returns [`types::BetterAuthImport`].
+    pub async fn get(&self, id: &str) -> Result<types::BetterAuthImport, BackendError> {
+        let path = format!("/v1/better_auth_imports/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `DELETE /v1/better_auth_imports/{id}` — Delete an import and its stored bundle. Data it
+    /// already imported stays. Refused (409) while it is analyzing or applying.
+    ///
+    /// Returns [`types::BetterAuthImportsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::BetterAuthImportsDeleteResponse, BackendError> {
+        let path = format!("/v1/better_auth_imports/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/better_auth_imports/{id}/apply` — Import the bundle. Every record is an idempotent
+    /// upsert keyed by its Better Auth id, so applying a failed import again resumes where it
+    /// stopped and nothing is created twice. Up to 1,000 remaining records run inline (200,
+    /// `completed`); more are queued (202) and progress shows on GET. When the dry run found
+    /// conflicts with existing data, send confirm_conflicts: true.
+    ///
+    /// Takes [`types::BetterAuthImportsApplyBody`]. Returns [`types::BetterAuthImport`].
+    pub async fn apply(
+        &self,
+        id: &str,
+        body: &types::BetterAuthImportsApplyBody,
+    ) -> Result<types::BetterAuthImport, BackendError> {
+        let path = format!("/v1/better_auth_imports/{}/apply", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/better_auth_imports/{id}/dry_run` — Run the dry run again, optionally with new
+    /// options (they replace the stored ones). Reads only. After a completed import whose bundle
+    /// was kept, the next apply goes over every record again.
+    ///
+    /// Takes [`types::BetterAuthImportsDryRunBody`]. Returns [`types::BetterAuthImport`].
+    pub async fn dry_run(
+        &self,
+        id: &str,
+        body: &types::BetterAuthImportsDryRunBody,
+    ) -> Result<types::BetterAuthImport, BackendError> {
+        let path = format!("/v1/better_auth_imports/{}/dry_run", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/better_auth_imports/{id}/finalize` — Close the upload: every part 1..n must be
+    /// present and the bundle must be sealed to the active import key (else 400 or status
+    /// `invalid`). The dry run then runs: inline for a bundle up to 4 MiB (200, status `ready`),
+    /// otherwise in the background (202, status `analyzing`; poll GET).
+    ///
+    /// Returns [`types::BetterAuthImport`].
+    pub async fn finalize(&self, id: &str) -> Result<types::BetterAuthImport, BackendError> {
+        let path = format!("/v1/better_auth_imports/{}/finalize", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/better_auth_imports/{id}/parts/{part}` — Upload part `part` (1, 2, …) of the sealed
+    /// bundle file: whole lines, at most 10 MiB, as `{ "data": "…" }` or as a text/plain body.
+    /// Re-sending a part replaces it. Only while the import is `uploading`.
+    ///
+    /// Takes [`types::BetterAuthImportsUploadPartBody`]. Returns [`types::BetterAuthImportsUploadPartResponse`].
+    pub async fn upload_part(
+        &self,
+        id: &str,
+        part: &str,
+        body: &types::BetterAuthImportsUploadPartBody,
+    ) -> Result<types::BetterAuthImportsUploadPartResponse, BackendError> {
+        let path = format!("/v1/better_auth_imports/{}/parts/{}", seg(id), seg(part));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
 }
@@ -3773,6 +3995,22 @@ impl McpConnector<'_> {
 }
 
 impl MessagingProvidersApi<'_> {
+    /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
+    /// mode: whether it is active, the provider, the From address, the subject prefix, the
+    /// templates it sends and the limits. 404 when the provider is not in development mode.
+    ///
+    /// Returns [`types::DevelopmentEmail`].
+    pub async fn get_development_email(&self) -> Result<types::DevelopmentEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/messaging_providers/email/development",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `POST /v1/messaging_providers/email/development` — Put your OWN email provider in
     /// development mode, so a development instance can send sign-in email without a verified
     /// domain: Resend's `onboarding@resend.dev` (the default From for Resend; Resend delivers it
@@ -3805,22 +4043,6 @@ impl MessagingProvidersApi<'_> {
             )
             .await
     }
-    /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
-    /// mode: whether it is active, the provider, the From address, the subject prefix, the
-    /// templates it sends and the limits. 404 when the provider is not in development mode.
-    ///
-    /// Returns [`types::DevelopmentEmail`].
-    pub async fn get_development_email(&self) -> Result<types::DevelopmentEmail, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/messaging_providers/email/development",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
     /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
     /// mode (the provider and its key stay). To remove the provider, DELETE
     /// /v1/messaging_providers/email.
@@ -3833,6 +4055,22 @@ impl MessagingProvidersApi<'_> {
             .request(
                 HttpMethod::Delete,
                 "/v1/messaging_providers/email/development",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/messaging_providers/email/managed` — Read the managed sending domain: status
+    /// (refreshed from your provider while unverified), the records to publish, and sent / bounce /
+    /// complaint counts. 404 when none is configured. Never returns an API key or DNS token.
+    ///
+    /// Returns [`types::ManagedEmail`].
+    pub async fn get_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/messaging_providers/email/managed",
                 &[],
                 None,
                 None,
@@ -3866,22 +4104,6 @@ impl MessagingProvidersApi<'_> {
                 "/v1/messaging_providers/email/managed",
                 &[],
                 body_of(body)?,
-                None,
-            )
-            .await
-    }
-    /// `GET /v1/messaging_providers/email/managed` — Read the managed sending domain: status
-    /// (refreshed from your provider while unverified), the records to publish, and sent / bounce /
-    /// complaint counts. 404 when none is configured. Never returns an API key or DNS token.
-    ///
-    /// Returns [`types::ManagedEmail`].
-    pub async fn get_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/messaging_providers/email/managed",
-                &[],
-                None,
                 None,
             )
             .await
@@ -3924,6 +4146,63 @@ impl MessagingProvidersApi<'_> {
                 &[],
                 None,
                 None,
+            )
+            .await
+    }
+}
+
+impl BetterAuthBridgeApi<'_> {
+    /// `GET /v1/migrations/better_auth/bridge` — Read the Better Auth session-bridge settings
+    /// (migration window, cookie prefix, live fallback) and exchange counts. Reports
+    /// live_fallback.has_secret, never the secret.
+    ///
+    /// Returns [`types::BetterAuthBridgeSettings`].
+    pub async fn get(&self) -> Result<types::BetterAuthBridgeSettings, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/migrations/better_auth/bridge",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/migrations/better_auth/bridge` — Create or update the Better Auth session-bridge
+    /// settings. Every field is optional and merged onto the stored ones; the Better Auth secret is
+    /// write-only.
+    ///
+    /// Takes [`types::BetterAuthBridgeUpdateBody`]. Returns [`types::BetterAuthBridgeSettings`].
+    pub async fn update(
+        &self,
+        body: &types::BetterAuthBridgeUpdateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::BetterAuthBridgeSettings, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/migrations/better_auth/bridge",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/migrations/better_auth/bridge` — Remove the Better Auth session-bridge settings
+    /// (the bridge is off and the stored secret is deleted).
+    ///
+    /// Returns [`types::BetterAuthBridgeDeleteResponse`].
+    pub async fn delete(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::BetterAuthBridgeDeleteResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/migrations/better_auth/bridge",
+                &[],
+                None,
+                idempotency_key,
             )
             .await
     }
@@ -4341,6 +4620,20 @@ impl OpenFga<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
+    /// `POST /v1/openfga/stores/{store}/authorization-models` — Write a new authorization model to
+    /// a store.
+    ///
+    /// Takes [`types::OpenFgaWriteAuthorizationModelBody`]. Returns [`types::OpenFgaWriteAuthorizationModelResponse`].
+    pub async fn write_authorization_model(
+        &self,
+        store: &str,
+        body: &types::OpenFgaWriteAuthorizationModelBody,
+    ) -> Result<types::OpenFgaWriteAuthorizationModelResponse, BackendError> {
+        let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
     /// `GET /v1/openfga/stores/{store}/authorization-models` — List the authorization models in a
     /// store.
     ///
@@ -4355,20 +4648,6 @@ impl OpenFga<'_> {
         let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
         self.client
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
-            .await
-    }
-    /// `POST /v1/openfga/stores/{store}/authorization-models` — Write a new authorization model to
-    /// a store.
-    ///
-    /// Takes [`types::OpenFgaWriteAuthorizationModelBody`]. Returns [`types::OpenFgaWriteAuthorizationModelResponse`].
-    pub async fn write_authorization_model(
-        &self,
-        store: &str,
-        body: &types::OpenFgaWriteAuthorizationModelBody,
-    ) -> Result<types::OpenFgaWriteAuthorizationModelResponse, BackendError> {
-        let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
-        self.client
-            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
     /// `GET /v1/openfga/stores/{store}/authorization-models/{mid}` — Read one authorization model
@@ -6553,7 +6832,8 @@ impl SsoConnections<'_> {
             .await
     }
     /// `GET /v1/sso_connections/{id}/saml_metadata` — The SP EntityDescriptor XML to hand a SAML
-    /// IdP (entityID + ACS URL). Public; carries no secret.
+    /// IdP: entityID, ACS URL, signing / encryption certificates and SingleLogoutService when
+    /// configured. Public; carries no secret.
     ///
     /// Returns [`types::SsoConnectionsSamlMetadataResponse`].
     pub async fn saml_metadata(
@@ -7662,6 +7942,10 @@ impl BackendClient {
     pub fn audit_logs(&self) -> AuditLogs<'_> {
         AuditLogs { client: self }
     }
+    /// Migrate from Better Auth: import a sealed bundle made by the Better Auth exporter.
+    pub fn better_auth_imports(&self) -> BetterAuthImports<'_> {
+        BetterAuthImports { client: self }
+    }
     /// Sign-up blocklist.
     pub fn blocklist_identifiers(&self) -> BlocklistIdentifiers<'_> {
         BlocklistIdentifiers { client: self }
@@ -7757,6 +8041,10 @@ impl BackendClient {
     /// The remote MCP connector.
     pub fn mcp_connector(&self) -> McpConnector<'_> {
         McpConnector { client: self }
+    }
+    /// The Better Auth session bridge: exchange a returning user's Better Auth session for an Atlas session during the migration window.
+    pub fn better_auth_bridge(&self) -> BetterAuthBridgeApi<'_> {
+        BetterAuthBridgeApi { client: self }
     }
     /// Network ACLs.
     pub fn network_acls(&self) -> NetworkAcls<'_> {

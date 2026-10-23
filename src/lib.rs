@@ -47,6 +47,7 @@ mod introspection;
 mod botid;
 mod error;
 mod jwks;
+mod legacy_issuers;
 mod logout;
 mod user;
 mod verify;
@@ -111,6 +112,11 @@ pub use user::{real_email, EmailAddress, User, NO_EMAIL_SENTINEL_DOMAIN};
 pub use logout::{
     LogoutTokenClaims, LogoutTokenReplayCache, BACKCHANNEL_LOGOUT_EVENT, LOGOUT_TOKEN_TYPE,
 };
+pub use legacy_issuers::{
+    LegacyIssuer, SubjectResolver, LEGACY_ISSUER_ALGS, LEGACY_SUBJECT_CACHE_MAX, LEGACY_SUBJECT_TTL_MS,
+};
+#[cfg(feature = "backend")]
+pub use legacy_issuers::BackendSubjectResolver;
 pub use verify::{AtlasBackend, AtlasBackendBuilder, AtlasBackendOptions, CLOCK_SKEW_SECONDS};
 
 #[cfg(feature = "reqwest-transport")]

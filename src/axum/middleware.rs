@@ -53,6 +53,8 @@ use crate::verify::AtlasBackend;
 #[derive(Clone)]
 pub struct AtlasLayer {
     backend: Arc<AtlasBackend>,
+    #[cfg(feature = "backend")]
+    bridge: Option<Arc<crate::backend::BetterAuthBridge>>,
 }
 
 impl AtlasLayer {
@@ -60,7 +62,23 @@ impl AtlasLayer {
     /// you put in your router state so the layer and the extractor share one
     /// cache.
     pub fn new(backend: Arc<AtlasBackend>) -> Self {
-        AtlasLayer { backend }
+        AtlasLayer {
+            backend,
+            #[cfg(feature = "backend")]
+            bridge: None,
+        }
+    }
+
+    /// Run the Better Auth session bridge first (feature `backend`): a `GET` /
+    /// `HEAD` carrying a Better Auth session cookie is exchanged once for an
+    /// Atlas session and answered with a `307` to the same URL, the Atlas
+    /// cookies set and the Better Auth cookies cleared (or to the bridge's
+    /// sign-in URL when a second factor is owed). See
+    /// [`super::BetterAuthBridgeLayer`].
+    #[cfg(feature = "backend")]
+    pub fn with_better_auth_bridge(mut self, bridge: Arc<crate::backend::BetterAuthBridge>) -> Self {
+        self.bridge = Some(bridge);
+        self
     }
 }
 
@@ -71,6 +89,8 @@ impl<S> Layer<S> for AtlasLayer {
         AtlasAuth {
             inner,
             backend: self.backend.clone(),
+            #[cfg(feature = "backend")]
+            bridge: self.bridge.clone(),
         }
     }
 }
@@ -82,6 +102,8 @@ impl<S> Layer<S> for AtlasLayer {
 pub struct AtlasAuth<S> {
     inner: S,
     backend: Arc<AtlasBackend>,
+    #[cfg(feature = "backend")]
+    bridge: Option<Arc<crate::backend::BetterAuthBridge>>,
 }
 
 impl<S> Service<Request> for AtlasAuth<S>
@@ -99,6 +121,8 @@ where
 
     fn call(&mut self, mut req: Request) -> Self::Future {
         let backend = self.backend.clone();
+        #[cfg(feature = "backend")]
+        let bridge = self.bridge.clone();
 
         // The standard tower "clone and swap" so the clone that runs in the
         // async task is the one we just confirmed is ready via `poll_ready`,
@@ -108,6 +132,15 @@ where
         let mut inner = std::mem::replace(&mut self.inner, clone);
 
         Box::pin(async move {
+            #[cfg(feature = "backend")]
+            if let Some(bridge) = bridge {
+                let peer = super::better_auth::peer_addr(&req);
+                if let Some(resp) =
+                    super::better_auth::bridge_response(&bridge, req.method(), req.uri(), req.headers(), peer).await
+                {
+                    return Ok(resp);
+                }
+            }
             // Verify inside its own scope so the borrow the credential `&str`s
             // (and thus the verify future) take on `req` is released before we
             // mutate `req`'s extensions — a match scrutinee keeps its temporary

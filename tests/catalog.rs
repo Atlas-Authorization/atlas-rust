@@ -69,6 +69,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.action_gallery().installs(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/action_gallery_installs?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.action_templates().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -345,6 +352,109 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Get,
         "/v1/audit_logs?limit=2".into(),
         B::None,
+        false,
+    ));
+    c.better_auth_imports()
+        .create(
+            &types::BetterAuthImportsCreateBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/better_auth_imports".into(),
+        B::Obj,
+        true,
+    ));
+    c.better_auth_imports().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/better_auth_imports?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports().list_jwks(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/better_auth_imports/jwks?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports().delete_jwk("p0_kid").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/better_auth_imports/jwks/p0_kid".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports().get_public_key().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/better_auth_imports/public_key".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports().rotate_public_key().await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/better_auth_imports/public_key/rotate".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports().get("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/better_auth_imports/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/better_auth_imports/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports()
+        .apply("p0_id", &types::BetterAuthImportsApplyBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/better_auth_imports/p0_id/apply".into(),
+        B::Obj,
+        false,
+    ));
+    c.better_auth_imports()
+        .dry_run("p0_id", &types::BetterAuthImportsDryRunBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/better_auth_imports/p0_id/dry_run".into(),
+        B::Obj,
+        false,
+    ));
+    c.better_auth_imports().finalize("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/better_auth_imports/p0_id/finalize".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_imports()
+        .upload_part(
+            "p0_id",
+            "p1_part",
+            &types::BetterAuthImportsUploadPartBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/better_auth_imports/p0_id/parts/p1_part".into(),
+        B::Obj,
         false,
     ));
     c.billing()
@@ -1684,16 +1794,6 @@ async fn every_catalog_operation_hits_its_route() {
         true,
     ));
     c.messaging_providers()
-        .enable_development_email(&types::MessagingProvidersEnableDevelopmentEmailBody::default())
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Post,
-        "/v1/messaging_providers/email/development".into(),
-        B::Obj,
-        false,
-    ));
-    c.messaging_providers()
         .get_development_email()
         .await
         .unwrap();
@@ -1701,6 +1801,16 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Get,
         "/v1/messaging_providers/email/development".into(),
         B::None,
+        false,
+    ));
+    c.messaging_providers()
+        .enable_development_email(&types::MessagingProvidersEnableDevelopmentEmailBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/messaging_providers/email/development".into(),
+        B::Obj,
         false,
     ));
     c.messaging_providers()
@@ -1713,6 +1823,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.messaging_providers().get_managed_email().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/messaging_providers/email/managed".into(),
+        B::None,
+        false,
+    ));
     c.messaging_providers()
         .create_managed_email(&types::MessagingProvidersCreateManagedEmailBody::default())
         .await
@@ -1721,13 +1838,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/messaging_providers/email/managed".into(),
         B::Obj,
-        false,
-    ));
-    c.messaging_providers().get_managed_email().await.unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/messaging_providers/email/managed".into(),
-        B::None,
         false,
     ));
     c.messaging_providers()
@@ -1749,6 +1859,33 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/messaging_providers/email/managed/verify".into(),
         B::None,
         false,
+    ));
+    c.better_auth_bridge().get().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/migrations/better_auth/bridge".into(),
+        B::None,
+        false,
+    ));
+    c.better_auth_bridge()
+        .update(
+            &types::BetterAuthBridgeUpdateBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/migrations/better_auth/bridge".into(),
+        B::Obj,
+        true,
+    ));
+    c.better_auth_bridge().delete(Some("idem_1")).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/migrations/better_auth/bridge".into(),
+        B::None,
+        true,
     ));
     c.network_acls().list(&q).await.unwrap();
     expected.push((
@@ -1953,16 +2090,6 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.openfga()
-        .read_authorization_models("p0_store", &q)
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/openfga/stores/p0_store/authorization-models?limit=2".into(),
-        B::None,
-        false,
-    ));
-    c.openfga()
         .write_authorization_model(
             "p0_store",
             &types::OpenFgaWriteAuthorizationModelBody::default(),
@@ -1973,6 +2100,16 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/openfga/stores/p0_store/authorization-models".into(),
         B::Obj,
+        false,
+    ));
+    c.openfga()
+        .read_authorization_models("p0_store", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/openfga/stores/p0_store/authorization-models?limit=2".into(),
+        B::None,
         false,
     ));
     c.openfga()
@@ -3767,4 +3904,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 424 operations, 424 typed; 424 calls.
+// 440 operations, 440 typed; 440 calls.

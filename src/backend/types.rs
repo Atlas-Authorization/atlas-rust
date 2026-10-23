@@ -1230,6 +1230,252 @@ impl AttackProtectionUpdateBodyDormantAccounts {
     }
 }
 
+/// The request body of `POST /v1/better_auth_imports`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsCreateBody {
+    /// What the import does. Every field is optional; an unknown field is refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub options: Option<BetterAuthImportOptionsInput>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BetterAuthImportsCreateBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `options`.
+    pub fn with_options(mut self, v: impl Into<BetterAuthImportOptionsInput>) -> Self {
+        self.options = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// What the import does. Every field is optional; an unknown field is refused.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportOptionsInput {
+    /// Create an Atlas app role for each admin-plugin role that has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub create_app_roles: Option<bool>,
+    /// The admin plugin's default role; it is not carried as an Atlas app role.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_role: Option<String>,
+    /// Publish the JWT plugin's public keys in the instance JWKS for the cutover.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_jwks: Option<bool>,
+    /// Carry social accounts' access and refresh tokens.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_oauth_tokens: Option<bool>,
+    /// Import still-valid sessions (as token hashes) for the session bridge.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_sessions: Option<bool>,
+    /// Adopt Stripe subscriptions (needs the instance Stripe key).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_subscriptions: Option<bool>,
+    /// How long imported JWKS keys stay published.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_cutover_days: Option<i64>,
+    /// Only these Better Auth models (e.g. `user`, `account`, `organization`). Default: all.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub models: Option<Vec<String>>,
+    /// A Better Auth user whose verified email belongs to an Atlas user from elsewhere: skip it
+    /// (reported as a conflict) or merge into that user.
+    ///
+    /// Known values: `skip`, `link`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_email_conflict: Option<String>,
+    /// Passkeys registered for another relying-party id than the instance's.
+    ///
+    /// Known values: `skip`, `import`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub passkeys_on_rp_mismatch: Option<String>,
+    /// Better Auth plan name to Atlas billing plan id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plan_map: Option<HashMap<String, String>>,
+    /// Keep the sealed bundle after a successful apply (it is deleted by default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain_bundle: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BetterAuthImportOptionsInput {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `create_app_roles`.
+    pub fn with_create_app_roles(mut self, v: impl Into<bool>) -> Self {
+        self.create_app_roles = Some(v.into());
+        self
+    }
+    /// Set `default_role`.
+    pub fn with_default_role(mut self, v: impl Into<String>) -> Self {
+        self.default_role = Some(v.into());
+        self
+    }
+    /// Set `import_jwks`.
+    pub fn with_import_jwks(mut self, v: impl Into<bool>) -> Self {
+        self.import_jwks = Some(v.into());
+        self
+    }
+    /// Set `import_oauth_tokens`.
+    pub fn with_import_oauth_tokens(mut self, v: impl Into<bool>) -> Self {
+        self.import_oauth_tokens = Some(v.into());
+        self
+    }
+    /// Set `import_sessions`.
+    pub fn with_import_sessions(mut self, v: impl Into<bool>) -> Self {
+        self.import_sessions = Some(v.into());
+        self
+    }
+    /// Set `import_subscriptions`.
+    pub fn with_import_subscriptions(mut self, v: impl Into<bool>) -> Self {
+        self.import_subscriptions = Some(v.into());
+        self
+    }
+    /// Set `jwks_cutover_days`.
+    pub fn with_jwks_cutover_days(mut self, v: impl Into<i64>) -> Self {
+        self.jwks_cutover_days = Some(v.into());
+        self
+    }
+    /// Set `models`.
+    pub fn with_models(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.models = Some(v.into());
+        self
+    }
+    /// Set `on_email_conflict`.
+    pub fn with_on_email_conflict(mut self, v: impl Into<String>) -> Self {
+        self.on_email_conflict = Some(v.into());
+        self
+    }
+    /// Set `passkeys_on_rp_mismatch`.
+    pub fn with_passkeys_on_rp_mismatch(mut self, v: impl Into<String>) -> Self {
+        self.passkeys_on_rp_mismatch = Some(v.into());
+        self
+    }
+    /// Set `plan_map`.
+    pub fn with_plan_map(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.plan_map = Some(v.into());
+        self
+    }
+    /// Set `retain_bundle`.
+    pub fn with_retain_bundle(mut self, v: impl Into<bool>) -> Self {
+        self.retain_bundle = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/better_auth_imports/{id}/apply`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsApplyBody {
+    /// Apply although the dry run reported conflicts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confirm_conflicts: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BetterAuthImportsApplyBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `confirm_conflicts`.
+    pub fn with_confirm_conflicts(mut self, v: impl Into<bool>) -> Self {
+        self.confirm_conflicts = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/better_auth_imports/{id}/dry_run`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsDryRunBody {
+    /// What the import does. Every field is optional; an unknown field is refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub options: Option<BetterAuthImportOptionsInput>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BetterAuthImportsDryRunBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `options`.
+    pub fn with_options(mut self, v: impl Into<BetterAuthImportOptionsInput>) -> Self {
+        self.options = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `PUT /v1/better_auth_imports/{id}/parts/{part}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsUploadPartBody {
+    /// Lines of the sealed bundle file.
+    #[serde(default)]
+    pub data: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BetterAuthImportsUploadPartBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(data: impl Into<String>) -> Self {
+        Self {
+            data: data.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `data`.
+    pub fn with_data(mut self, v: impl Into<String>) -> Self {
+        self.data = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `POST /v1/billing/check`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -9651,6 +9897,134 @@ impl MessagingProvidersCreateManagedEmailBodyDns {
     }
 }
 
+/// The request body of `PUT /v1/migrations/better_auth/bridge`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthBridgeUpdateBody {
+    /// Whether the exchange endpoint accepts Better Auth sessions. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// End of the migration window (ISO-8601 or Unix ms); null = open until disabled. After it,
+    /// every exchange is refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ends_at: Option<Value>,
+    /// Better Auth's advanced.cookiePrefix (default "better-auth"); the session cookie is
+    /// &lt;prefix&gt;.session_token.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cookie_prefix: Option<String>,
+    /// Validate a session missing from the import (created after the export) by asking the old app,
+    /// server to server.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_fallback: Option<BetterAuthBridgeUpdateBodyLiveFallback>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BetterAuthBridgeUpdateBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `ends_at`.
+    pub fn with_ends_at(mut self, v: impl Into<Value>) -> Self {
+        self.ends_at = Some(v.into());
+        self
+    }
+    /// Set `cookie_prefix`.
+    pub fn with_cookie_prefix(mut self, v: impl Into<String>) -> Self {
+        self.cookie_prefix = Some(v.into());
+        self
+    }
+    /// Set `live_fallback`.
+    pub fn with_live_fallback(
+        mut self,
+        v: impl Into<BetterAuthBridgeUpdateBodyLiveFallback>,
+    ) -> Self {
+        self.live_fallback = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Validate a session missing from the import (created after the export) by asking the old app,
+/// server to server.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthBridgeUpdateBodyLiveFallback {
+    /// Turn the live check on. Requires base_url.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// The old app's Better Auth base URL including its base path, e.g.
+    /// https://app.example.com/api/auth. Atlas calls &lt;base_url&gt;/get-session. Public https on
+    /// a production instance.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub base_url: Option<Option<String>>,
+    /// The old app's BETTER_AUTH_SECRET. Write-only: lets Atlas check the cookie signature and sign
+    /// a bare token for the live call. Omit to keep, null to clear.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub secret: Option<Option<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BetterAuthBridgeUpdateBodyLiveFallback {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `base_url`.
+    pub fn with_base_url(mut self, v: impl Into<String>) -> Self {
+        self.base_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `base_url: null` to clear it.
+    pub fn clear_base_url(mut self) -> Self {
+        self.base_url = Some(None);
+        self
+    }
+    /// Set `secret`.
+    pub fn with_secret(mut self, v: impl Into<String>) -> Self {
+        self.secret = Some(Some(v.into()));
+        self
+    }
+    /// Send `secret: null` to clear it.
+    pub fn clear_secret(mut self) -> Self {
+        self.secret = Some(None);
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `POST /v1/network_acls`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -10390,12 +10764,6 @@ pub struct OAuthClientsUpdateBody {
         deserialize_with = "double_option"
     )]
     pub sector_identifier_uri: Option<Option<String>>,
-    /// Refuse every OAuth flow for this client without deleting it.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub disabled: Option<bool>,
-    /// Require PKCE for this confidential client too (OAuth 2.1 posture).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub require_pkce: Option<bool>,
     /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
     /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
     /// API's format, then the client's, then the instance default.
@@ -10416,6 +10784,12 @@ pub struct OAuthClientsUpdateBody {
         deserialize_with = "double_option"
     )]
     pub token_lifetimes: Option<Option<OAuthClientsUpdateBodyTokenLifetimes>>,
+    /// Refuse every OAuth flow for this client without deleting it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
+    /// Require PKCE for this confidential client too (OAuth 2.1 posture).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_pkce: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -10522,16 +10896,6 @@ impl OAuthClientsUpdateBody {
         self.sector_identifier_uri = Some(None);
         self
     }
-    /// Set `disabled`.
-    pub fn with_disabled(mut self, v: impl Into<bool>) -> Self {
-        self.disabled = Some(v.into());
-        self
-    }
-    /// Set `require_pkce`.
-    pub fn with_require_pkce(mut self, v: impl Into<bool>) -> Self {
-        self.require_pkce = Some(v.into());
-        self
-    }
     /// Set `access_token_format`.
     pub fn with_access_token_format(mut self, v: impl Into<String>) -> Self {
         self.access_token_format = Some(Some(v.into()));
@@ -10553,6 +10917,16 @@ impl OAuthClientsUpdateBody {
     /// Send `token_lifetimes: null` to clear it.
     pub fn clear_token_lifetimes(mut self) -> Self {
         self.token_lifetimes = Some(None);
+        self
+    }
+    /// Set `disabled`.
+    pub fn with_disabled(mut self, v: impl Into<bool>) -> Self {
+        self.disabled = Some(v.into());
+        self
+    }
+    /// Set `require_pkce`.
+    pub fn with_require_pkce(mut self, v: impl Into<bool>) -> Self {
+        self.require_pkce = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -14528,6 +14902,44 @@ pub struct SsoConnectionsCreateBody {
     pub saml_sign_authn_requests: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub saml_want_response_signed: Option<bool>,
+    /// SAML Single Logout: advertise our SingleLogoutService, accept IdP-initiated LogoutRequests,
+    /// and send the IdP a LogoutRequest on sign-out (when its SLO endpoint is known).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_single_logout: Option<bool>,
+    /// The IdP SingleLogoutService Location (https). Filled by IdP metadata import.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_url: Option<Option<String>>,
+    /// The IdP SingleLogoutService ResponseLocation, when it differs from the Location.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_response_url: Option<Option<String>>,
+    /// How logout messages are sent to the IdP: `redirect` (default) or `post`; null resets to
+    /// redirect.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_binding: Option<Option<String>>,
+    /// The IdP SOAP-binding SingleLogoutService (https). When set, a session ended server-side
+    /// (admin or API revoke, ban, deletion, password reset) is logged out at the IdP over this back
+    /// channel.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_soap_url: Option<Option<String>>,
+    /// Refuse assertions not encrypted to this connection's encryption key (generate one first).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_require_encrypted_assertions: Option<bool>,
     /// Write-only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub discourse_secret: Option<String>,
@@ -14610,44 +15022,6 @@ pub struct SsoConnectionsCreateBody {
         deserialize_with = "double_option"
     )]
     pub idp_initiated_login: Option<Option<SsoConnectionsCreateBodyIdpInitiatedLogin>>,
-    /// SAML Single Logout: advertise our SingleLogoutService, accept IdP-initiated LogoutRequests,
-    /// and send the IdP a LogoutRequest on sign-out (when its SLO endpoint is known).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_single_logout: Option<bool>,
-    /// The IdP SingleLogoutService Location (https). Filled by IdP metadata import.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_url: Option<Option<String>>,
-    /// The IdP SingleLogoutService ResponseLocation, when it differs from the Location.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_response_url: Option<Option<String>>,
-    /// How logout messages are sent to the IdP: `redirect` (default) or `post`; null resets to
-    /// redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_binding: Option<Option<String>>,
-    /// The IdP SOAP-binding SingleLogoutService (https). When set, a session ended server-side
-    /// (admin or API revoke, ban, deletion, password reset) is logged out at the IdP over this back
-    /// channel.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_soap_url: Option<Option<String>>,
-    /// Refuse assertions not encrypted to this connection's encryption key (generate one first).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_require_encrypted_assertions: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -14727,6 +15101,56 @@ impl SsoConnectionsCreateBody {
     /// Set `saml_want_response_signed`.
     pub fn with_saml_want_response_signed(mut self, v: impl Into<bool>) -> Self {
         self.saml_want_response_signed = Some(v.into());
+        self
+    }
+    /// Set `saml_single_logout`.
+    pub fn with_saml_single_logout(mut self, v: impl Into<bool>) -> Self {
+        self.saml_single_logout = Some(v.into());
+        self
+    }
+    /// Set `saml_idp_slo_url`.
+    pub fn with_saml_idp_slo_url(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_url: null` to clear it.
+    pub fn clear_saml_idp_slo_url(mut self) -> Self {
+        self.saml_idp_slo_url = Some(None);
+        self
+    }
+    /// Set `saml_idp_slo_response_url`.
+    pub fn with_saml_idp_slo_response_url(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_response_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_response_url: null` to clear it.
+    pub fn clear_saml_idp_slo_response_url(mut self) -> Self {
+        self.saml_idp_slo_response_url = Some(None);
+        self
+    }
+    /// Set `saml_idp_slo_binding`.
+    pub fn with_saml_idp_slo_binding(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_binding = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_binding: null` to clear it.
+    pub fn clear_saml_idp_slo_binding(mut self) -> Self {
+        self.saml_idp_slo_binding = Some(None);
+        self
+    }
+    /// Set `saml_idp_slo_soap_url`.
+    pub fn with_saml_idp_slo_soap_url(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_soap_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_soap_url: null` to clear it.
+    pub fn clear_saml_idp_slo_soap_url(mut self) -> Self {
+        self.saml_idp_slo_soap_url = Some(None);
+        self
+    }
+    /// Set `saml_require_encrypted_assertions`.
+    pub fn with_saml_require_encrypted_assertions(mut self, v: impl Into<bool>) -> Self {
+        self.saml_require_encrypted_assertions = Some(v.into());
         self
     }
     /// Set `discourse_secret`.
@@ -14849,56 +15273,6 @@ impl SsoConnectionsCreateBody {
     /// Send `idp_initiated_login: null` to clear it.
     pub fn clear_idp_initiated_login(mut self) -> Self {
         self.idp_initiated_login = Some(None);
-        self
-    }
-    /// Set `saml_single_logout`.
-    pub fn with_saml_single_logout(mut self, v: impl Into<bool>) -> Self {
-        self.saml_single_logout = Some(v.into());
-        self
-    }
-    /// Set `saml_idp_slo_url`.
-    pub fn with_saml_idp_slo_url(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_url = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_url: null` to clear it.
-    pub fn clear_saml_idp_slo_url(mut self) -> Self {
-        self.saml_idp_slo_url = Some(None);
-        self
-    }
-    /// Set `saml_idp_slo_response_url`.
-    pub fn with_saml_idp_slo_response_url(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_response_url = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_response_url: null` to clear it.
-    pub fn clear_saml_idp_slo_response_url(mut self) -> Self {
-        self.saml_idp_slo_response_url = Some(None);
-        self
-    }
-    /// Set `saml_idp_slo_binding`.
-    pub fn with_saml_idp_slo_binding(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_binding = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_binding: null` to clear it.
-    pub fn clear_saml_idp_slo_binding(mut self) -> Self {
-        self.saml_idp_slo_binding = Some(None);
-        self
-    }
-    /// Set `saml_idp_slo_soap_url`.
-    pub fn with_saml_idp_slo_soap_url(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_soap_url = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_soap_url: null` to clear it.
-    pub fn clear_saml_idp_slo_soap_url(mut self) -> Self {
-        self.saml_idp_slo_soap_url = Some(None);
-        self
-    }
-    /// Set `saml_require_encrypted_assertions`.
-    pub fn with_saml_require_encrypted_assertions(mut self, v: impl Into<bool>) -> Self {
-        self.saml_require_encrypted_assertions = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -15412,6 +15786,44 @@ pub struct SsoConnectionsUpdateBody {
     pub saml_sign_authn_requests: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub saml_want_response_signed: Option<bool>,
+    /// SAML Single Logout: advertise our SingleLogoutService, accept IdP-initiated LogoutRequests,
+    /// and send the IdP a LogoutRequest on sign-out (when its SLO endpoint is known).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_single_logout: Option<bool>,
+    /// The IdP SingleLogoutService Location (https). Filled by IdP metadata import.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_url: Option<Option<String>>,
+    /// The IdP SingleLogoutService ResponseLocation, when it differs from the Location.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_response_url: Option<Option<String>>,
+    /// How logout messages are sent to the IdP: `redirect` (default) or `post`; null resets to
+    /// redirect.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_binding: Option<Option<String>>,
+    /// The IdP SOAP-binding SingleLogoutService (https). When set, a session ended server-side
+    /// (admin or API revoke, ban, deletion, password reset) is logged out at the IdP over this back
+    /// channel.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub saml_idp_slo_soap_url: Option<Option<String>>,
+    /// Refuse assertions not encrypted to this connection's encryption key (generate one first).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_require_encrypted_assertions: Option<bool>,
     /// Write-only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub discourse_secret: Option<String>,
@@ -15494,44 +15906,6 @@ pub struct SsoConnectionsUpdateBody {
         deserialize_with = "double_option"
     )]
     pub idp_initiated_login: Option<Option<SsoConnectionsUpdateBodyIdpInitiatedLogin>>,
-    /// SAML Single Logout: advertise our SingleLogoutService, accept IdP-initiated LogoutRequests,
-    /// and send the IdP a LogoutRequest on sign-out (when its SLO endpoint is known).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_single_logout: Option<bool>,
-    /// The IdP SingleLogoutService Location (https). Filled by IdP metadata import.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_url: Option<Option<String>>,
-    /// The IdP SingleLogoutService ResponseLocation, when it differs from the Location.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_response_url: Option<Option<String>>,
-    /// How logout messages are sent to the IdP: `redirect` (default) or `post`; null resets to
-    /// redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_binding: Option<Option<String>>,
-    /// The IdP SOAP-binding SingleLogoutService (https). When set, a session ended server-side
-    /// (admin or API revoke, ban, deletion, password reset) is logged out at the IdP over this back
-    /// channel.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub saml_idp_slo_soap_url: Option<Option<String>>,
-    /// Refuse assertions not encrypted to this connection's encryption key (generate one first).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_require_encrypted_assertions: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -15611,6 +15985,56 @@ impl SsoConnectionsUpdateBody {
     /// Set `saml_want_response_signed`.
     pub fn with_saml_want_response_signed(mut self, v: impl Into<bool>) -> Self {
         self.saml_want_response_signed = Some(v.into());
+        self
+    }
+    /// Set `saml_single_logout`.
+    pub fn with_saml_single_logout(mut self, v: impl Into<bool>) -> Self {
+        self.saml_single_logout = Some(v.into());
+        self
+    }
+    /// Set `saml_idp_slo_url`.
+    pub fn with_saml_idp_slo_url(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_url: null` to clear it.
+    pub fn clear_saml_idp_slo_url(mut self) -> Self {
+        self.saml_idp_slo_url = Some(None);
+        self
+    }
+    /// Set `saml_idp_slo_response_url`.
+    pub fn with_saml_idp_slo_response_url(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_response_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_response_url: null` to clear it.
+    pub fn clear_saml_idp_slo_response_url(mut self) -> Self {
+        self.saml_idp_slo_response_url = Some(None);
+        self
+    }
+    /// Set `saml_idp_slo_binding`.
+    pub fn with_saml_idp_slo_binding(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_binding = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_binding: null` to clear it.
+    pub fn clear_saml_idp_slo_binding(mut self) -> Self {
+        self.saml_idp_slo_binding = Some(None);
+        self
+    }
+    /// Set `saml_idp_slo_soap_url`.
+    pub fn with_saml_idp_slo_soap_url(mut self, v: impl Into<String>) -> Self {
+        self.saml_idp_slo_soap_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `saml_idp_slo_soap_url: null` to clear it.
+    pub fn clear_saml_idp_slo_soap_url(mut self) -> Self {
+        self.saml_idp_slo_soap_url = Some(None);
+        self
+    }
+    /// Set `saml_require_encrypted_assertions`.
+    pub fn with_saml_require_encrypted_assertions(mut self, v: impl Into<bool>) -> Self {
+        self.saml_require_encrypted_assertions = Some(v.into());
         self
     }
     /// Set `discourse_secret`.
@@ -15733,56 +16157,6 @@ impl SsoConnectionsUpdateBody {
     /// Send `idp_initiated_login: null` to clear it.
     pub fn clear_idp_initiated_login(mut self) -> Self {
         self.idp_initiated_login = Some(None);
-        self
-    }
-    /// Set `saml_single_logout`.
-    pub fn with_saml_single_logout(mut self, v: impl Into<bool>) -> Self {
-        self.saml_single_logout = Some(v.into());
-        self
-    }
-    /// Set `saml_idp_slo_url`.
-    pub fn with_saml_idp_slo_url(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_url = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_url: null` to clear it.
-    pub fn clear_saml_idp_slo_url(mut self) -> Self {
-        self.saml_idp_slo_url = Some(None);
-        self
-    }
-    /// Set `saml_idp_slo_response_url`.
-    pub fn with_saml_idp_slo_response_url(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_response_url = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_response_url: null` to clear it.
-    pub fn clear_saml_idp_slo_response_url(mut self) -> Self {
-        self.saml_idp_slo_response_url = Some(None);
-        self
-    }
-    /// Set `saml_idp_slo_binding`.
-    pub fn with_saml_idp_slo_binding(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_binding = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_binding: null` to clear it.
-    pub fn clear_saml_idp_slo_binding(mut self) -> Self {
-        self.saml_idp_slo_binding = Some(None);
-        self
-    }
-    /// Set `saml_idp_slo_soap_url`.
-    pub fn with_saml_idp_slo_soap_url(mut self, v: impl Into<String>) -> Self {
-        self.saml_idp_slo_soap_url = Some(Some(v.into()));
-        self
-    }
-    /// Send `saml_idp_slo_soap_url: null` to clear it.
-    pub fn clear_saml_idp_slo_soap_url(mut self) -> Self {
-        self.saml_idp_slo_soap_url = Some(None);
-        self
-    }
-    /// Set `saml_require_encrypted_assertions`.
-    pub fn with_saml_require_encrypted_assertions(mut self, v: impl Into<bool>) -> Self {
-        self.saml_require_encrypted_assertions = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -17937,6 +18311,69 @@ pub struct ActionGalleryInstallResultTemplate {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `GET /v1/action_gallery_installs`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionGalleryInstallsResponse {
+    /// Always `list`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data: Vec<ActionGalleryInstallation>,
+    /// Whether another page follows the cursor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// The cursor to pass as `starting_after` for the next page on a keyset-paginated list; null on
+    /// the last page (and absent on lists that are not cursor-paginated).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `ActionGalleryInstallation` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionGalleryInstallation {
+    /// Always `action_gallery_installation`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub action_id: String,
+    #[serde(default)]
+    pub action_name: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub trigger: String,
+    #[serde(default)]
+    pub source: String,
+    #[serde(default)]
+    pub template_slug: String,
+    #[serde(default)]
+    pub installed_version: String,
+    #[serde(default)]
+    pub latest_version: Option<String>,
+    #[serde(default)]
+    pub update_available: bool,
+    #[serde(default)]
+    pub missing_secrets: Vec<String>,
+    #[serde(default)]
+    pub update_requires_secrets: Vec<String>,
+    /// Installed (epoch ms).
+    #[serde(default)]
+    pub installed_at: i64,
+    /// Last updated (epoch ms).
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `GET /v1/action_templates`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -18903,6 +19340,579 @@ pub struct AuditLog {
     /// Occurred (epoch ms).
     #[serde(default)]
     pub created_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `BetterAuthImport` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImport {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub analyzed_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub apply_started_at: Option<i64>,
+    /// The sealed bundle was deleted (after a completed apply).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bundle_purged: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bundle_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<i64>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<BetterAuthImportError>,
+    #[serde(default)]
+    pub id: String,
+    /// The import key the bundle is sealed to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_id: Option<String>,
+    /// Always `better_auth_import`.
+    #[serde(default)]
+    pub object: String,
+    /// What the import does. Every field is optional; an unknown field is refused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub options: Option<BetterAuthImportOptions>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parts: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress: Option<BetterAuthImportProgress>,
+    /// The dry run: what an apply would do.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report: Option<BetterAuthImportReport>,
+    /// What the apply wrote (so far, while it runs).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<BetterAuthImportResult>,
+    /// What the exporter reported about the Better Auth app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<BetterAuthImportSource>,
+    /// Known values: `uploading`, `analyzing`, `ready`, `invalid`, `queued`, `applying`, `completed`, `failed`.
+    #[serde(default)]
+    pub status: String,
+    /// Records in the bundle.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<i64>,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportError {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the import does. Every field is optional; an unknown field is refused.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportOptions {
+    /// Create an Atlas app role for each admin-plugin role that has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub create_app_roles: Option<bool>,
+    /// The admin plugin's default role; it is not carried as an Atlas app role.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_role: Option<String>,
+    /// Publish the JWT plugin's public keys in the instance JWKS for the cutover.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_jwks: Option<bool>,
+    /// Carry social accounts' access and refresh tokens.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_oauth_tokens: Option<bool>,
+    /// Import still-valid sessions (as token hashes) for the session bridge.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_sessions: Option<bool>,
+    /// Adopt Stripe subscriptions (needs the instance Stripe key).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_subscriptions: Option<bool>,
+    /// How long imported JWKS keys stay published.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jwks_cutover_days: Option<i64>,
+    /// Only these Better Auth models (e.g. `user`, `account`, `organization`). Default: all.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub models: Vec<String>,
+    /// A Better Auth user whose verified email belongs to an Atlas user from elsewhere: skip it
+    /// (reported as a conflict) or merge into that user.
+    ///
+    /// Known values: `skip`, `link`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_email_conflict: Option<String>,
+    /// Passkeys registered for another relying-party id than the instance's.
+    ///
+    /// Known values: `skip`, `import`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub passkeys_on_rp_mismatch: Option<String>,
+    /// Better Auth plan name to Atlas billing plan id.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub plan_map: HashMap<String, String>,
+    /// Keep the sealed bundle after a successful apply (it is deleted by default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain_bundle: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportProgress {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failed: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percent: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub processed: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub succeeded: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The dry run: what an apply would do.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportReport {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub action_items: Vec<BetterAuthImportReportActionItemsItem>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub conflicts: Vec<BetterAuthImportReportConflictsItem>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conflicts_total: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub models: Vec<BetterAuthImportReportModelsItem>,
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub notes: Map<String, Value>,
+    /// The first 500 skipped rows.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub skipped: Vec<BetterAuthImportReportSkippedItem>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub skipped_by_code: HashMap<String, i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skipped_total: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportReportActionItemsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub items: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// required: fix it and re-run, or the rows it names stay out. recommended: imported, but
+    /// something outside the import needs doing. The API never blocks an apply on an action item.
+    ///
+    /// Known values: `required`, `recommended`, `info`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub severity: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportReportConflictsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub existing_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Known values: `merge`, `skip`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportReportModelsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub found: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_create: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_skip: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_update: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportReportSkippedItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the apply wrote (so far, while it runs).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportResult {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub action_items: Vec<BetterAuthImportResultActionItemsItem>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub conflicts: Vec<BetterAuthImportResultConflictsItem>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conflicts_total: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub models: Vec<BetterAuthImportResultModelsItem>,
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub notes: Map<String, Value>,
+    /// The first 500 skipped rows.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub skipped: Vec<BetterAuthImportResultSkippedItem>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub skipped_by_code: HashMap<String, i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skipped_total: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportResultActionItemsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub items: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// required: fix it and re-run, or the rows it names stay out. recommended: imported, but
+    /// something outside the import needs doing. The API never blocks an apply on an action item.
+    ///
+    /// Known values: `required`, `recommended`, `info`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub severity: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportResultConflictsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub existing_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Known values: `merge`, `skip`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportResultModelsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failed: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub found: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skipped: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unchanged: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportResultSkippedItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the exporter reported about the Better Auth app.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportSource {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub better_auth_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exported_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exporter: Option<BetterAuthImportSourceExporter>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub models: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub plugins: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rp_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub social_providers: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportSourceExporter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/better_auth_imports`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsListResponse {
+    /// Always `list`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data: Vec<BetterAuthImport>,
+    /// Whether another page follows the cursor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// The cursor to pass as `starting_after` for the next page on a keyset-paginated list; null on
+    /// the last page (and absent on lists that are not cursor-paginated).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/better_auth_imports/jwks`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsListJwksResponse {
+    /// Always `list`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data: Vec<BetterAuthImportsListJwksResponseDataItem>,
+    /// Whether another page follows the cursor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_more: Option<bool>,
+    /// The cursor to pass as `starting_after` for the next page on a keyset-paginated list; null on
+    /// the last page (and absent on lists that are not cursor-paginated).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsListJwksResponseDataItem {
+    /// Always `imported_jwk`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    /// The public JWK as published.
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub jwk: Map<String, Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/better_auth_imports/jwks/{kid}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsDeleteJwkResponse {
+    /// Always `imported_jwk`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kid: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `BetterAuthImportKey` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportKey {
+    /// Always `X25519-HKDF-SHA256-A256GCM`.
+    #[serde(default)]
+    pub alg: String,
+    /// The `kid:public_key` form the exporter accepts.
+    #[serde(default)]
+    pub compact: String,
+    #[serde(default)]
+    pub created_at: i64,
+    /// SHA-256 of the raw key, first 16 bytes as hex pairs.
+    #[serde(default)]
+    pub fingerprint: String,
+    #[serde(default)]
+    pub kid: String,
+    /// Always `better_auth_import_key`.
+    #[serde(default)]
+    pub object: String,
+    /// base64url raw X25519 public key.
+    #[serde(default)]
+    pub public_key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retired_at: Option<i64>,
+    /// Known values: `active`, `retired`.
+    #[serde(default)]
+    pub status: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/better_auth_imports/{id}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsDeleteResponse {
+    /// Always `better_auth_import`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `PUT /v1/better_auth_imports/{id}/parts/{part}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthImportsUploadPartResponse {
+    /// Always `better_auth_import_part`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -28091,6 +29101,85 @@ pub struct MessagingProvidersDeleteManagedEmailResponse {
     pub extra: Map<String, Value>,
 }
 
+/// The `BetterAuthBridgeSettings` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthBridgeSettings {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cookie_prefix: Option<String>,
+    /// Created, or null when never configured (Unix milliseconds).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// End of the migration window, or null (Unix milliseconds).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ends_at: Option<i64>,
+    /// The Frontend API path the SDKs call.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exchange_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_fallback: Option<BetterAuthBridgeSettingsLiveFallback>,
+    /// Always `better_auth_bridge`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stats: Option<BetterAuthBridgeSettingsStats>,
+    /// Updated, or null when never configured (Unix milliseconds).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthBridgeSettingsLiveFallback {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Whether a secret is stored — never the secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_secret: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthBridgeSettingsStats {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exchanged: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from_import: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from_live: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/migrations/better_auth/bridge`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BetterAuthBridgeDeleteResponse {
+    /// Always `better_auth_bridge`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub object: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deleted: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `GET /v1/network_acls`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -28255,15 +29344,6 @@ pub struct OAuthClientsListResponseDataItem {
     /// When the current client secret stops authenticating (epoch ms). Null = it does not expire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret_expires_at: Option<i64>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_secret: Option<String>,
-    /// Created (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    /// Updated (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
     /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
     /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
     /// API's format, then the client's, then the instance default.
@@ -28274,6 +29354,15 @@ pub struct OAuthClientsListResponseDataItem {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsListResponseDataItemTokenLifetimes>,
+    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
+    /// Created (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    /// Updated (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -28376,15 +29465,6 @@ pub struct OAuthClientsCreateResponse {
     /// When the current client secret stops authenticating (epoch ms). Null = it does not expire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret_expires_at: Option<i64>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_secret: Option<String>,
-    /// Created (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    /// Updated (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
     /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
     /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
     /// API's format, then the client's, then the instance default.
@@ -28395,6 +29475,15 @@ pub struct OAuthClientsCreateResponse {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsCreateResponseTokenLifetimes>,
+    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
+    /// Created (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    /// Updated (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -28518,15 +29607,6 @@ pub struct OAuthClientsImportResponseDataItem {
     /// When the current client secret stops authenticating (epoch ms). Null = it does not expire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret_expires_at: Option<i64>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_secret: Option<String>,
-    /// Created (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    /// Updated (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
     /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
     /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
     /// API's format, then the client's, then the instance default.
@@ -28537,6 +29617,15 @@ pub struct OAuthClientsImportResponseDataItem {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsImportResponseDataItemTokenLifetimes>,
+    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
+    /// Created (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    /// Updated (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -28705,15 +29794,6 @@ pub struct OAuthClientsGetResponse {
     /// When the current client secret stops authenticating (epoch ms). Null = it does not expire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret_expires_at: Option<i64>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_secret: Option<String>,
-    /// Created (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    /// Updated (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
     /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
     /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
     /// API's format, then the client's, then the instance default.
@@ -28724,6 +29804,15 @@ pub struct OAuthClientsGetResponse {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsGetResponseTokenLifetimes>,
+    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
+    /// Created (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    /// Updated (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -28826,15 +29915,6 @@ pub struct OAuthClientsUpdateResponse {
     /// When the current client secret stops authenticating (epoch ms). Null = it does not expire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret_expires_at: Option<i64>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub client_secret: Option<String>,
-    /// Created (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    /// Updated (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
     /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
     /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
     /// API's format, then the client's, then the instance default.
@@ -28845,6 +29925,15 @@ pub struct OAuthClientsUpdateResponse {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsUpdateResponseTokenLifetimes>,
+    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
+    /// Created (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    /// Updated (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -29082,6 +30171,16 @@ pub struct OAuthClientsRotateSecretResponse {
     /// When the current client secret stops authenticating (epoch ms). Null = it does not expire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret_expires_at: Option<i64>,
+    /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
+    /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
+    /// API's format, then the client's, then the instance default.
+    ///
+    /// Known values: `jwt`, `opaque`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub access_token_format: Option<String>,
+    /// This client's token lifetime overrides (seconds); null = inherited.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_lifetimes: Option<OAuthClientsRotateSecretResponseTokenLifetimes>,
     /// The new client secret. Returned exactly once.
     #[serde(default)]
     pub client_secret: String,
@@ -29096,16 +30195,6 @@ pub struct OAuthClientsRotateSecretResponse {
     pub overlap_seconds: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
-    /// `jwt`: a signed JWT verifiable against the JWKS. `opaque`: a random `oat_…` reference
-    /// validated at the introspection endpoint (and by Atlas's own endpoints). null inherits: the
-    /// API's format, then the client's, then the instance default.
-    ///
-    /// Known values: `jwt`, `opaque`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub access_token_format: Option<String>,
-    /// This client's token lifetime overrides (seconds); null = inherited.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub token_lifetimes: Option<OAuthClientsRotateSecretResponseTokenLifetimes>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -29352,6 +30441,18 @@ pub struct OpenFgaGetStoreResponse {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `POST /v1/openfga/stores/{store}/authorization-models`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OpenFgaWriteAuthorizationModelResponse {
+    #[serde(default)]
+    pub authorization_model_id: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `GET /v1/openfga/stores/{store}/authorization-models`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -29371,18 +30472,6 @@ pub struct OpenFgaReadAuthorizationModelsResponseAuthorizationModelsItem {
     pub id: String,
     #[serde(default)]
     pub schema_version: String,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The response of `POST /v1/openfga/stores/{store}/authorization-models`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct OpenFgaWriteAuthorizationModelResponse {
-    #[serde(default)]
-    pub authorization_model_id: String,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -32457,12 +33546,6 @@ pub struct ResourceServer {
     /// Known values: `RS256`, `ES256`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signing_alg: Option<String>,
-    /// Created (epoch ms).
-    #[serde(default)]
-    pub created_at: i64,
-    /// Last updated (epoch ms).
-    #[serde(default)]
-    pub updated_at: i64,
     /// `jwt` or `opaque` access tokens for this API; null = inherited from the client / instance.
     ///
     /// Known values: `jwt`, `opaque`.
@@ -32477,6 +33560,12 @@ pub struct ResourceServer {
     /// client_ids of the confidential clients allowed to introspect this API's tokens.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub introspection_client_ids: Vec<String>,
+    /// Created (epoch ms).
+    #[serde(default)]
+    pub created_at: i64,
+    /// Last updated (epoch ms).
+    #[serde(default)]
+    pub updated_at: i64,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -33622,6 +34711,28 @@ pub struct SsoConnectionsListResponseDataItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub saml_want_response_signed: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_single_logout: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_response_url: Option<String>,
+    /// Known values: `redirect`, `post`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_binding: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_soap_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_require_encrypted_assertions: Option<bool>,
+    /// Whether an SP encryption key pair is set up (the private key is never returned).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_saml_encryption_key: Option<bool>,
+    /// A rotation is in progress: the previous key is still advertised and accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_previous_saml_encryption_key: Option<bool>,
+    /// When the current encryption key was installed (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_encryption_rotated_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manual_endpoints: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub has_discourse_secret: Option<bool>,
@@ -33673,28 +34784,6 @@ pub struct SsoConnectionsListResponseDataItem {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_single_logout: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_response_url: Option<String>,
-    /// Known values: `redirect`, `post`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_binding: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_soap_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_require_encrypted_assertions: Option<bool>,
-    /// Whether an SP encryption key pair is set up (the private key is never returned).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_saml_encryption_key: Option<bool>,
-    /// A rotation is in progress: the previous key is still advertised and accepted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_previous_saml_encryption_key: Option<bool>,
-    /// When the current encryption key was installed (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_encryption_rotated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -33942,6 +35031,28 @@ pub struct SsoConnectionsCreateResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub saml_want_response_signed: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_single_logout: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_response_url: Option<String>,
+    /// Known values: `redirect`, `post`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_binding: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_soap_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_require_encrypted_assertions: Option<bool>,
+    /// Whether an SP encryption key pair is set up (the private key is never returned).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_saml_encryption_key: Option<bool>,
+    /// A rotation is in progress: the previous key is still advertised and accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_previous_saml_encryption_key: Option<bool>,
+    /// When the current encryption key was installed (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_encryption_rotated_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manual_endpoints: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub has_discourse_secret: Option<bool>,
@@ -33993,28 +35104,6 @@ pub struct SsoConnectionsCreateResponse {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_single_logout: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_response_url: Option<String>,
-    /// Known values: `redirect`, `post`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_binding: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_soap_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_require_encrypted_assertions: Option<bool>,
-    /// Whether an SP encryption key pair is set up (the private key is never returned).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_saml_encryption_key: Option<bool>,
-    /// A rotation is in progress: the previous key is still advertised and accepted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_previous_saml_encryption_key: Option<bool>,
-    /// When the current encryption key was installed (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_encryption_rotated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -34262,6 +35351,28 @@ pub struct SsoConnectionsGetResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub saml_want_response_signed: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_single_logout: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_response_url: Option<String>,
+    /// Known values: `redirect`, `post`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_binding: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_soap_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_require_encrypted_assertions: Option<bool>,
+    /// Whether an SP encryption key pair is set up (the private key is never returned).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_saml_encryption_key: Option<bool>,
+    /// A rotation is in progress: the previous key is still advertised and accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_previous_saml_encryption_key: Option<bool>,
+    /// When the current encryption key was installed (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_encryption_rotated_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manual_endpoints: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub has_discourse_secret: Option<bool>,
@@ -34313,28 +35424,6 @@ pub struct SsoConnectionsGetResponse {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_single_logout: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_response_url: Option<String>,
-    /// Known values: `redirect`, `post`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_binding: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_soap_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_require_encrypted_assertions: Option<bool>,
-    /// Whether an SP encryption key pair is set up (the private key is never returned).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_saml_encryption_key: Option<bool>,
-    /// A rotation is in progress: the previous key is still advertised and accepted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_previous_saml_encryption_key: Option<bool>,
-    /// When the current encryption key was installed (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_encryption_rotated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -34582,6 +35671,28 @@ pub struct SsoConnectionsUpdateResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub saml_want_response_signed: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_single_logout: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_response_url: Option<String>,
+    /// Known values: `redirect`, `post`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_binding: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp_slo_soap_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_require_encrypted_assertions: Option<bool>,
+    /// Whether an SP encryption key pair is set up (the private key is never returned).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_saml_encryption_key: Option<bool>,
+    /// A rotation is in progress: the previous key is still advertised and accepted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_previous_saml_encryption_key: Option<bool>,
+    /// When the current encryption key was installed (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub saml_encryption_rotated_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manual_endpoints: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub has_discourse_secret: Option<bool>,
@@ -34633,28 +35744,6 @@ pub struct SsoConnectionsUpdateResponse {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_single_logout: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_response_url: Option<String>,
-    /// Known values: `redirect`, `post`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_binding: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp_slo_soap_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_require_encrypted_assertions: Option<bool>,
-    /// Whether an SP encryption key pair is set up (the private key is never returned).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_saml_encryption_key: Option<bool>,
-    /// A rotation is in progress: the previous key is still advertised and accepted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_previous_saml_encryption_key: Option<bool>,
-    /// When the current encryption key was installed (epoch ms).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub saml_encryption_rotated_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -35055,12 +36144,12 @@ pub struct SsoConnectionsSamlMetadataResponse {
     /// The Assertion Consumer Service URL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub acs_url: Option<String>,
-    /// The SP EntityDescriptor XML.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata_xml: Option<String>,
     /// Our SingleLogoutService URL (both bindings), when Single Logout is on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub slo_url: Option<String>,
+    /// The SP EntityDescriptor XML.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata_xml: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

@@ -38,6 +38,10 @@ fn decode_action_gallery() {
     round_trip::<types::ActionGalleryInstallResult>(
         r#"{"action":{"code":"x","created_at":7,"enabled":true,"id":"x","name":"x","object":"action","runtime":"x","secret_names":["x"],"trigger":"x","updated_at":7},"install_id":"x","missing_secrets":["x"],"object":"action_gallery_install","template":{"slug":"x","source":"x","version":"x"}}"#,
     );
+    // GET /v1/action_gallery_installs
+    round_trip::<types::ActionGalleryInstallsResponse>(
+        r#"{"data":[{"action_id":"x","action_name":"x","enabled":true,"installed_at":7,"installed_version":"x","latest_version":"x","missing_secrets":["x"],"object":"action_gallery_installation","source":"x","template_slug":"x","trigger":"x","update_available":true,"update_requires_secrets":["x"],"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
 }
 
 #[test]
@@ -173,6 +177,38 @@ fn decode_audit_logs() {
     // GET /v1/audit_logs
     round_trip::<types::AuditLogsListResponse>(
         r#"{"data":[{"action":"x","actor_id":"x","actor_type":"x","created_at":7,"id":"x","metadata":{"k":"v"},"object":"audit_log","target_id":"x","target_type":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+}
+
+#[test]
+fn decode_better_auth_imports() {
+    // POST /v1/better_auth_imports
+    round_trip::<types::BetterAuthImport>(
+        r#"{"analyzed_at":7,"apply_started_at":7,"bundle_purged":true,"bundle_sha256":"x","bytes":7,"completed_at":7,"created_at":7,"error":{"code":"x","message":"x"},"id":"x","key_id":"x","object":"better_auth_import","options":{"create_app_roles":true,"default_role":"x","import_jwks":true,"import_oauth_tokens":true,"import_sessions":true,"import_subscriptions":true,"jwks_cutover_days":7,"models":["x"],"on_email_conflict":"skip","passkeys_on_rp_mismatch":"skip","plan_map":{"k":"x"},"retain_bundle":true},"parts":7,"progress":{"failed":7,"percent":7,"processed":7,"succeeded":7,"total":7},"report":{"action_items":[{"code":"x","count":7,"items":["x"],"message":"x","severity":"required"}],"conflicts":[{"code":"x","existing_id":"x","message":"x","model":"x","resolution":"merge","row_id":"x","value":"x"}],"conflicts_total":7,"models":[{"found":7,"label":"x","model":"x","will_create":7,"will_skip":7,"will_update":7}],"notes":{"k":"v"},"skipped":[{"model":"x","reason":"x","reason_code":"x","row_id":"x"}],"skipped_by_code":{"k":7},"skipped_total":7,"warnings":["x"]},"result":{"action_items":[{"code":"x","count":7,"items":["x"],"message":"x","severity":"required"}],"completed_at":7,"conflicts":[{"code":"x","existing_id":"x","message":"x","model":"x","resolution":"merge","row_id":"x","value":"x"}],"conflicts_total":7,"models":[{"created":7,"failed":7,"found":7,"label":"x","model":"x","skipped":7,"unchanged":7,"updated":7}],"notes":{"k":"v"},"skipped":[{"model":"x","reason":"x","reason_code":"x","row_id":"x"}],"skipped_by_code":{"k":7},"skipped_total":7,"warnings":["x"]},"source":{"base_url":"x","better_auth_version":"x","exported_at":"x","exporter":{"name":"x","version":"x"},"models":["x"],"plugins":["x"],"rp_id":"x","social_providers":["x"]},"status":"uploading","total":7,"updated_at":7}"#,
+    );
+    // GET /v1/better_auth_imports
+    round_trip::<types::BetterAuthImportsListResponse>(
+        r#"{"data":[{"analyzed_at":7,"apply_started_at":7,"bundle_purged":true,"bundle_sha256":"x","bytes":7,"completed_at":7,"created_at":7,"error":{"code":"x","message":"x"},"id":"x","key_id":"x","object":"better_auth_import","options":{"create_app_roles":true,"default_role":"x","import_jwks":true,"import_oauth_tokens":true,"import_sessions":true,"import_subscriptions":true,"jwks_cutover_days":7,"models":["x"],"on_email_conflict":"skip","passkeys_on_rp_mismatch":"skip","plan_map":{"k":"x"},"retain_bundle":true},"parts":7,"progress":{"failed":7,"percent":7,"processed":7,"succeeded":7,"total":7},"report":{"action_items":[{"code":"x","count":7,"items":["x"],"message":"x","severity":"required"}],"conflicts":[{"code":"x","existing_id":"x","message":"x","model":"x","resolution":"merge","row_id":"x","value":"x"}],"conflicts_total":7,"models":[{"found":7,"label":"x","model":"x","will_create":7,"will_skip":7,"will_update":7}],"notes":{"k":"v"},"skipped":[{"model":"x","reason":"x","reason_code":"x","row_id":"x"}],"skipped_by_code":{"k":7},"skipped_total":7,"warnings":["x"]},"result":{"action_items":[{"code":"x","count":7,"items":["x"],"message":"x","severity":"required"}],"completed_at":7,"conflicts":[{"code":"x","existing_id":"x","message":"x","model":"x","resolution":"merge","row_id":"x","value":"x"}],"conflicts_total":7,"models":[{"created":7,"failed":7,"found":7,"label":"x","model":"x","skipped":7,"unchanged":7,"updated":7}],"notes":{"k":"v"},"skipped":[{"model":"x","reason":"x","reason_code":"x","row_id":"x"}],"skipped_by_code":{"k":7},"skipped_total":7,"warnings":["x"]},"source":{"base_url":"x","better_auth_version":"x","exported_at":"x","exporter":{"name":"x","version":"x"},"models":["x"],"plugins":["x"],"rp_id":"x","social_providers":["x"]},"status":"uploading","total":7,"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // GET /v1/better_auth_imports/jwks
+    round_trip::<types::BetterAuthImportsListJwksResponse>(
+        r#"{"data":[{"created_at":7,"expires_at":7,"import_id":"x","jwk":{"k":"v"},"kid":"x","object":"imported_jwk","source":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // DELETE /v1/better_auth_imports/jwks/{kid}
+    round_trip::<types::BetterAuthImportsDeleteJwkResponse>(
+        r#"{"deleted":true,"kid":"x","object":"imported_jwk"}"#,
+    );
+    // GET /v1/better_auth_imports/public_key
+    round_trip::<types::BetterAuthImportKey>(
+        r#"{"alg":"X25519-HKDF-SHA256-A256GCM","compact":"x","created_at":7,"fingerprint":"x","kid":"x","object":"better_auth_import_key","public_key":"x","retired_at":7,"status":"active"}"#,
+    );
+    // DELETE /v1/better_auth_imports/{id}
+    round_trip::<types::BetterAuthImportsDeleteResponse>(
+        r#"{"deleted":true,"id":"x","object":"better_auth_import"}"#,
+    );
+    // PUT /v1/better_auth_imports/{id}/parts/{part}
+    round_trip::<types::BetterAuthImportsUploadPartResponse>(
+        r#"{"bytes":7,"import_id":"x","object":"better_auth_import_part","part":7,"sha256":"x"}"#,
     );
 }
 
@@ -822,7 +858,7 @@ fn decode_mcp_connector() {
 
 #[test]
 fn decode_messaging_providers_api() {
-    // POST /v1/messaging_providers/email/development
+    // GET /v1/messaging_providers/email/development
     round_trip::<types::DevelopmentEmail>(
         r#"{"active":true,"enabled":true,"footer":"x","from_address":"x","limits":{"daily":7,"per_recipient_hourly":7},"next_step":"x","note":"x","object":"development_email","provider_id":"x","subject_prefix":"x","templates":["x"],"transport":"x","updated_at":7}"#,
     );
@@ -830,13 +866,25 @@ fn decode_messaging_providers_api() {
     round_trip::<types::MessagingProvidersDisableDevelopmentEmailResponse>(
         r#"{"deleted":true,"mode":"standard","object":"development_email","provider_id":"x"}"#,
     );
-    // POST /v1/messaging_providers/email/managed
+    // GET /v1/messaging_providers/email/managed
     round_trip::<types::ManagedEmail>(
         r#"{"backend":"resend","created_at":7,"dns":{"provider":"x","token_set":true},"dns_result":{"k":"v"},"domain":"x","failure_reason":"x","feedback_webhook":"registered","from_address":"x","id":"x","last_checked_at":7,"limits":"sample","next_step":"x","object":"managed_email","provider":"x","provider_id":"x","records":[{"name":"x","priority":7,"purpose":"dkim","status":"x","type":"TXT","value":"x"}],"region":"x","reputation":"your_provider_account","status":"x","updated_at":7,"usage":{"bounces":7,"complaints":7,"last_bounce_at":7,"last_complaint_at":7,"sent":7},"verified":true,"verified_at":7}"#,
     );
     // DELETE /v1/messaging_providers/email/managed
     round_trip::<types::MessagingProvidersDeleteManagedEmailResponse>(
         r#"{"deleted":true,"domain":"x","object":"managed_email","provider_removed":true}"#,
+    );
+}
+
+#[test]
+fn decode_better_auth_bridge_api() {
+    // GET /v1/migrations/better_auth/bridge
+    round_trip::<types::BetterAuthBridgeSettings>(
+        r#"{"cookie_prefix":"x","created_at":7,"enabled":true,"ends_at":7,"exchange_path":"x","live_fallback":{"base_url":"x","enabled":true,"has_secret":true},"object":"better_auth_bridge","stats":{"exchanged":7,"from_import":7,"from_live":7},"updated_at":7}"#,
+    );
+    // DELETE /v1/migrations/better_auth/bridge
+    round_trip::<types::BetterAuthBridgeDeleteResponse>(
+        r#"{"deleted":true,"object":"better_auth_bridge"}"#,
     );
 }
 
@@ -938,13 +986,13 @@ fn decode_open_fga() {
     round_trip::<types::OpenFgaGetStoreResponse>(
         r#"{"created_at":"x","id":"x","name":"x","updated_at":"x"}"#,
     );
-    // GET /v1/openfga/stores/{store}/authorization-models
-    round_trip::<types::OpenFgaReadAuthorizationModelsResponse>(
-        r#"{"authorization_models":[{"id":"x","schema_version":"x"}]}"#,
-    );
     // POST /v1/openfga/stores/{store}/authorization-models
     round_trip::<types::OpenFgaWriteAuthorizationModelResponse>(
         r#"{"authorization_model_id":"x"}"#,
+    );
+    // GET /v1/openfga/stores/{store}/authorization-models
+    round_trip::<types::OpenFgaReadAuthorizationModelsResponse>(
+        r#"{"authorization_models":[{"id":"x","schema_version":"x"}]}"#,
     );
     // GET /v1/openfga/stores/{store}/authorization-models/{mid}
     round_trip::<types::OpenFgaReadAuthorizationModelResponse>(

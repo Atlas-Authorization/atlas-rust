@@ -16,6 +16,7 @@
 //! # let _ = (user, first_page); Ok(()) }
 //! ```
 
+mod better_auth;
 mod catalog;
 mod client;
 mod design;
@@ -31,6 +32,13 @@ mod testing;
 pub mod types;
 mod webhook;
 
+pub use better_auth::{
+    better_auth_cookie_names, client_ip_from_headers, exchange_better_auth_session, read_better_auth_session_cookie,
+    split_bundle_parts, BetterAuthBridge, BetterAuthExchangeResult, BridgeAction, BridgeCookie, BridgeDecision,
+    BridgeRefusal, BridgedSession, ExchangeParams, UploadOptions, WaitOptions, BETTER_AUTH_COOKIE_PREFIX,
+    BETTER_AUTH_EXCHANGE_PATH, BETTER_AUTH_IMPORT_IN_FLIGHT, BETTER_AUTH_IMPORT_PART_BYTES, CLIENT_IP_HEADER,
+    CLIENT_USER_AGENT_HEADER,
+};
 pub use catalog::*;
 pub use settings_helpers::{
     BILLING_PROVIDERS, CAPTCHA_PROVIDERS, EMAIL_TEMPLATE_ACCOUNT_REACTIVATED, LINKING_TRUST_LEVELS, SIGNING_KEY_PROVIDERS,

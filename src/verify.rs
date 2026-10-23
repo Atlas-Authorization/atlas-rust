@@ -16,6 +16,7 @@ use crate::claims::Claims;
 use crate::clock::Clock;
 use crate::error::{ConfigError, VerifyError};
 use crate::jwks::{decode_with_set, JwksCache, JwksSource, SIGNING_ALGS};
+use crate::legacy_issuers::{LegacyIssuer, LegacyOutcome, LegacyVerifier, SubjectResolver};
 
 /// §7.3: five seconds either side, matching the server's minting tolerance.
 pub const CLOCK_SKEW_SECONDS: u64 = 5;
@@ -55,6 +56,8 @@ pub struct AtlasBackendBuilder {
     clock: Option<Clock>,
     ttl_ms: Option<u64>,
     refetch_interval_ms: Option<u64>,
+    legacy_issuers: Vec<LegacyIssuer>,
+    legacy_resolver: Option<Arc<dyn SubjectResolver>>,
 }
 
 impl AtlasBackendBuilder {
@@ -69,7 +72,29 @@ impl AtlasBackendBuilder {
             clock: None,
             ttl_ms: None,
             refetch_interval_ms: None,
+            legacy_issuers: Vec::new(),
+            legacy_resolver: None,
         }
+    }
+
+    /// Cutover from another auth provider (Better Auth): ALSO accept JWTs from
+    /// this issuer until its window ends, verified against that issuer's own
+    /// key set, with `sub` mapped to the Atlas user id (the old id is the
+    /// user's `external_id`). The claims then carry `sub` = the Atlas id,
+    /// `external_id` = the old id and `extra["legacy"]` =
+    /// `{kind, issuer, sub}`. Atlas tokens are unaffected. Call once per
+    /// issuer. See [`crate::LegacyIssuer`] (ES512 is not supported).
+    pub fn legacy_issuer(mut self, issuer: LegacyIssuer) -> Self {
+        self.legacy_issuers.push(issuer);
+        self
+    }
+
+    /// The subject resolver for legacy issuers that have none of their own —
+    /// typically [`crate::BackendSubjectResolver`] (feature `backend`), which
+    /// looks the user up by `external_id` with your secret key.
+    pub fn legacy_subject_resolver(mut self, resolver: Arc<dyn SubjectResolver>) -> Self {
+        self.legacy_resolver = Some(resolver);
+        self
     }
 
     /// Fetch and cache keys from this JWKS URL (typically
@@ -165,16 +190,38 @@ impl AtlasBackendBuilder {
             ));
         }
 
-        // Resolve the fetch source for a URL-backed cache.
-        let source: Option<Arc<dyn JwksSource>> = if has_static {
-            None
-        } else if let Some(s) = self.source {
+        // Resolve the fetch source for a URL-backed cache (and any legacy
+        // issuer fetched by URL).
+        let legacy_needs_source = self.legacy_issuers.iter().any(|l| l.jwks_url.is_some());
+        let source: Option<Arc<dyn JwksSource>> = if let Some(s) = self.source {
             Some(s)
+        } else if has_static && !legacy_needs_source {
+            None
         } else {
-            default_source()?
+            match default_source() {
+                Ok(s) => s,
+                // Only a legacy issuer needs it: let its own validation name
+                // the problem (a misconfiguration is reported before a
+                // missing transport).
+                Err(_) if has_static => None,
+                Err(e) => return Err(e),
+            }
         };
 
         let clock = self.clock.clone().unwrap_or_else(crate::clock::system_clock);
+        let legacy = if self.legacy_issuers.is_empty() {
+            None
+        } else {
+            Some(LegacyVerifier::new(
+                self.legacy_issuers,
+                &self.issuer,
+                self.legacy_resolver,
+                source.clone(),
+                clock.clone(),
+                CLOCK_SKEW_SECONDS,
+            )?)
+        };
+        let source = if has_static { None } else { source };
         let cache = JwksCache::new(
             self.jwks_url,
             self.static_jwks,
@@ -192,6 +239,7 @@ impl AtlasBackendBuilder {
             },
             jwks: cache,
             clock,
+            legacy,
         })
     }
 }
@@ -213,6 +261,7 @@ pub struct AtlasBackend {
     pub(crate) options: AtlasBackendOptions,
     pub(crate) jwks: JwksCache,
     pub(crate) clock: Clock,
+    legacy: Option<LegacyVerifier>,
 }
 
 impl AtlasBackend {
@@ -254,6 +303,28 @@ impl AtlasBackend {
         // to even deserialize into `Algorithm` — but we also reject explicitly,
         // so the critical "RS256 only" rule is visible and never depends on a
         // default elsewhere.
+        // A token from a configured legacy issuer (inside its window) is
+        // verified against THAT issuer's keys only — never the Atlas keys; the
+        // unverified `iss` only routes, the signature decides.
+        if let Some(legacy) = &self.legacy {
+            if let Some(outcome) = legacy.verify(token).await {
+                return match outcome {
+                    LegacyOutcome::NoKeys => Err(VerifyError::NoKeys),
+                    LegacyOutcome::Invalid => Err(VerifyError::Invalid),
+                    LegacyOutcome::Ok(claims) => {
+                        if !self.options.authorized_parties.is_empty() {
+                            if let Some(azp) = claims.azp.as_deref() {
+                                if !self.options.authorized_parties.iter().any(|p| p == azp) {
+                                    return Err(VerifyError::UnauthorizedParty);
+                                }
+                            }
+                        }
+                        Ok(*claims)
+                    }
+                };
+            }
+        }
+
         let header = match decode_header(token) {
             Ok(h) => h,
             Err(_) => return Err(VerifyError::Invalid),

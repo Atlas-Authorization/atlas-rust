@@ -252,7 +252,7 @@ impl BackendClient {
         content_type: &str,
     ) -> Result<T, BackendError> {
         let text = self
-            .send_inner(method, path, query, Payload::Raw(bytes, content_type.to_string()), None)
+            .send_inner(method, path, query, Payload::Raw(bytes, content_type.to_string()), None, &[], true)
             .await?;
         parse_body(&text)
     }
@@ -271,9 +271,29 @@ impl BackendClient {
             Some(v) => Payload::Json(serde_json::to_string(v).map_err(|e| BackendError::Malformed(e.to_string()))?),
             None => Payload::None,
         };
-        self.send_inner(method, path, query, payload, idempotency_key).await
+        self.send_inner(method, path, query, payload, idempotency_key, &[], true).await
     }
 
+    /// One JSON request with extra per-call headers and NO retry, for a
+    /// single-use call (the Better Auth session exchange) where a retry after a
+    /// lost response would spend the token twice. The extra headers can never
+    /// replace the `Authorization` bearer.
+    pub(crate) async fn request_once_with_headers<T: DeserializeOwned>(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        body: Option<Value>,
+        headers: &[(&str, String)],
+    ) -> Result<T, BackendError> {
+        let payload = match &body {
+            Some(v) => Payload::Json(serde_json::to_string(v).map_err(|e| BackendError::Malformed(e.to_string()))?),
+            None => Payload::None,
+        };
+        let text = self.send_inner(method, path, &[], payload, None, headers, false).await?;
+        parse_body(&text)
+    }
+
+    #[allow(clippy::too_many_arguments)]
     async fn send_inner(
         &self,
         method: HttpMethod,
@@ -281,7 +301,10 @@ impl BackendClient {
         query: &[(&str, String)],
         payload: Payload,
         idempotency_key: Option<&str>,
+        extra_headers: &[(&str, String)],
+        retry: bool,
     ) -> Result<String, BackendError> {
+        let max_retries = if retry { self.max_retries } else { 0 };
         let url = format!("{}{}{}", self.base(), path, serialize_query(query));
 
         let mut attempt: u32 = 0;
@@ -303,6 +326,11 @@ impl BackendClient {
             if let Some(key) = idempotency_key {
                 req = req.header("idempotency-key", key);
             }
+            for (name, value) in extra_headers {
+                if !name.eq_ignore_ascii_case("authorization") {
+                    req = req.header(*name, value.clone());
+                }
+            }
             if method != HttpMethod::Get {
                 if let Some(strict) = self.strict {
                     req = req.header(ATLAS_STRICT_HEADER, if strict { "true" } else { "false" });
@@ -312,7 +340,7 @@ impl BackendClient {
             let result = self.transport.send_full(req, raw).await;
             match result {
                 Err(transport_err) => {
-                    if attempt < self.max_retries {
+                    if attempt < max_retries {
                         self.backoff(attempt).await;
                         attempt += 1;
                         continue;
@@ -336,7 +364,7 @@ impl BackendClient {
                         return Ok(resp.body);
                     }
                     // 5xx and 429 are transient: retry while budget remains.
-                    if (resp.status >= 500 || resp.status == 429) && attempt < self.max_retries {
+                    if (resp.status >= 500 || resp.status == 429) && attempt < max_retries {
                         self.backoff(attempt).await;
                         attempt += 1;
                         continue;

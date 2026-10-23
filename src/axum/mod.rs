@@ -57,11 +57,15 @@ use ::axum::http::header::{AUTHORIZATION, COOKIE};
 use ::axum::http::HeaderMap;
 
 mod access_token;
+#[cfg(feature = "backend")]
+mod better_auth;
 mod claims;
 mod middleware;
 mod rejection;
 
 pub use access_token::{AtlasAccessToken, AtlasAccessTokenLayer};
+#[cfg(feature = "backend")]
+pub use better_auth::{BetterAuthBridgeLayer, BetterAuthBridgeService};
 pub use claims::AtlasClaims;
 pub use middleware::{require_auth, AtlasAuth, AtlasLayer};
 pub use rejection::AtlasRejection;

@@ -2,6 +2,16 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.21.0 — 2026-10-24
+
+### Added
+
+- **Migrate from Better Auth — bundle import.** `better_auth_imports()` (catalog regenerated from the current API): `get_public_key`, `rotate_public_key`, `create`, `list`, `get`, `upload_part`, `finalize`, `dry_run`, `apply`, `delete`, `list_jwks`, `delete_jwk`, typed as one shared `types::BetterAuthImport` (status, progress, the dry-run `report`, the `result`), `types::BetterAuthImportKey` and `types::BetterAuthImportOptionsInput`. Helpers: `upload(bundle, UploadOptions)` creates the import, uploads the sealed bundle in line-aligned parts of at most 8 MiB (`split_bundle_parts`, `BETTER_AUTH_IMPORT_PART_BYTES`) and finalizes it; `wait_for(id, WaitOptions)` polls until the import leaves `analyzing` / `queued` / `applying`.
+- **Better Auth session bridge.** `better_auth_bridge()`: `get` / `update` / `delete` the bridge settings (migration window, cookie prefix, live fallback with a write-only secret) and `exchange(token, &ExchangeParams)` — the secret-key exchange, forwarding the end user's IP and user agent (`X-Atlas-Client-IP`, `X-Atlas-Client-User-Agent`) and never retried (the token is single use). `exchange_better_auth_session` classifies the answer (`BetterAuthExchangeResult::Session` / `NeedsMfa` / `Refused` with a `BridgeRefusal`). `BetterAuthBridge` is the framework-neutral bridge: it reads the Better Auth cookie, exchanges it once and returns a `BridgeDecision` with the Atlas cookies to set and the Better Auth cookies to clear (cleared only on final refusals), plus `continuation_url` for a second factor. Cookie helpers `better_auth_cookie_names`, `read_better_auth_session_cookie`, `client_ip_from_headers`.
+- **Axum.** `axum::BetterAuthBridgeLayer` and `AtlasLayer::with_better_auth_bridge(bridge)` (features `axum` + `backend`): a `GET` / `HEAD` carrying a Better Auth session cookie is answered with a `307` to the same URL carrying the Atlas session cookies (or to the bridge's sign-in URL when a second factor is owed).
+- **Better Auth JWTs during the cutover.** `AtlasBackendBuilder::legacy_issuer(LegacyIssuer)`: a token whose `iss` is the old issuer, inside its window, is verified against that issuer's own keys only (`jwks` or `jwks_url`), must carry `exp`, and has its `sub` mapped to the Atlas user — by `LegacyIssuer::resolve_subject`, or by `legacy_subject_resolver(Arc::new(BackendSubjectResolver::new(client)))` (feature `backend`), which looks the user up by `external_id` and caches it for five minutes. Verified claims carry `sub` (Atlas id), `external_id` (the old id) and `extra["legacy"]`. Accepted algorithms: EdDSA, ES256, RS256, PS256 (`LEGACY_ISSUER_ALGS`). **ES512 is not supported** by this crate's signature backend: an ES512 token is refused and naming `ES512` is a build error.
+- `action_gallery().installs(..)` (`GET /v1/action_gallery_installs`), which the catalog generator had skipped.
+
 ## 0.20.0 — 2026-10-24
 
 ### Added

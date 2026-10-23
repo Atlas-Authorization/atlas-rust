@@ -63,6 +63,60 @@ for _new, _old in REF_ALIAS.items():
 d = json.loads(_raw)
 comps = d['components']
 
+# Inline schemas the API repeats across operations, hoisted into one named
+# component so every operation shares one type (e.g. the Better Auth import
+# object that create, get, finalize, dry_run, apply and list all return).
+# (component name, method, path, where): `where` is 'response' (the 2xx JSON
+# body) or 'request.<prop>' (a property of the JSON request body). Every
+# BAPI/PLATFORM schema structurally equal to the source becomes a $ref.
+HOIST = [
+    ('BetterAuthImport', 'get', '/v1/better_auth_imports/{id}', 'response'),
+    ('BetterAuthImportKey', 'get', '/v1/better_auth_imports/public_key', 'response'),
+    ('BetterAuthBridgeSettings', 'get', '/v1/migrations/better_auth/bridge', 'response'),
+    ('BetterAuthImportOptionsInput', 'post', '/v1/better_auth_imports', 'request.options'),
+]
+
+def _hoist():
+    def two_xx(op):
+        for code, r in sorted(op.get('responses', {}).items()):
+            if code.startswith('2'):
+                return r.get('content', {}).get('application/json', {}).get('schema')
+        return None
+    for name, method, path, where in HOIST:
+        op = d['paths'].get(path, {}).get(method)
+        if not op:
+            continue
+        if where == 'response':
+            src = two_xx(op)
+        else:
+            body = op.get('requestBody', {}).get('content', {}).get('application/json', {}).get('schema') or {}
+            src = body.get('properties', {}).get(where.split('.', 1)[1])
+        if not isinstance(src, dict) or '$ref' in src:
+            continue
+        key = json.dumps(src, sort_keys=True)
+        comps.setdefault('schemas', {})[name] = json.loads(key)
+        ref = {'$ref': f'#/components/schemas/{name}'}
+
+        def walk(node):
+            if isinstance(node, dict):
+                for k, v in list(node.items()):
+                    if isinstance(v, dict) and json.dumps(v, sort_keys=True) == key:
+                        node[k] = dict(ref)
+                    else:
+                        walk(v)
+            elif isinstance(node, list):
+                for i, v in enumerate(node):
+                    if isinstance(v, dict) and json.dumps(v, sort_keys=True) == key:
+                        node[i] = dict(ref)
+                    else:
+                        walk(v)
+        for pops in d['paths'].values():
+            for m, o in pops.items():
+                if m in ('get', 'post', 'put', 'patch', 'delete') and o.get('tags', [''])[0] in ('BAPI', 'PLATFORM'):
+                    walk(o)
+
+_hoist()
+
 # ── which operations ─────────────────────────────────────────────────────────
 spec_ops = set()
 for p, pops in d['paths'].items():
@@ -106,6 +160,7 @@ NS = [
     ('/v1/logout_notify_endpoints', 'LogoutNotifyEndpoints', 'logout_notify_endpoints', 'Logout fan-out endpoints: services that get the same logout_token as your OIDC apps'),
     ('/v1/actions', 'Actions', 'actions', 'Actions: custom code run on auth triggers'),
     ('/v1/action_gallery', 'ActionGallery', 'action_gallery', 'The community Actions gallery: browse, install and update Action templates'),
+    ('/v1/action_gallery_installs', 'ActionGallery', 'action_gallery', 'The community Actions gallery: browse, install and update Action templates'),
     ('/v1/action_templates', 'ActionTemplates', 'action_templates', 'Action templates this instance publishes to the gallery'),
     ('/v1/custom_oauth_providers', 'CustomOAuthProviders', 'custom_oauth_providers', 'Custom OAuth / OIDC providers: your own upstream identity providers, with Atlas as the relying party'),
     ('/v1/app_roles', 'AppRoles', 'app_roles', 'App roles: instance-wide user roles (the app_roles / app_permissions claims)'),
@@ -130,6 +185,8 @@ NS = [
     ('/v1/fga', 'Fga', 'fga', 'Fine-grained authorization (FGA) stores'),
     ('/v1/openfga', 'OpenFga', 'openfga', 'The OpenFGA-compatible API'),
     ('/v1/jobs', 'Jobs', 'jobs', 'Background jobs (imports and exports)'),
+    ('/v1/better_auth_imports', 'BetterAuthImports', 'better_auth_imports', 'Migrate from Better Auth: import a sealed bundle made by the Better Auth exporter'),
+    ('/v1/migrations/better_auth', 'BetterAuthBridgeApi', 'better_auth_bridge', 'The Better Auth session bridge: exchange a returning user\'s Better Auth session for an Atlas session during the migration window'),
     ('/v1/jwt_templates', 'JwtTemplates', 'jwt_templates', 'JWT templates'),
     ('/v1/legacy_auth_connection', 'LegacyAuthConnection', 'legacy_auth_connection', 'The legacy-auth (lazy migration) connection'),
     ('/v1/localizations', 'Localizations', 'localizations', 'Localizations'),
@@ -283,6 +340,21 @@ OVR = {
     ('POST', '/v1/openfga/stores/{store}/batch-check'): 'batch_check',
     ('POST', '/v1/openfga/stores/{store}/list-objects'): 'list_objects',
     ('GET', '/v1/jobs/{id}/errors'): 'list_errors',
+    ('GET', '/v1/better_auth_imports/public_key'): 'get_public_key',
+    ('POST', '/v1/better_auth_imports/public_key/rotate'): 'rotate_public_key',
+    ('POST', '/v1/better_auth_imports'): 'create',
+    ('GET', '/v1/better_auth_imports'): 'list',
+    ('GET', '/v1/better_auth_imports/{id}'): 'get',
+    ('DELETE', '/v1/better_auth_imports/{id}'): 'delete',
+    ('PUT', '/v1/better_auth_imports/{id}/parts/{part}'): 'upload_part',
+    ('POST', '/v1/better_auth_imports/{id}/finalize'): 'finalize',
+    ('POST', '/v1/better_auth_imports/{id}/dry_run'): 'dry_run',
+    ('POST', '/v1/better_auth_imports/{id}/apply'): 'apply',
+    ('GET', '/v1/better_auth_imports/jwks'): 'list_jwks',
+    ('DELETE', '/v1/better_auth_imports/jwks/{kid}'): 'delete_jwk',
+    ('GET', '/v1/migrations/better_auth/bridge'): 'get',
+    ('PUT', '/v1/migrations/better_auth/bridge'): 'update',
+    ('DELETE', '/v1/migrations/better_auth/bridge'): 'delete',
     ('GET', '/v1/legacy_auth_connection'): 'get',
     ('PUT', '/v1/legacy_auth_connection'): 'set',
     ('DELETE', '/v1/legacy_auth_connection'): 'delete',
