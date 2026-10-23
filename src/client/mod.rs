@@ -42,8 +42,9 @@ pub use revocation::{
     PollResult, RevokedKeyPoller, TokenAuth,
 };
 pub use self_service::{
-    ApiTokenRecord, BearerSource, ClientApiError, ClientSession, List, MfaFactor, OAuthGrant,
-    OrganizationMembership, Passkey, SelfServiceClient, StaticBearer, TrustedDevice, UserProfile,
+    format_user_code, user_code_from_url, ApiTokenRecord, BearerSource, ClientApiError, ClientSession, List,
+    MfaFactor, OAuthGrant, OrganizationMembership, Passkey, PendingDeviceAuthorization, PendingDeviceClient,
+    PendingDeviceScope, SelfServiceClient, SessionLogout, StaticBearer, TrustedDevice, UserProfile,
 };
 pub use store::{CallbackSecureStore, MemorySecureStore, SecureStore, SecureStoreError};
 

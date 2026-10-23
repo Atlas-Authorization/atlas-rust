@@ -56,10 +56,12 @@
 use ::axum::http::header::{AUTHORIZATION, COOKIE};
 use ::axum::http::HeaderMap;
 
+mod access_token;
 mod claims;
 mod middleware;
 mod rejection;
 
+pub use access_token::{AtlasAccessToken, AtlasAccessTokenLayer};
 pub use claims::AtlasClaims;
 pub use middleware::{require_auth, AtlasAuth, AtlasLayer};
 pub use rejection::AtlasRejection;

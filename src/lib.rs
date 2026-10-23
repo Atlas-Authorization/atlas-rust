@@ -40,6 +40,11 @@ mod access_token;
 mod apikey;
 mod claims;
 mod clock;
+mod dpop;
+#[cfg(any(feature = "backend", feature = "client"))]
+mod introspection;
+#[cfg(feature = "backend")]
+mod botid;
 mod error;
 mod jwks;
 mod logout;
@@ -82,8 +87,18 @@ pub use apikey::{
     DEFAULT_BASE_URL, DEFAULT_MAX_ENTRIES, DEFAULT_NEGATIVE_TTL_MS, DEFAULT_POSITIVE_TTL_MS,
 };
 pub use access_token::{
-    build_www_authenticate, protected_resource_metadata, protected_resource_metadata_path, AccessTokenOptions,
-    AccessTokenResult,
+    build_challenge, build_www_authenticate, protected_resource_metadata, protected_resource_metadata_path,
+    protected_resource_metadata_requiring_dpop, AccessTokenOptions, AccessTokenResult, ResourceRequest,
+};
+#[cfg(any(feature = "backend", feature = "client"))]
+pub use introspection::{IntrospectionError, IntrospectionOptions, Introspector};
+#[cfg(feature = "backend")]
+pub use botid::{
+    create_botid_attestation, BOTID_ATTESTATION_MAX_TTL_SECONDS, BOTID_ATTESTATION_PREFIX, BOTID_SECRET_MIN_LENGTH,
+};
+pub use dpop::{
+    dpop_access_token_hash, jwk_thumbprint, normalize_htu, DpopNonceSource, DpopReplayStore, HmacDpopNonceSource,
+    MemoryDpopReplayStore, DPOP_ALGS, DPOP_CLOCK_SKEW_SECONDS, DPOP_PROOF_MAX_AGE_SECONDS,
 };
 pub use claims::Claims;
 pub use clock::{system_clock, Clock};

@@ -1134,6 +1134,15 @@ pub struct Session {
     pub extra: Map<String, Value>,
 }
 
+impl Session {
+    /// The custom per-session data your backend (or a post_login Action)
+    /// attached, when any. Change it with `Sessions::set_custom_data` /
+    /// `Sessions::update_custom_data`.
+    pub fn custom_data(&self) -> Option<&Map<String, Value>> {
+        self.extra.get("custom_data").and_then(Value::as_object)
+    }
+}
+
 /// A freshly-minted session — carries the bearer `jwt` + `refresh_token`
 /// in-body for headless use.
 #[derive(Debug, Clone, Deserialize)]

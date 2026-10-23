@@ -26,11 +26,15 @@ mod pagination;
 mod platform;
 mod platform_api;
 mod resources;
+mod settings_helpers;
 mod testing;
 pub mod types;
 mod webhook;
 
 pub use catalog::*;
+pub use settings_helpers::{
+    BILLING_PROVIDERS, CAPTCHA_PROVIDERS, EMAIL_TEMPLATE_ACCOUNT_REACTIVATED, LINKING_TRUST_LEVELS, SIGNING_KEY_PROVIDERS,
+};
 pub use client::{
     BackendClient, BackendClientBuilder, UnknownFields, UnknownFieldsHook, ATLAS_STRICT_HEADER,
     ATLAS_UNKNOWN_FIELDS_HEADER, DEFAULT_API_URL, DEFAULT_BASE_DELAY_MS, DEFAULT_MAX_RETRIES,

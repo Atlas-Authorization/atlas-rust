@@ -1,6 +1,6 @@
 [package]
 name = "atlasauth"
-version = "0.19.0"
+version = "0.20.0"
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
@@ -22,13 +22,13 @@ reqwest-transport = ["dep:reqwest"]
 # P0-2: the typed management client for the secret-key Backend API, the typed
 # webhook verifier, and the cursor-pagination helper. Mirrors
 # `@atlasauth/backend`'s resource surface and webhook signature scheme.
-backend = ["dep:hmac", "dep:sha2", "dep:base64", "dep:tokio"]
+backend = ["dep:tokio", "dep:rand"]
 
 # P0-1: the native (first-party) client SDK — PKCE S256 + device-authorization
 # OAuth flows, the RFC 8693 OAuth→session exchange, a lazy single-flight session
 # manager, a `SecureStore` abstraction, and the `/v1/client/me/**` self-service
 # surface over a session bearer.
-client = ["dep:sha2", "dep:base64", "dep:rand", "dep:url", "dep:tokio"]
+client = ["dep:rand", "dep:url", "dep:tokio"]
 
 # Framework-native Axum integration: the `AtlasClaims` extractor, the
 # `AtlasLayer` tower middleware, and the `require_auth` helper. Off by default
@@ -64,7 +64,7 @@ linux-keyutils = ["dep:keyring", "keyring/linux-native"]   # Linux kernel keyuti
 # needs no OS keychain and no dbus, so it is the portable fallback on a headless
 # Linux box — and, being pure Rust, it compiles and round-trips on every target
 # (which is how its round-trip is tested on the CI host). Only useful with `client`.
-encrypted-file = ["client", "dep:chacha20poly1305", "dep:hkdf", "dep:sha2", "dep:base64", "dep:rand"]
+encrypted-file = ["client", "dep:chacha20poly1305", "dep:hkdf", "dep:rand"]
 
 # §P1-7 the public MACHINE (device) flow: generate an Ed25519 keypair, enrol it,
 # sign the server challenge, and mint/refresh a short m2m token. All three device
@@ -78,11 +78,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"], optional = true }
-# `backend` (webhook HMAC) + `client` (PKCE S256). SHA-256 via a pure-Rust crate
-# so the crate honours `#![forbid(unsafe_code)]`.
-hmac = { version = "0.12", optional = true }
-sha2 = { version = "0.10", optional = true }
-base64 = { version = "0.22", optional = true }
+# DPoP proof checks (ath, RFC 7638 thumbprints, HMAC nonces), the webhook HMAC
+# and PKCE S256. Pure-Rust crates so the crate honours `#![forbid(unsafe_code)]`.
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
 rand = { version = "0.8", optional = true }
 url = { version = "2", optional = true }
 # Async timing (backend retry backoff) + an async mutex (client single-flight

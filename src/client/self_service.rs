@@ -546,6 +546,76 @@ impl SelfServiceClient {
     pub async fn complete_step_up_passkey(&self, body: Value) -> Result<Value, ClientApiError> {
         self.call(HttpMethod::Post, "/v1/client/me/step_up/passkey", Some(body)).await
     }
+
+    // ── sign-out with upstream logout ────────────────────────────────────────
+
+    /// `POST /v1/client/sessions/:id/revoke` with the logout hand-off: when the
+    /// session came from an upstream OIDC provider set to RP-initiated logout, or
+    /// a SAML connection with Single Logout, Atlas answers with the URL to send
+    /// the browser to. Open it in the system browser after clearing the local
+    /// session. `return_url` must be on an allowed origin (it is passed on as the
+    /// upstream `post_logout_redirect_uri` target and the SAML `redirect_url`).
+    pub async fn revoke_session_for_logout(
+        &self,
+        session_id: &str,
+        return_url: Option<&str>,
+    ) -> Result<SessionLogout, ClientApiError> {
+        let path = format!(
+            "/v1/client/sessions/{}/revoke",
+            crate::http::encode_segment(session_id)
+        );
+        let body = return_url.map(|u| serde_json::json!({ "return_url": u, "redirect_url": u }));
+        let value = self.call(HttpMethod::Post, &path, body).await?;
+        Ok(SessionLogout::from_response(&value))
+    }
+
+    // ── device sign-in approval (RFC 8628) ───────────────────────────────────
+
+    /// `POST /v1/client/me/device_authorizations/lookup` — find a pending device
+    /// sign-in (a TV, console or CLI) by the code it shows. The code is
+    /// normalised with [`format_user_code`].
+    pub async fn lookup_device_authorization(
+        &self,
+        user_code: &str,
+    ) -> Result<PendingDeviceAuthorization, ClientApiError> {
+        let body = serde_json::json!({ "user_code": format_user_code(user_code) });
+        self.call_typed(
+            HttpMethod::Post,
+            "/v1/client/me/device_authorizations/lookup",
+            Some(body),
+        )
+        .await
+    }
+
+    /// `POST /v1/client/me/device_authorizations/:id/approve` — approve it for
+    /// the signed-in user; the device's next poll receives its tokens. A stale
+    /// session is refused with `STEP_UP_REQUIRED` when the application requires
+    /// a recent re-authentication (see [`ClientApiError::needs_reverification`]).
+    pub async fn approve_device_authorization(
+        &self,
+        authorization: &PendingDeviceAuthorization,
+    ) -> Result<PendingDeviceAuthorization, ClientApiError> {
+        let path = format!(
+            "/v1/client/me/device_authorizations/{}/approve",
+            crate::http::encode_segment(&authorization.id)
+        );
+        let body = serde_json::json!({ "user_code": authorization.user_code });
+        self.call_typed(HttpMethod::Post, &path, Some(body)).await
+    }
+
+    /// `POST /v1/client/me/device_authorizations/:id/deny` — deny it; the
+    /// device's next poll is told `access_denied`.
+    pub async fn deny_device_authorization(
+        &self,
+        authorization: &PendingDeviceAuthorization,
+    ) -> Result<PendingDeviceAuthorization, ClientApiError> {
+        let path = format!(
+            "/v1/client/me/device_authorizations/{}/deny",
+            crate::http::encode_segment(&authorization.id)
+        );
+        let body = serde_json::json!({ "user_code": authorization.user_code });
+        self.call_typed(HttpMethod::Post, &path, Some(body)).await
+    }
 }
 
 // ── typed response structs (lenient: unknown fields are preserved in `extra`) ─
@@ -691,4 +761,183 @@ pub struct ApiTokenRecord {
     pub scopes: Vec<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
+}
+
+/// What a session revoke hands back for signing out of the upstream identity
+/// provider too. Both are `https` URLs (anything else is dropped) to open in the
+/// system browser.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SessionLogout {
+    /// The upstream OIDC provider's end-session URL (RP-initiated logout).
+    pub upstream_logout_url: Option<String>,
+    /// The SAML Single Logout start URL for the session's SAML connection.
+    pub saml_logout_url: Option<String>,
+}
+
+impl SessionLogout {
+    /// Read the logout URLs from a revoke response, keeping only `https` ones.
+    pub fn from_response(value: &Value) -> Self {
+        let https = |k: &str| {
+            value
+                .get(k)
+                .or_else(|| value.get("response").and_then(|r| r.get(k)))
+                .and_then(Value::as_str)
+                .filter(|u| u.starts_with("https://"))
+                .map(str::to_owned)
+        };
+        SessionLogout {
+            upstream_logout_url: https("upstream_logout_url"),
+            saml_logout_url: https("saml_logout_url"),
+        }
+    }
+
+    /// The first URL to open: the SAML one, else the upstream OIDC one.
+    pub fn url(&self) -> Option<&str> {
+        self.saml_logout_url
+            .as_deref()
+            .or(self.upstream_logout_url.as_deref())
+    }
+}
+
+/// One requested scope of a [`PendingDeviceAuthorization`], with a human description.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct PendingDeviceScope {
+    pub scope: String,
+    #[serde(default)]
+    pub description: String,
+}
+
+/// The client (device app) asking to sign in.
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+pub struct PendingDeviceClient {
+    #[serde(default)]
+    pub client_id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub logo_url: Option<String>,
+    #[serde(default)]
+    pub homepage_url: Option<String>,
+    #[serde(default)]
+    pub first_party: bool,
+}
+
+/// A pending device sign-in (RFC 8628), as the device-approval routes return it.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct PendingDeviceAuthorization {
+    pub id: String,
+    /// The code as the device shows it (`XXXX-XXXX`).
+    pub user_code: String,
+    /// `pending`, `approved` or `denied`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub client: PendingDeviceClient,
+    #[serde(default)]
+    pub scopes: Vec<PendingDeviceScope>,
+    /// The API the device asked a token for, if any.
+    #[serde(default)]
+    pub audience: Option<String>,
+    /// Approving needs a recent re-authentication.
+    #[serde(default)]
+    pub requires_step_up: bool,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub expires_at: i64,
+}
+
+/// Normalise what a person typed into the `XXXX-XXXX` form devices show:
+/// uppercase, spaces and dashes ignored. Returns the trimmed input unchanged
+/// when it is not 8 letters or digits, so the server answers "not valid".
+pub fn format_user_code(input: &str) -> String {
+    let cleaned: String = input
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_uppercase())
+        .collect();
+    if cleaned.len() == 8 {
+        format!("{}-{}", &cleaned[..4], &cleaned[4..])
+    } else {
+        input.trim().to_string()
+    }
+}
+
+/// The `user_code` of a verification URL the device displayed (`?user_code=`),
+/// formatted; `None` when there is none.
+pub fn user_code_from_url(url: &str) -> Option<String> {
+    let (_, query) = url
+        .split_once("://")
+        .and_then(|(_, rest)| rest.split_once('?'))?;
+    let query = query.split('#').next().unwrap_or("");
+    for pair in query.split('&') {
+        if let Some(v) = pair.strip_prefix("user_code=") {
+            let v = percent_decode(v);
+            return if v.is_empty() {
+                None
+            } else {
+                Some(format_user_code(&v))
+            };
+        }
+    }
+    None
+}
+
+impl ClientApiError {
+    /// The server's stable error code (`STEP_UP_REQUIRED`, `NOT_FOUND`, …) of an
+    /// API refusal, when the envelope carries one.
+    pub fn code(&self) -> Option<String> {
+        match self {
+            ClientApiError::Api { body, .. } => serde_json::from_str::<Value>(body)
+                .ok()?
+                .get("errors")?
+                .get(0)?
+                .get("code")?
+                .as_str()
+                .map(str::to_owned),
+            _ => None,
+        }
+    }
+
+    /// True when the call needs a fresh re-authentication first (`STEP_UP_REQUIRED`).
+    pub fn needs_reverification(&self) -> bool {
+        self.code().as_deref() == Some("STEP_UP_REQUIRED")
+    }
+
+    /// True when a device code is unknown, expired or already used (404 / 409).
+    pub fn is_invalid_code(&self) -> bool {
+        matches!(
+            self,
+            ClientApiError::Api {
+                status: 404 | 409,
+                ..
+            }
+        )
+    }
+}
+
+fn percent_decode(v: &str) -> String {
+    let bytes = v.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'+' => out.push(b' '),
+            b'%' if i + 2 < bytes.len() => {
+                match u8::from_str_radix(
+                    std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or("zz"),
+                    16,
+                ) {
+                    Ok(b) => {
+                        out.push(b);
+                        i += 2;
+                    }
+                    Err(_) => out.push(b'%'),
+                }
+            }
+            b => out.push(b),
+        }
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }

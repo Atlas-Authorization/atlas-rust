@@ -2,6 +2,24 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.20.0 — 2026-10-24
+
+### Added
+
+- **DPoP (RFC 9449) on the access-token verifier.** `AtlasBackend::verify_access_token_request(&ResourceRequest { method, url, authorization, dpop }, &options)` accepts a DPoP-bound token (`cnf.jkt`) only with the DPoP scheme and a valid proof (never as Bearer): `typ` `dpop+jwt`, `DPOP_ALGS` (ES256, ES384, RS256/384/512, PS256/384/512, EdDSA; no ES512, which the signature backend lacks), public embedded JWK, signature, `htm`, normalised `htu` (`normalize_htu`; `public_origin` for path-only URLs), `iat` window, `ath` (`dpop_access_token_hash`), `jti` replay via a `DpopReplayStore` (a process-wide `MemoryDpopReplayStore` by default), RFC 7638 `jwk_thumbprint` match. `require_dpop` refuses unbound tokens; `dpop_nonces` (`HmacDpopNonceSource`) demands a server nonce (`use_dpop_nonce`; `AccessTokenResult::dpop_nonce()` for the `DPoP-Nonce` header). `AccessTokenResult::Ok` gains `dpop_bound` / `dpop_nonce`, `Refused` gains `dpop_nonce`. `build_challenge(scheme, …)` renders `DPoP` challenges with `algs`; `protected_resource_metadata` advertises `dpop_signing_alg_values_supported`; `protected_resource_metadata_requiring_dpop`. `verify_access_token(authorization, …)` stays (no proof, so bound tokens are refused). Axum: `axum::AtlasAccessTokenLayer` guards routes with an access token, checks the DPoP proof against the request, inserts the `AccessTokenResult` into extensions and sets `DPoP-Nonce`. `sha2`, `base64` and `hmac` are now regular dependencies.
+- **Catalog regenerated** for the new Backend API surface (no public type, method or field removed or retyped): billing `get_subscription`, `get_settings` / `update_settings`, `check_feature`, `sync_plan_entitlements`, plan `kind` / `limits` / `seat_feature_id`, usage `feature` / `subscription_id`; `custom_oauth_providers()` (CRUD, `discover`, `preview_profile_mapping`, `preview_provider_profile_mapping`, signing keys); SSO connection relying-party settings, SAML Single Logout fields, `preview_profile_mapping`, signing keys and the SAML encryption-key methods; `action_gallery()` and `action_templates()`, `actions().gallery_update`; sessions `set_custom_data` / `update_custom_data`; `instance().set_wallet_rpc_secret`, `get_signing_key_provider` / `set_signing_key_provider` / `remove_signing_key_provider`; rate-limit `rules`; attack protection `dormant_accounts`; OAuth client and resource-server token format, lifetimes and `introspection_client_ids`.
+- **Opaque access tokens.** `AccessTokenOptions::introspection` (an `Arc<Introspector>`, with the `backend` or `client` feature) validates non-JWT access tokens at Atlas's RFC 7662 endpoint with your API's client credentials, cached by token hash (TTL, negative TTL, never past `exp`, bounded); `IntrospectionOptions::introspect_jwts` checks JWTs live too.
+- **Vercel BotID attestations.** `create_botid_attestation(secret, is_bot, is_verified_bot, ttl_seconds, now_seconds)` (feature `backend`) signs a verdict in Atlas's `atlas_botid.v1` format.
+- **Device sign-in approval** on `client::SelfServiceClient`: `lookup_device_authorization`, `approve_device_authorization`, `deny_device_authorization` (`PendingDeviceAuthorization`); `ClientApiError::code` / `needs_reverification` / `is_invalid_code`; `client::format_user_code`, `client::user_code_from_url`.
+- **Upstream logout on sign-out.** `SelfServiceClient::revoke_session_for_logout(session_id, return_url)` returns `SessionLogout` with the upstream OIDC `upstream_logout_url` and the SAML `saml_logout_url` (https only) to open in the system browser.
+- Webhook `EventType::SessionUpdated` (`session.updated`) and `EventType::UserReactivated` (`user.reactivated`).
+- `instance().set_account_linking_trust(...)` and `instance().set_captcha_config(...)`; `backend::CAPTCHA_PROVIDERS` (incl. `captchafox`, `vercel_botid`), `LINKING_TRUST_LEVELS`, `BILLING_PROVIDERS`, `SIGNING_KEY_PROVIDERS`, `EMAIL_TEMPLATE_ACCOUNT_REACTIVATED`; `Session::custom_data()`.
+
+### Changed
+
+- The `backend` feature now also enables `rand` (for the BotID `jti`).
+- With introspection compiled in but not configured, a token that is not a JWT is refused with "configure `introspection` to accept opaque tokens" instead of "malformed".
+
 ## 0.19.0 — 2026-10-23
 
 ### Added

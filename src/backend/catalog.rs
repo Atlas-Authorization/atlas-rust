@@ -37,6 +37,16 @@ use super::{
     MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PlatformApi, Sessions, Users,
 };
 
+/// The community Actions gallery: browse, install and update Action templates. Reached via [`BackendClient::action_gallery`].
+pub struct ActionGallery<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Action templates this instance publishes to the gallery. Reached via [`BackendClient::action_templates`].
+pub struct ActionTemplates<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Actions: custom code run on auth triggers. Reached via [`BackendClient::actions`].
 pub struct Actions<'a> {
     pub(super) client: &'a BackendClient,
@@ -94,6 +104,11 @@ pub struct ConfigChangelog<'a> {
 
 /// Connectors (custom OAuth providers) and the community directory. Reached via [`BackendClient::connectors`].
 pub struct Connectors<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Custom OAuth / OIDC providers: your own upstream identity providers, with Atlas as the relying party. Reached via [`BackendClient::custom_oauth_providers`].
+pub struct CustomOAuthProviders<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -307,6 +322,207 @@ pub struct Waitlist<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+impl ActionGallery<'_> {
+    /// `GET /v1/action_gallery` — Browse the Actions gallery (first-party and published community
+    /// templates), best first.
+    ///
+    /// Query parameters: `q`, `category`, `trigger`, `source`.
+    ///
+    /// Returns [`types::ActionGalleryListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::ActionGalleryListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/action_gallery",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/action_gallery/{slug}` — One gallery template: description, code, the secret names
+    /// it needs, licence and versions.
+    ///
+    /// Returns [`types::ActionGalleryDetail`].
+    pub async fn get(&self, slug: &str) -> Result<types::ActionGalleryDetail, BackendError> {
+        let path = format!("/v1/action_gallery/{}", seg(slug));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/action_gallery/{slug}/install` — Install a template: creates a DISABLED action
+    /// (not bound to any flow) with its code and the secrets you pass. Returns the action and any
+    /// required secrets still missing; set them, bind the action and enable it.
+    ///
+    /// Takes [`types::ActionGalleryInstallBody`]. Returns [`types::ActionGalleryInstallResult`].
+    pub async fn install(
+        &self,
+        slug: &str,
+        body: &types::ActionGalleryInstallBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ActionGalleryInstallResult, BackendError> {
+        let path = format!("/v1/action_gallery/{}/install", seg(slug));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl ActionTemplates<'_> {
+    /// `GET /v1/action_templates` — The gallery templates this instance publishes, with every
+    /// version and its review status.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::ActionTemplatesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::ActionTemplatesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/action_templates",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/action_templates` — Create a gallery template (slug, name, author_name, summary,
+    /// trigger, licence…), optionally with its first version (version, code, secret names).
+    /// Versions stay drafts until submitted for review.
+    ///
+    /// Takes [`types::ActionTemplatesCreateBody`]. Returns [`types::ActionTemplate`].
+    pub async fn create(
+        &self,
+        body: &types::ActionTemplatesCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ActionTemplate, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/action_templates",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/action_templates/{id}` — One of your gallery templates, with every version.
+    ///
+    /// Returns [`types::ActionTemplate`].
+    pub async fn get(&self, id: &str) -> Result<types::ActionTemplate, BackendError> {
+        let path = format!("/v1/action_templates/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/action_templates/{id}` — Edit a template's listing. A published template keeps
+    /// its slug and trigger.
+    ///
+    /// Takes [`types::ActionTemplatesUpdateBody`]. Returns [`types::ActionTemplate`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::ActionTemplatesUpdateBody,
+    ) -> Result<types::ActionTemplate, BackendError> {
+        let path = format!("/v1/action_templates/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/action_templates/{id}` — Delete a template and its versions from the gallery.
+    /// Actions already installed from it keep working.
+    ///
+    /// Returns [`types::ActionTemplatesDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::ActionTemplatesDeleteResponse, BackendError> {
+        let path = format!("/v1/action_templates/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/action_templates/{id}/publish` — List an approved template in the gallery again
+    /// after unlisting it.
+    ///
+    /// Returns [`types::ActionTemplate`].
+    pub async fn publish(&self, id: &str) -> Result<types::ActionTemplate, BackendError> {
+        let path = format!("/v1/action_templates/{}/publish", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/action_templates/{id}/unlist` — Hide a template from the gallery. Existing
+    /// installs keep working; nobody new can install it.
+    ///
+    /// Returns [`types::ActionTemplate`].
+    pub async fn unlist(&self, id: &str) -> Result<types::ActionTemplate, BackendError> {
+        let path = format!("/v1/action_templates/{}/unlist", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/action_templates/{id}/versions` — Add a draft version (semver, higher than every
+    /// existing one). The code must compile; secrets are declared by name only. `submit: true`
+    /// sends it to review at once.
+    ///
+    /// Takes [`types::ActionTemplatesAddVersionBody`]. Returns [`types::ActionTemplateVersion`].
+    pub async fn add_version(
+        &self,
+        id: &str,
+        body: &types::ActionTemplatesAddVersionBody,
+    ) -> Result<types::ActionTemplateVersion, BackendError> {
+        let path = format!("/v1/action_templates/{}/versions", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/action_templates/{id}/versions/{version}` — Delete a version that was never
+    /// approved. Approved versions are immutable.
+    ///
+    /// Returns [`types::ActionTemplatesDeleteVersionResponse`].
+    pub async fn delete_version(
+        &self,
+        id: &str,
+        version: &str,
+    ) -> Result<types::ActionTemplatesDeleteVersionResponse, BackendError> {
+        let path = format!("/v1/action_templates/{}/versions/{}", seg(id), seg(version));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/action_templates/{id}/versions/{version}/submit` — Submit a draft (or rejected)
+    /// version for review. Once approved it becomes the version the gallery shows and installs.
+    ///
+    /// Returns [`types::ActionTemplateVersion`].
+    pub async fn submit_version(
+        &self,
+        id: &str,
+        version: &str,
+    ) -> Result<types::ActionTemplateVersion, BackendError> {
+        let path = format!(
+            "/v1/action_templates/{}/versions/{}/submit",
+            seg(id),
+            seg(version)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+}
+
 impl Actions<'_> {
     /// `GET /v1/actions` — List Actions (tenant code that runs at auth-pipeline hooks). Secret
     /// values are never returned, only their names.
@@ -402,6 +618,21 @@ impl Actions<'_> {
         let path = format!("/v1/actions/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/actions/{id}/gallery_update` — Update an installed action to its template's latest
+    /// version. The code is replaced; name, enabled state, bindings and secrets stay. Pass any
+    /// newly required secrets; a changed trigger is a 409.
+    ///
+    /// Takes [`types::ActionsGalleryUpdateBody`]. Returns [`types::ActionGalleryUpdateResult`].
+    pub async fn gallery_update(
+        &self,
+        id: &str,
+        body: &types::ActionsGalleryUpdateBody,
+    ) -> Result<types::ActionGalleryUpdateResult, BackendError> {
+        let path = format!("/v1/actions/{}/gallery_update", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
     /// `POST /v1/actions/{id}/test` — Dry-run an Action against a sample event in the sandbox and
@@ -705,6 +936,26 @@ impl AuditLogs<'_> {
 }
 
 impl Billing<'_> {
+    /// `POST /v1/billing/check` — May a subject use a feature (needing `required` units, default
+    /// 1)? Asked live of the provider when the subject is on an entitlement provider (Autumn,
+    /// Commet); otherwise answered from the subject's resolved entitlement and this period's
+    /// reported usage.
+    ///
+    /// Takes [`types::BillingCheckFeatureBody`]. Returns [`types::BillingFeatureCheck`].
+    pub async fn check_feature(
+        &self,
+        body: &types::BillingCheckFeatureBody,
+    ) -> Result<types::BillingFeatureCheck, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/billing/check",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
     /// `PATCH /v1/billing/plans/{id}` — Update an end-user billing plan's name, slug, price,
     /// interval, features, audience or active flag.
     ///
@@ -719,10 +970,25 @@ impl Billing<'_> {
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `POST /v1/billing/plans/{id}/sync_entitlements` — Mirror a plan's features and numeric
+    /// limits from its provider (an Autumn plan's items, a Commet plan's features), replacing the
+    /// plan's own, so the pla/fea/ent claims match what the provider sells. 422 for a provider
+    /// without feature definitions.
+    ///
+    /// Returns [`types::BillingPlan`].
+    pub async fn sync_plan_entitlements(
+        &self,
+        id: &str,
+    ) -> Result<types::BillingPlan, BackendError> {
+        let path = format!("/v1/billing/plans/{}/sync_entitlements", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/billing/providers` — The billing providers this instance has credentials for
-    /// (stripe, polar, dodo, creem). End-user billing runs on the instance's OWN provider account;
-    /// secrets are reported as *_set markers only, never returned. Each entry carries the webhook
-    /// URL to register with the provider.
+    /// (stripe, polar, dodo, creem, chargebee, autumn, commet). End-user billing runs on the
+    /// instance's OWN provider account; secrets are reported as *_set markers only, never returned.
+    /// Each entry carries the webhook URL to register with the provider.
     ///
     /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
     ///
@@ -758,8 +1024,10 @@ impl Billing<'_> {
     /// `PUT /v1/billing/providers/{provider}` — Set the instance's own credentials for a billing
     /// provider (merged onto what is stored; secrets are write-only and encrypted at rest). Stripe:
     /// secret_key (sk_/rk_), webhook_secret (whsec_), publishable_key. Polar: access_token,
-    /// webhook_secret. Dodo Payments and Creem: api_key, webhook_secret. Stripe's environment
-    /// follows the key's mode.
+    /// webhook_secret. Dodo Payments and Creem: api_key, webhook_secret. Chargebee: api_key, site
+    /// (the site name), webhook_username + webhook_password (the Basic credentials set on the
+    /// Chargebee webhook). Autumn: secret_key (am_sk_), webhook_secret (whsec_). Commet: api_key,
+    /// webhook_secret, optional seat_feature_code. Stripe's environment follows the key's mode.
     ///
     /// Takes [`types::BillingSetProviderBody`]. Returns [`types::BillingSetProviderResponse`].
     pub async fn set_provider(
@@ -801,9 +1069,38 @@ impl Billing<'_> {
             .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
-    /// `POST /v1/billing/subjects/{type}/{id}/sync_seats` — Sync a per-seat subscription's Stripe
-    /// quantity to the org's current member count (proration applied). Never changes the paid
-    /// status.
+    /// `GET /v1/billing/settings` — How numeric limits merge when a subject holds several entitling
+    /// subscriptions: default_limit_merge (max | sum) and per-limit overrides in limit_merge.
+    ///
+    /// Returns [`types::BillingSettings`].
+    pub async fn get_settings(&self) -> Result<types::BillingSettings, BackendError> {
+        self.client
+            .request(HttpMethod::Get, "/v1/billing/settings", &[], None, None)
+            .await
+    }
+    /// `PUT /v1/billing/settings` — Set how numeric limits merge across a subject's entitling
+    /// subscriptions. default_limit_merge is max (default) or sum; limit_merge maps a limit key to
+    /// max or sum and replaces the stored map when sent. -1 (unlimited) always wins.
+    ///
+    /// Takes [`types::BillingUpdateSettingsBody`]. Returns [`types::BillingSettings`].
+    pub async fn update_settings(
+        &self,
+        body: &types::BillingUpdateSettingsBody,
+    ) -> Result<types::BillingSettings, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/billing/settings",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/billing/subjects/{type}/{id}/sync_seats` — Sync a subject's seat-counting
+    /// subscriptions to the org's current member count: the subscription quantity on Stripe,
+    /// Chargebee, Dodo Payments, Creem and Commet (proration applied), or the usage of the plan's
+    /// seat_feature_id on Autumn. Never changes the paid status.
     ///
     /// Returns [`types::BillingSyncSeatsResponse`].
     pub async fn sync_seats(
@@ -841,6 +1138,17 @@ impl Billing<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
+            .await
+    }
+    /// `GET /v1/billing/subscriptions/{id}` — Read one end-user subscription by id — a subject may
+    /// hold several (a base plan plus add-ons). Includes the provider ids and, for entitlement
+    /// providers (Autumn, Commet), the features/limits the provider reports it grants.
+    ///
+    /// Returns [`types::Subscription`].
+    pub async fn get_subscription(&self, id: &str) -> Result<types::Subscription, BackendError> {
+        let path = format!("/v1/billing/subscriptions/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
     /// `POST /v1/billing/subscriptions/{id}/cancel` — Cancel a subscription at the end of the
@@ -887,7 +1195,11 @@ impl Billing<'_> {
             .await
     }
     /// `POST /v1/billing/usage` — Report metered usage for a subject (idempotent on
-    /// idempotency_key); mirrored to a Stripe meter event when the plan is metered and configured.
+    /// idempotency_key). Mirrored to the provider's meter when the plan is metered and configured
+    /// (a Stripe meter event, or a usage record on the Chargebee subscription for the metered item
+    /// price, deduplicated on idempotency_key), or — with `feature` — to that provider feature (an
+    /// Autumn feature id / Commet feature code). `subscription_id` attributes it to one of several
+    /// subscriptions.
     ///
     /// Takes [`types::BillingReportUsageBody`]. Returns [`types::BillingReportUsageResponse`].
     pub async fn report_usage(
@@ -1248,6 +1560,217 @@ impl Connectors<'_> {
         let path = format!("/v1/connectors/{}/reviews", seg(slug));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl CustomOAuthProviders<'_> {
+    /// `GET /v1/custom_oauth_providers` — List the instance's custom OAuth 2.0 / OpenID Connect
+    /// login providers. The client secret is never returned (has_secret only).
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::CustomOAuthProvidersListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::CustomOAuthProvidersListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/custom_oauth_providers",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/custom_oauth_providers` — Create a custom OAuth 2.0 / OIDC provider (Atlas is the
+    /// relying party). OIDC: give the issuer and the endpoints are discovered (a bad issuer is a
+    /// 400 now, not a broken button later). OAuth 2.0: give the authorize, token and userinfo
+    /// endpoints. Set client authentication (client_secret_basic/post/jwt, private_key_jwt with an
+    /// Atlas-held key, or none), a declarative profile_mapping, upstream logout and third-party
+    /// initiated login. The response names the URLs to register at the provider. Starts disabled
+    /// unless `enabled: true` (which needs a client id, a secret for the secret methods, and a
+    /// signing key for private_key_jwt).
+    ///
+    /// Takes [`types::CustomOAuthProvidersCreateBody`]. Returns [`types::CustomOAuthProvidersCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::CustomOAuthProvidersCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::CustomOAuthProvidersCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/custom_oauth_providers",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/custom_oauth_providers/discover` — Fetch and validate an issuer's OpenID
+    /// configuration (issuer must match) — the endpoints, supported auth methods and logout
+    /// support, for autofill.
+    ///
+    /// Takes [`types::CustomOAuthProvidersDiscoverBody`]. Returns [`types::CustomOAuthProvidersDiscoverResponse`].
+    pub async fn discover(
+        &self,
+        body: &types::CustomOAuthProvidersDiscoverBody,
+    ) -> Result<types::CustomOAuthProvidersDiscoverResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/custom_oauth_providers/discover",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/custom_oauth_providers/profile_mapping/preview` — Run a profile_mapping (in the
+    /// body) against a pasted sample userinfo / id_token. Nothing is stored or signed in.
+    ///
+    /// Takes [`types::CustomOAuthProvidersPreviewProfileMappingBody`]. Returns [`types::CustomOAuthProvidersPreviewProfileMappingResponse`].
+    pub async fn preview_profile_mapping(
+        &self,
+        body: &types::CustomOAuthProvidersPreviewProfileMappingBody,
+    ) -> Result<types::CustomOAuthProvidersPreviewProfileMappingResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/custom_oauth_providers/profile_mapping/preview",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/custom_oauth_providers/{id}` — Fetch one custom provider. Another instance id is
+    /// 404.
+    ///
+    /// Returns [`types::CustomOAuthProvidersGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+    ) -> Result<types::CustomOAuthProvidersGetResponse, BackendError> {
+        let path = format!("/v1/custom_oauth_providers/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/custom_oauth_providers/{id}` — Update a custom provider (provider_key is
+    /// immutable). Changing the issuer or endpoints re-validates discovery. A secret is only
+    /// replaced when one is sent.
+    ///
+    /// Takes [`types::CustomOAuthProvidersUpdateBody`]. Returns [`types::CustomOAuthProvidersUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::CustomOAuthProvidersUpdateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::CustomOAuthProvidersUpdateResponse, BackendError> {
+        let path = format!("/v1/custom_oauth_providers/{}", seg(id));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/custom_oauth_providers/{id}` — Delete a custom provider with its credentials,
+    /// signing keys and upstream-session links; it leaves the sign-in options. Linked user
+    /// identities stay.
+    ///
+    /// Returns [`types::CustomOAuthProvidersDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::CustomOAuthProvidersDeleteResponse, BackendError> {
+        let path = format!("/v1/custom_oauth_providers/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/custom_oauth_providers/{id}/profile_mapping/preview` — Run the provider's stored
+    /// profile mapping (or the body's) against a pasted sample userinfo / id_token /
+    /// id_token_claims.
+    ///
+    /// Takes [`types::CustomOAuthProvidersPreviewProviderProfileMappingBody`]. Returns [`types::CustomOAuthProvidersPreviewProviderProfileMappingResponse`].
+    pub async fn preview_provider_profile_mapping(
+        &self,
+        id: &str,
+        body: &types::CustomOAuthProvidersPreviewProviderProfileMappingBody,
+    ) -> Result<types::CustomOAuthProvidersPreviewProviderProfileMappingResponse, BackendError>
+    {
+        let path = format!(
+            "/v1/custom_oauth_providers/{}/profile_mapping/preview",
+            seg(id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/custom_oauth_providers/{id}/signing_keys` — The provider's private_key_jwt signing
+    /// keys (public halves only), newest first.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::CustomOAuthProvidersListSigningKeysResponse`].
+    pub async fn list_signing_keys(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::CustomOAuthProvidersListSigningKeysResponse, BackendError> {
+        let path = format!("/v1/custom_oauth_providers/{}/signing_keys", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/custom_oauth_providers/{id}/signing_keys` — Generate a new private_key_jwt signing
+    /// key (RS256 default, PS256, ES256). It becomes active at once; the previous active key turns
+    /// retiring and stays in the JWKS until you retire it, so an upstream that cached the JWKS
+    /// keeps verifying.
+    ///
+    /// Takes [`types::CustomOAuthProvidersRotateSigningKeyBody`]. Returns [`types::CustomOAuthProvidersRotateSigningKeyResponse`].
+    pub async fn rotate_signing_key(
+        &self,
+        id: &str,
+        body: &types::CustomOAuthProvidersRotateSigningKeyBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::CustomOAuthProvidersRotateSigningKeyResponse, BackendError> {
+        let path = format!("/v1/custom_oauth_providers/{}/signing_keys", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/custom_oauth_providers/{id}/signing_keys/{kid}/retire` — Retire a signing key:
+    /// removed from the JWKS, never used again. The active key cannot be retired (409) — rotate
+    /// first.
+    ///
+    /// Returns [`types::CustomOAuthProvidersRetireSigningKeyResponse`].
+    pub async fn retire_signing_key(
+        &self,
+        id: &str,
+        kid: &str,
+    ) -> Result<types::CustomOAuthProvidersRetireSigningKeyResponse, BackendError> {
+        let path = format!(
+            "/v1/custom_oauth_providers/{}/signing_keys/{}/retire",
+            seg(id),
+            seg(kid)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
 }
@@ -1769,22 +2292,24 @@ impl Instance<'_> {
             .await
     }
     /// `PATCH /v1/instance` — Update allowed origins and auth_config (a partial, validated, merged
-    /// patch — not a replace). Wildcard origins refused; an invalid auth_config returns 422.
-    /// Turning email code or email link sign-in ON while the instance cannot deliver email (a
-    /// production instance with no email provider) returns 422 EMAIL_PROVIDER_REQUIRED naming the
-    /// field; configure one first with PUT /v1/messaging_providers/email. Methods that are already
-    /// on are left alone. Captcha always runs on your own provider keys: turning a captcha ON for a
-    /// flow (or changing its provider) before both the provider site key
-    /// (auth_config.captcha.siteKey) and its secret (PUT /v1/instance/captcha_secret) are set
-    /// returns 422 CAPTCHA_KEYS_REQUIRED with param naming the missing one — store the secret
-    /// first, then enable. Removing the site key while a flow uses it returns 409 CAPTCHA_IN_USE
-    /// unless force=true, which also turns the captcha off on those flows. Setting the retired raw
-    /// branding fields (branding.customCss / customHtmlHeader / customHtmlFooter) returns 422
-    /// naming the field — use the design settings (PUT /v1/instance/design) instead; clearing them
-    /// (null or "") is accepted. The response echoes auth_config_resolved so you can confirm the
-    /// change took effect. Strict writes: auth_config.strictRequestBodies (true on instances
-    /// created from 2026-10 on) refuses unknown body fields with 422 UNKNOWN_FIELD on every Backend
-    /// API write; set it to opt in or out, or send Atlas-Strict: true | false on one request.
+    /// patch — not a replace). Open or public-suffix wildcard origins refused (a single-label
+    /// https://*.your-domain.com is accepted; shared hosts like *.vercel.app on development
+    /// instances only); an invalid auth_config returns 422. Turning email code or email link
+    /// sign-in ON while the instance cannot deliver email (a production instance with no email
+    /// provider) returns 422 EMAIL_PROVIDER_REQUIRED naming the field; configure one first with PUT
+    /// /v1/messaging_providers/email. Methods that are already on are left alone. Captcha always
+    /// runs on your own provider keys: turning a captcha ON for a flow (or changing its provider)
+    /// before both the provider site key (auth_config.captcha.siteKey) and its secret (PUT
+    /// /v1/instance/captcha_secret) are set returns 422 CAPTCHA_KEYS_REQUIRED with param naming the
+    /// missing one — store the secret first, then enable. Removing the site key while a flow uses
+    /// it returns 409 CAPTCHA_IN_USE unless force=true, which also turns the captcha off on those
+    /// flows. Setting the retired raw branding fields (branding.customCss / customHtmlHeader /
+    /// customHtmlFooter) returns 422 naming the field — use the design settings (PUT
+    /// /v1/instance/design) instead; clearing them (null or "") is accepted. The response echoes
+    /// auth_config_resolved so you can confirm the change took effect. Strict writes:
+    /// auth_config.strictRequestBodies (true on instances created from 2026-10 on) refuses unknown
+    /// body fields with 422 UNKNOWN_FIELD on every Backend API write; set it to opt in or out, or
+    /// send Atlas-Strict: true | false on one request.
     ///
     /// Query parameters: `force`.
     ///
@@ -2427,6 +2952,71 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/signing_key_provider` — The key management service the instance's
+    /// token-signing key lives in: `local` (held by Atlas), or AWS KMS, Google Cloud KMS or Azure
+    /// Key Vault with its non-secret settings and the key version in use. Credentials are never
+    /// returned.
+    ///
+    /// Returns [`types::InstanceGetSigningKeyProviderResponse`].
+    pub async fn get_signing_key_provider(
+        &self,
+    ) -> Result<types::InstanceGetSigningKeyProviderResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/signing_key_provider",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/signing_key_provider` — Bring your own key: keep the signing key in AWS
+    /// KMS, Google Cloud KMS or Azure Key Vault. Atlas validates the settings, reads (or creates) a
+    /// key version, proves it can sign with it, saves the settings (credentials encrypted under the
+    /// instance key) and rotates the main signing key to it — the previous key stays published for
+    /// `grace_period_seconds` unless `emergency`. From then on every token is signed by the KMS
+    /// (the private key never leaves it), the JWKS publishes its public key, and POST
+    /// /v1/instance/signing_keys/rotate creates a new key version there. A KMS that refuses (bad
+    /// credentials, missing permission, wrong key type) is a 422 naming the reason. SAML
+    /// assertions, AuthnRequests and metadata certificates are signed by the KMS key too (an RS256
+    /// key when one is configured). Audited as signing_key.provider_configured.
+    ///
+    /// Takes [`types::InstanceSetSigningKeyProviderBody`]. Returns [`types::InstanceSetSigningKeyProviderResponse`].
+    pub async fn set_signing_key_provider(
+        &self,
+        body: &types::InstanceSetSigningKeyProviderBody,
+    ) -> Result<types::InstanceSetSigningKeyProviderResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/signing_key_provider",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/signing_key_provider` — Stop using the key management service: rotate
+    /// back to a new key Atlas holds (the KMS key stays published for `grace_period_seconds`, or
+    /// not at all with `emergency`) and delete the saved settings and credentials. The KMS key
+    /// itself is not deleted. Audited as signing_key.provider_removed.
+    ///
+    /// Takes [`types::InstanceRemoveSigningKeyProviderBody`]. Returns [`types::InstanceRemoveSigningKeyProviderResponse`].
+    pub async fn remove_signing_key_provider(
+        &self,
+        body: &types::InstanceRemoveSigningKeyProviderBody,
+    ) -> Result<types::InstanceRemoveSigningKeyProviderResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/signing_key_provider",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/instance/signing_keys` — The instance's published token-signing keys, newest first:
     /// the `current` key (signs every new token) and, inside a rotation's grace window, the
     /// `previous` key with `retires_at` (epoch ms) — when it leaves the JWKS.
@@ -2466,6 +3056,26 @@ impl Instance<'_> {
             .request(
                 HttpMethod::Post,
                 "/v1/instance/signing_keys/rotate",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/wallet_rpc_secret` — Store (write-only, encrypted) the wallet RPC endpoint
+    /// for an EIP-155 chain: an https or wss JSON-RPC URL, usually carrying your node provider's
+    /// key. Used by wallet token gating and by the Sign in with Ethereum ENS name lookup (chain 1
+    /// or 11155111). An empty url removes it. The URL is never returned.
+    ///
+    /// Takes [`types::InstanceSetWalletRpcSecretBody`]. Returns [`types::InstanceSetWalletRpcSecretResponse`].
+    pub async fn set_wallet_rpc_secret(
+        &self,
+        body: &types::InstanceSetWalletRpcSecretBody,
+    ) -> Result<types::InstanceSetWalletRpcSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/wallet_rpc_secret",
                 &[],
                 body_of(body)?,
                 None,
@@ -3163,22 +3773,6 @@ impl McpConnector<'_> {
 }
 
 impl MessagingProvidersApi<'_> {
-    /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
-    /// mode: whether it is active, the provider, the From address, the subject prefix, the
-    /// templates it sends and the limits. 404 when the provider is not in development mode.
-    ///
-    /// Returns [`types::DevelopmentEmail`].
-    pub async fn get_development_email(&self) -> Result<types::DevelopmentEmail, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/messaging_providers/email/development",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
     /// `POST /v1/messaging_providers/email/development` — Put your OWN email provider in
     /// development mode, so a development instance can send sign-in email without a verified
     /// domain: Resend's `onboarding@resend.dev` (the default From for Resend; Resend delivers it
@@ -3211,6 +3805,22 @@ impl MessagingProvidersApi<'_> {
             )
             .await
     }
+    /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
+    /// mode: whether it is active, the provider, the From address, the subject prefix, the
+    /// templates it sends and the limits. 404 when the provider is not in development mode.
+    ///
+    /// Returns [`types::DevelopmentEmail`].
+    pub async fn get_development_email(&self) -> Result<types::DevelopmentEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/messaging_providers/email/development",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
     /// mode (the provider and its key stay). To remove the provider, DELETE
     /// /v1/messaging_providers/email.
@@ -3223,22 +3833,6 @@ impl MessagingProvidersApi<'_> {
             .request(
                 HttpMethod::Delete,
                 "/v1/messaging_providers/email/development",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
-    /// `GET /v1/messaging_providers/email/managed` — Read the managed sending domain: status
-    /// (refreshed from your provider while unverified), the records to publish, and sent / bounce /
-    /// complaint counts. 404 when none is configured. Never returns an API key or DNS token.
-    ///
-    /// Returns [`types::ManagedEmail`].
-    pub async fn get_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/messaging_providers/email/managed",
                 &[],
                 None,
                 None,
@@ -3272,6 +3866,22 @@ impl MessagingProvidersApi<'_> {
                 "/v1/messaging_providers/email/managed",
                 &[],
                 body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/messaging_providers/email/managed` — Read the managed sending domain: status
+    /// (refreshed from your provider while unverified), the records to publish, and sent / bounce /
+    /// complaint counts. 404 when none is configured. Never returns an API key or DNS token.
+    ///
+    /// Returns [`types::ManagedEmail`].
+    pub async fn get_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/messaging_providers/email/managed",
+                &[],
+                None,
                 None,
             )
             .await
@@ -3731,20 +4341,6 @@ impl OpenFga<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
-    /// `POST /v1/openfga/stores/{store}/authorization-models` — Write a new authorization model to
-    /// a store.
-    ///
-    /// Takes [`types::OpenFgaWriteAuthorizationModelBody`]. Returns [`types::OpenFgaWriteAuthorizationModelResponse`].
-    pub async fn write_authorization_model(
-        &self,
-        store: &str,
-        body: &types::OpenFgaWriteAuthorizationModelBody,
-    ) -> Result<types::OpenFgaWriteAuthorizationModelResponse, BackendError> {
-        let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
-        self.client
-            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
-            .await
-    }
     /// `GET /v1/openfga/stores/{store}/authorization-models` — List the authorization models in a
     /// store.
     ///
@@ -3759,6 +4355,20 @@ impl OpenFga<'_> {
         let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
         self.client
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/openfga/stores/{store}/authorization-models` — Write a new authorization model to
+    /// a store.
+    ///
+    /// Takes [`types::OpenFgaWriteAuthorizationModelBody`]. Returns [`types::OpenFgaWriteAuthorizationModelResponse`].
+    pub async fn write_authorization_model(
+        &self,
+        store: &str,
+        body: &types::OpenFgaWriteAuthorizationModelBody,
+    ) -> Result<types::OpenFgaWriteAuthorizationModelResponse, BackendError> {
+        let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
     /// `GET /v1/openfga/stores/{store}/authorization-models/{mid}` — Read one authorization model
@@ -5032,7 +5642,8 @@ impl RadiusClients<'_> {
 
 impl RateLimitPolicy<'_> {
     /// `GET /v1/rate_limit_policy` — Read the per-instance rate-limit policy (sign-in/up create per
-    /// IP, and BAPI per key) and its bounds. Defaults equal the built-in fixed limits.
+    /// IP, and BAPI per key), its bounds, the per-endpoint rules and the endpoint-group catalog
+    /// they can name. Defaults equal the built-in fixed limits.
     ///
     /// Returns [`types::RateLimitPolicy`].
     pub async fn get(&self) -> Result<types::RateLimitPolicy, BackendError> {
@@ -5042,6 +5653,10 @@ impl RateLimitPolicy<'_> {
     }
     /// `PATCH /v1/rate_limit_policy` — Tune the per-instance rate-limit budgets. Values are bounded
     /// so protection cannot be disabled or set to self-DoS; a lower value tightens the limiter.
+    /// `rules` replaces the whole list of per-endpoint rules ({ group, window_seconds, max, key: ip
+    /// | user | instance }, one per group): a rule on a group with a built-in budget replaces that
+    /// budget for its routes, any other rule adds a budget on top. Preflight warns when a rule is
+    /// looser than the built-in or recommended budget.
     ///
     /// Takes [`types::RateLimitPolicyUpdateBody`]. Returns [`types::RateLimitPolicy`].
     pub async fn update(
@@ -5586,6 +6201,39 @@ impl SessionExchangeApps<'_> {
 }
 
 impl Sessions<'_> {
+    /// `PUT /v1/sessions/{id}/custom_data` — Replace the session's custom data with `custom_data`
+    /// (a JSON object of at most 2 KB; null clears it). Only an active session can be changed (409
+    /// SESSION_REVOKED otherwise). The data is returned on the session object and on the Frontend
+    /// API client session, and — when the instance sets session.customData.inToken — in the next
+    /// session token under session.customData.claim, so it never shadows a reserved claim. Not for
+    /// secrets: the signed-in user can read it.
+    ///
+    /// Takes [`types::SessionsSetCustomDataBody`]. Returns [`types::Session`].
+    pub async fn set_custom_data(
+        &self,
+        id: &str,
+        body: &types::SessionsSetCustomDataBody,
+    ) -> Result<types::Session, BackendError> {
+        let path = format!("/v1/sessions/{}/custom_data", seg(id));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `PATCH /v1/sessions/{id}/custom_data` — Merge keys into the session's custom data: each key
+    /// in `custom_data` replaces that key, and a key set to null is removed. The merged object must
+    /// stay within 2 KB. Same rules as PUT.
+    ///
+    /// Takes [`types::SessionsUpdateCustomDataBody`]. Returns [`types::Session`].
+    pub async fn update_custom_data(
+        &self,
+        id: &str,
+        body: &types::SessionsUpdateCustomDataBody,
+    ) -> Result<types::Session, BackendError> {
+        let path = format!("/v1/sessions/{}/custom_data", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
     /// `POST /v1/sessions/{id}/tokens/{template}` — Mint a named JWT-template token for a session
     /// (Clerk SessionApi.getToken). Reserved `session` name refused.
     ///
@@ -5832,6 +6480,78 @@ impl SsoConnections<'_> {
             .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
             .await
     }
+    /// `POST /v1/sso_connections/{id}/profile_mapping/preview` — Run an OIDC connection's profile
+    /// mapping (stored, or the body's) against a pasted sample. Nothing is signed in.
+    ///
+    /// Takes [`types::SsoConnectionsPreviewProfileMappingBody`]. Returns [`types::SsoConnectionsPreviewProfileMappingResponse`].
+    pub async fn preview_profile_mapping(
+        &self,
+        id: &str,
+        body: &types::SsoConnectionsPreviewProfileMappingBody,
+    ) -> Result<types::SsoConnectionsPreviewProfileMappingResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}/profile_mapping/preview", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/sso_connections/{id}/saml_encryption_key` — The SAML connection's SP encryption
+    /// certificate(s). Never the private key.
+    ///
+    /// Returns [`types::SsoConnectionsGetSamlEncryptionKeyResponse`].
+    pub async fn get_saml_encryption_key(
+        &self,
+        id: &str,
+    ) -> Result<types::SsoConnectionsGetSamlEncryptionKeyResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}/saml_encryption_key", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/sso_connections/{id}/saml_encryption_key` — Generate the SP encryption key pair
+    /// (201), or rotate it (200): the current pair becomes the previous one, still advertised in
+    /// metadata and still able to decrypt until retired. Register the new metadata with the IdP,
+    /// then retire the previous key.
+    ///
+    /// Returns [`types::SsoConnectionsCreateSamlEncryptionKeyResponse`].
+    pub async fn create_saml_encryption_key(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::SsoConnectionsCreateSamlEncryptionKeyResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}/saml_encryption_key", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `DELETE /v1/sso_connections/{id}/saml_encryption_key` — Turn assertion encryption off (drops
+    /// both key pairs). Refused while saml_require_encrypted_assertions is on.
+    ///
+    /// Returns [`types::SsoConnectionsDeleteSamlEncryptionKeyResponse`].
+    pub async fn delete_saml_encryption_key(
+        &self,
+        id: &str,
+    ) -> Result<types::SsoConnectionsDeleteSamlEncryptionKeyResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}/saml_encryption_key", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `DELETE /v1/sso_connections/{id}/saml_encryption_key/previous` — Finish a rotation: stop
+    /// advertising and accepting the previous encryption key.
+    ///
+    /// Returns [`types::SsoConnectionsRetirePreviousSamlEncryptionKeyResponse`].
+    pub async fn retire_previous_saml_encryption_key(
+        &self,
+        id: &str,
+    ) -> Result<types::SsoConnectionsRetirePreviousSamlEncryptionKeyResponse, BackendError> {
+        let path = format!(
+            "/v1/sso_connections/{}/saml_encryption_key/previous",
+            seg(id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/sso_connections/{id}/saml_metadata` — The SP EntityDescriptor XML to hand a SAML
     /// IdP (entityID + ACS URL). Public; carries no secret.
     ///
@@ -5843,6 +6563,61 @@ impl SsoConnections<'_> {
         let path = format!("/v1/sso_connections/{}/saml_metadata", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/sso_connections/{id}/signing_keys` — An OIDC connection's private_key_jwt signing
+    /// keys (public halves only).
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::SsoConnectionsListSigningKeysResponse`].
+    pub async fn list_signing_keys(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::SsoConnectionsListSigningKeysResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}/signing_keys", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/sso_connections/{id}/signing_keys` — Generate (rotate) the private_key_jwt signing
+    /// key of an OIDC connection; the previous one turns retiring.
+    ///
+    /// Takes [`types::SsoConnectionsRotateSigningKeyBody`]. Returns [`types::SsoConnectionsRotateSigningKeyResponse`].
+    pub async fn rotate_signing_key(
+        &self,
+        id: &str,
+        body: &types::SsoConnectionsRotateSigningKeyBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::SsoConnectionsRotateSigningKeyResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}/signing_keys", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/sso_connections/{id}/signing_keys/{kid}/retire` — Retire an OIDC connection
+    /// signing key (not the active one).
+    ///
+    /// Returns [`types::SsoConnectionsRetireSigningKeyResponse`].
+    pub async fn retire_signing_key(
+        &self,
+        id: &str,
+        kid: &str,
+    ) -> Result<types::SsoConnectionsRetireSigningKeyResponse, BackendError> {
+        let path = format!(
+            "/v1/sso_connections/{}/signing_keys/{}/retire",
+            seg(id),
+            seg(kid)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
 }
@@ -6855,6 +7630,14 @@ impl Waitlist<'_> {
 }
 
 impl BackendClient {
+    /// The community Actions gallery: browse, install and update Action templates.
+    pub fn action_gallery(&self) -> ActionGallery<'_> {
+        ActionGallery { client: self }
+    }
+    /// Action templates this instance publishes to the gallery.
+    pub fn action_templates(&self) -> ActionTemplates<'_> {
+        ActionTemplates { client: self }
+    }
     /// Actions: custom code run on auth triggers.
     pub fn actions(&self) -> Actions<'_> {
         Actions { client: self }
@@ -6902,6 +7685,10 @@ impl BackendClient {
     /// Connectors (custom OAuth providers) and the community directory.
     pub fn connectors(&self) -> Connectors<'_> {
         Connectors { client: self }
+    }
+    /// Custom OAuth / OIDC providers: your own upstream identity providers, with Atlas as the relying party.
+    pub fn custom_oauth_providers(&self) -> CustomOAuthProviders<'_> {
+        CustomOAuthProviders { client: self }
     }
     /// Data subject (privacy) requests.
     pub fn data_subject_requests(&self) -> DataSubjectRequests<'_> {
