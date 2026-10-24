@@ -51,6 +51,19 @@ pub struct Claims {
     /// The subject's permissions in the active organization.
     #[serde(default)]
     pub org_permissions: Option<Vec<String>>,
+    /// The enterprise SSO connection the session was made through
+    /// (`sso_connection_id`).
+    #[serde(default)]
+    pub sso_connection_id: Option<String>,
+    /// The Atlas organization that owns the SSO connection
+    /// (`sso_organization_id`); absent for an instance-wide connection.
+    /// Independent of `org_id`: scope a per-organization "require SSO" rule on
+    /// this, never on "signed in via SSO".
+    #[serde(default)]
+    pub sso_organization_id: Option<String>,
+    /// The connection protocol (`sso_connection_type`): `saml` or `oidc`.
+    #[serde(default)]
+    pub sso_connection_type: Option<String>,
     /// §migration R3 — the subject's primary verified email, present only when
     /// the instance opted in (`session.includeEmailClaim`). A snapshot at mint
     /// time, not a live lookup.

@@ -197,17 +197,38 @@ pub struct DryRunChange {
 pub struct DryRunResult {
     pub object: String,
     pub dry_run: bool,
-    /// `native` (the endpoint validated in full) or `plan` (the body diffed
-    /// over the current object, unvalidated).
+    /// `native` (the endpoint's own dry run, validated in full), `rollback` (the
+    /// real write ran in a transaction that was rolled back, every side effect
+    /// held back, validated in full) or `plan` (validation could not run to the
+    /// end; see `validation_skipped`).
     pub mode: String,
     pub validated: bool,
     pub method: String,
     pub path: String,
     pub changes: Vec<DryRunChange>,
     pub would_return: Option<Value>,
+    /// The same non-fatal warnings the real write returns (each has a `code`,
+    /// e.g. `origin_still_referenced`).
+    pub warnings: Vec<Value>,
+    /// The status the real write would answer with (`rollback` mode).
+    pub would_return_status: Option<i64>,
+    /// Side effects held back: `email`, `sms`, `voice`, `push`,
+    /// `outbound_network`, `redis`, `cache`, `file`.
+    pub suppressed: Vec<String>,
+    /// `plan` mode: why validation did not run to the end.
+    pub validation_skipped: Option<DryRunValidationSkipped>,
     pub note: String,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// Why a plan-mode dry run did not validate to the end.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct DryRunValidationSkipped {
+    /// `external_call`, `database` or `unsupported_response`.
+    pub reason: String,
+    pub detail: String,
 }
 
 impl BackendClient {
@@ -550,6 +571,14 @@ impl AtlasIdGrants<'_> {
     /// `GET /v1/atlas_id_apps` — the Sign in with Atlas apps this instance manages.
     pub async fn list_apps(&self) -> Result<ListPage<Value>, BackendError> {
         self.client.request(HttpMethod::Get, "/v1/atlas_id_apps", &[], None, None).await
+    }
+    /// `GET /v1/atlas_id_apps/:app/preflight` — the setup check of an app this
+    /// instance manages (`diagnostics:read` is enough): findings plus the
+    /// button-rendered origins, the 7-day sign-in sources, the fallback origins
+    /// and whether the homepage includes the script.
+    pub async fn preflight(&self, app_id: &str) -> Result<super::types::AtlasIdAppPreflight, BackendError> {
+        let path = format!("/v1/atlas_id_apps/{}/preflight", seg(app_id));
+        self.client.request(HttpMethod::Get, &path, &[], None, None).await
     }
     /// `GET /v1/atlas_id_apps/:app/users?email=` — the grants of the user with
     /// that email.

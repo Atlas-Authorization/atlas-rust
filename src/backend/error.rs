@@ -93,6 +93,12 @@ impl AtlasApiError {
         self.has_code(codes::STEP_UP_REQUIRED)
     }
 
+    /// Whether the key is locked to other browser origins
+    /// (`ORIGIN_NOT_ALLOWED`; see `allowed_origins` on a secret key).
+    pub fn is_origin_not_allowed(&self) -> bool {
+        self.has_code(codes::ORIGIN_NOT_ALLOWED)
+    }
+
     /// Whether no endpoint matched the method and path (`ROUTE_NOT_FOUND`).
     pub fn is_route_not_found(&self) -> bool {
         self.has_code(codes::ROUTE_NOT_FOUND)
@@ -195,6 +201,9 @@ pub mod codes {
     /// A root action (create an app or instance, mint a key) needs a
     /// multi-factor sign-in within the last five minutes (403).
     pub const STEP_UP_REQUIRED: &str = "STEP_UP_REQUIRED";
+    /// The key is locked to browser origins (`allowed_origins`) and the call came
+    /// from another one.
+    pub const ORIGIN_NOT_ALLOWED: &str = "ORIGIN_NOT_ALLOWED";
     /// No endpoint matches the method and path; the error carries
     /// `did_you_mean` and `allowed_methods`.
     pub const ROUTE_NOT_FOUND: &str = "ROUTE_NOT_FOUND";

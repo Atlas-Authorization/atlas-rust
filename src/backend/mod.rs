@@ -100,7 +100,7 @@ pub use platform::{
 };
 pub use suite::{
     metadata_query, new_traceparent, parse_traceparent, privacy_request_from_event, traceparent_from_headers,
-    verify_privacy_call, AtlasIdGrants, AuditExports, CreateSecretKeyBody, Delivery, DryRunChange, DryRunResult,
+    verify_privacy_call, AtlasIdGrants, AuditExports, CreateSecretKeyBody, Delivery, DryRunChange, DryRunResult, DryRunValidationSkipped,
     Entitlements, IntegrationToken, Integrations, Keys, Notices, OutboundPartnerLinks, PartnerLink, PartnerLinks,
     Privacy, PrivacyCall, PrivacyLookupResult, PrivacyRequest, ProvisioningFields, ProvisioningInput,
     SecretKey, SecretKeys, SecurityAdvisories, Status, SubProcessors, Whoami, WebhookBulkResult, WebhookTestResult,

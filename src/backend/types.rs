@@ -19300,6 +19300,12 @@ pub struct ActorToken {
     /// Seconds.
     #[serde(default)]
     pub expires_in: i64,
+    /// With an `X-Secret-Recipient`: `token` sealed to it (then `token` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_token: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -26855,6 +26861,12 @@ pub struct ProxySecretCreated {
     /// true when an existing secret was replaced.
     #[serde(default)]
     pub rotated: bool,
+    /// With an `X-Secret-Recipient`: `secret` sealed to it (then `secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -30352,6 +30364,12 @@ pub struct OAuthClientsListResponseDataItem {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// With an `X-Secret-Recipient`: `client_secret` sealed to it (then `client_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_client_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -30473,6 +30491,12 @@ pub struct OAuthClientsCreateResponse {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// With an `X-Secret-Recipient`: `client_secret` sealed to it (then `client_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_client_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -30615,6 +30639,12 @@ pub struct OAuthClientsImportResponseDataItem {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// With an `X-Secret-Recipient`: `client_secret` sealed to it (then `client_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_client_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -30802,6 +30832,12 @@ pub struct OAuthClientsGetResponse {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// With an `X-Secret-Recipient`: `client_secret` sealed to it (then `client_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_client_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -30923,6 +30959,12 @@ pub struct OAuthClientsUpdateResponse {
     /// Updated (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// With an `X-Secret-Recipient`: `client_secret` sealed to it (then `client_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_client_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -31184,6 +31226,12 @@ pub struct OAuthClientsRotateSecretResponse {
     pub overlap_seconds: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    /// With an `X-Secret-Recipient`: `client_secret` sealed to it (then `client_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_client_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -31317,6 +31365,12 @@ pub struct OAuthInitialAccessTokensCreateResponse {
     /// &lt;token&gt;` to POST /oauth2/register.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    /// With an `X-Secret-Recipient`: `token` sealed to it (then `token` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_token: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -33270,6 +33324,68 @@ pub struct AtlasIdAppPreflight {
     /// Ordered error, then warning, then info.
     #[serde(default)]
     pub findings: Vec<PreflightFinding>,
+    /// The page origins the Sign in with Atlas button script ran on in the last 7 days.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub button_rendered_origins: Vec<AtlasIdAppPreflightButtonRenderedOriginsItem>,
+    /// How the last 7 days' sign-ins started: the rendered button, the script API, One Tap, the
+    /// no-script fallback, or unmarked.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authorize_requests_7d: Option<AtlasIdAppPreflightAuthorizeRequests7d>,
+    /// Origins of sign-ins that came through the no-script fallback link (`?atlasid_fallback=1`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fallback_origins: Vec<AtlasIdAppPreflightFallbackOriginsItem>,
+    /// Whether the app's homepage references the button script (`null` = could not check).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub homepage_includes_script: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppPreflightButtonRenderedOriginsItem {
+    #[serde(default)]
+    pub origin: String,
+    #[serde(default)]
+    pub last_seen_at: i64,
+    #[serde(default)]
+    pub requests: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppPreflightFallbackOriginsItem {
+    #[serde(default)]
+    pub origin: String,
+    #[serde(default)]
+    pub last_seen_at: i64,
+    #[serde(default)]
+    pub requests: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppPreflightAuthorizeRequests7d {
+    #[serde(default)]
+    pub button: i64,
+    #[serde(default)]
+    pub js: i64,
+    #[serde(default)]
+    pub fedcm: i64,
+    #[serde(default)]
+    pub fallback: i64,
+    #[serde(default)]
+    pub unmarked: i64,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -33296,6 +33412,66 @@ pub struct PreflightFinding {
     /// …).
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub subject: HashMap<String, String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The request body of `PUT /v1/platform/atlas_id_apps/{id}/managed_by`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsSetManagedByBody {
+    /// The instance (of the same account) to hand the app's grant management to, or `null` to
+    /// take it back. Always sent.
+    #[serde(default)]
+    pub instance_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AtlasIdAppsSetManagedByBody {
+    /// Hand grant management to this instance.
+    pub fn new(instance_id: impl Into<String>) -> Self {
+        Self {
+            instance_id: Some(instance_id.into()),
+            ..Default::default()
+        }
+    }
+    /// Take grant management back (sends `instance_id: null`).
+    pub fn release() -> Self {
+        Self::default()
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The response of `PUT /v1/platform/atlas_id_apps/{id}/managed_by`: the app after the change.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsSetManagedByResponse {
+    /// Always `atlas_id_app`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub client_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_by_instance_id: Option<String>,
+    /// `instance_toggle` or `adopted`; `null` once taken back.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_via: Option<String>,
+    /// Whether the call changed anything.
+    #[serde(default)]
+    pub changed: bool,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -33411,6 +33587,12 @@ pub struct AtlasIdAppsRotateWebhookSecretResponse {
     pub overlap_seconds: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    /// With an `X-Secret-Recipient`: `webhook_secret` sealed to it (then `webhook_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_webhook_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -36246,6 +36428,12 @@ pub struct ScimTokensCreateResponse {
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
+    /// With an `X-Secret-Recipient`: `token` sealed to it (then `token` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_token: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -36610,6 +36798,12 @@ pub struct SignInToken {
     /// Seconds.
     #[serde(default)]
     pub expires_in: i64,
+    /// With an `X-Secret-Recipient`: `token` sealed to it (then `token` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_token: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -38396,6 +38590,12 @@ pub struct SsoOnboardingCreateTicketResponse {
     pub url: String,
     #[serde(default)]
     pub expires_in: i64,
+    /// With an `X-Secret-Recipient`: `token` sealed to it (then `token` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_token: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -39736,6 +39936,27 @@ pub struct WaitlistDeleteResponse {
     pub id: String,
     #[serde(default)]
     pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Says a response was sealed to the key sent as `X-Secret-Recipient`: each listed
+/// field arrives as `sealed_<field>` instead of in plaintext (open it with
+/// `open_sealed_secret`).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SecretsSealed {
+    /// The sealing algorithm.
+    #[serde(default)]
+    pub algorithm: String,
+    /// The recipient key the values were sealed to.
+    #[serde(default)]
+    pub recipient: String,
+    /// The plaintext field names that arrived sealed.
+    #[serde(default)]
+    pub fields: Vec<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

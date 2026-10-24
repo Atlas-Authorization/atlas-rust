@@ -32,6 +32,9 @@ pub type Metadata = Map<String, Value>;
 /// `None`) on the routes that return a single unpaged page.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ListPage<T> {
+    /// `list` on the routes that carry the envelope.
+    #[serde(default)]
+    pub object: String,
     #[serde(default = "Vec::new")]
     pub data: Vec<T>,
     #[serde(default)]

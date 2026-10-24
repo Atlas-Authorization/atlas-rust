@@ -1250,11 +1250,15 @@ fn decode_atlas_id_apps() {
     );
     // GET /v1/platform/atlas_id_apps/{id}/preflight
     round_trip::<types::AtlasIdAppPreflight>(
-        r#"{"app_id":"x","checked_at":7,"findings":[{"code":"x","fix":"x","message":"x","severity":"error","subject":{"k":"x"}}],"object":"preflight","ok":true,"user_count":7}"#,
+        r#"{"app_id":"x","checked_at":7,"findings":[{"code":"x","fix":"x","message":"x","severity":"error","subject":{"k":"x"}}],"object":"preflight","ok":true,"user_count":7,"button_rendered_origins":[{"last_seen_at":7,"origin":"x","requests":7}],"authorize_requests_7d":{"button":7,"fallback":7,"fedcm":7,"js":7,"unmarked":7},"fallback_origins":[{"last_seen_at":7,"origin":"x","requests":7}],"homepage_includes_script":true}"#,
     );
     // GET /v1/platform/atlas_id_apps/{id}/users
     round_trip::<types::AtlasIdAppsFindUsersResponse>(
         r#"{"data":[{"atlas_id_user":true,"grant_id":"x","granted_at":7,"object":"atlas_id_user","scopes":["x"],"sub":"x"}],"object":"list"}"#,
+    );
+    // PUT /v1/platform/atlas_id_apps/{id}/managed_by
+    round_trip::<types::AtlasIdAppsSetManagedByResponse>(
+        r#"{"changed":true,"client_id":"x","id":"x","managed_by_instance_id":"x","managed_via":"adopted","name":"x","object":"atlas_id_app"}"#,
     );
     // POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret
     round_trip::<types::AtlasIdAppsRotateWebhookSecretResponse>(

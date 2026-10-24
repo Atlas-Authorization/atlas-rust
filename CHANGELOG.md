@@ -2,6 +2,17 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.24.0 — 2026-10-24
+
+### Added
+
+- **Enterprise SSO claims.** `Claims` gains `sso_connection_id`, `sso_organization_id` (the Atlas organization that owns the connection, absent for an instance-wide one, independent of `org_id`) and `sso_connection_type` (`saml` | `oidc`). New OIDC relying-party readers: `oidc_organization_of`, `oidc_organizations_of`, `oidc_sso_of` (`OidcSsoContext`: `connection_id`, `organization_id`, `connection_type`, `tenant_id`, `issuer`, `domain`) and `oidc_authorize_url_with_organization`. Scope a per-organization "require SSO" rule on `sso_organization_id`, never on "signed in via SSO".
+- **Adopting a Sign in with Atlas app.** `platform().atlas_id_apps().set_managed_by(id, &AtlasIdAppsSetManagedByBody)` (`PUT /v1/platform/atlas_id_apps/{id}/managed_by`; `::new(instance)` hands it over, `::release()` takes it back). `AtlasIdApp` gains `managed_via` (`instance_toggle` | `adopted`) and `button_rendered_origins`.
+- **Instance-surface app setup check.** `atlas_id_grants().preflight(app_id)` (`GET /v1/atlas_id_apps/{id}/preflight`). `AtlasIdAppPreflight` gains `button_rendered_origins`, `authorize_requests_7d`, `fallback_origins` and `homepage_includes_script`.
+- **Dry run.** `DryRunResult` gains `warnings`, `would_return_status`, `suppressed` and `validation_skipped` (`DryRunValidationSkipped`); `mode` is `native`, `rollback` or `plan`.
+- **Sealed secrets.** `sealed_secret`, `sealed_client_secret`, `sealed_webhook_secret`, `sealed_token` and `secrets_sealed` (`SecretsSealed`) on every generated response that carries a shown-once secret, and on `AtlasIdApp`. `secret_recipient` already sends `X-Secret-Recipient` on every call, so every newly covered route answers sealed. The generator adds the fields (`scripts/sealed_fields.py`).
+- `ListPage::object`; `WebhookEndpoint::last_failing_since`; `AtlasApiError::is_origin_not_allowed` and `codes::ORIGIN_NOT_ALLOWED`.
+
 ## 0.23.0 — 2026-10-24
 
 ### Added

@@ -2783,6 +2783,17 @@ async fn every_catalog_operation_hits_its_route() {
     ));
     c.platform()
         .atlas_id_apps()
+        .set_managed_by("p0_id", &types::AtlasIdAppsSetManagedByBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/platform/atlas_id_apps/p0_id/managed_by".into(),
+        B::Obj,
+        false,
+    ));
+    c.platform()
+        .atlas_id_apps()
         .rotate_webhook_secret_with(
             "p0_id",
             &types::AtlasIdAppsRotateWebhookSecretBody::default(),

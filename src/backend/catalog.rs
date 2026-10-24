@@ -5838,6 +5838,23 @@ impl AtlasIdApps<'_> {
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
+    /// `PUT /v1/platform/atlas_id_apps/{id}/managed_by` — Hand one Sign in with Atlas app's grant
+    /// management to an instance of the same account (`managed_via: "adopted"`), or take it back
+    /// with `instance_id: null`. That instance's secret key, scoped to `privacy:grants:revoke` or
+    /// `atlas_id_apps:*`, then lists and revokes the app's grants, so a data-rights tool never
+    /// needs the platform key. The app stays yours to edit.
+    ///
+    /// Takes [`types::AtlasIdAppsSetManagedByBody`]. Returns [`types::AtlasIdAppsSetManagedByResponse`].
+    pub async fn set_managed_by(
+        &self,
+        id: &str,
+        body: &types::AtlasIdAppsSetManagedByBody,
+    ) -> Result<types::AtlasIdAppsSetManagedByResponse, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/managed_by", seg(id));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
     /// `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret` — Rotate the app's webhook
     /// signing secret. The new `webhook_secret` is returned once and signs every delivery from now
     /// on. By default (`overlap_seconds` 0) the previous secret stops signing at once. With

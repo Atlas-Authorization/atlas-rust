@@ -986,6 +986,11 @@ pub struct WebhookEndpoint {
     /// When deliveries started failing (epoch ms), if they are.
     #[serde(default)]
     pub failing_since: Option<i64>,
+    /// When the most recent failure streak began (epoch ms). Kept after the
+    /// endpoint recovers or is re-enabled, so `since: "failing_since"` still
+    /// resolves on a replay.
+    #[serde(default)]
+    pub last_failing_since: Option<i64>,
     /// When Atlas disabled it after repeated failures (epoch ms).
     #[serde(default)]
     pub disabled_at: Option<i64>,

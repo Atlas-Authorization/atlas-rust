@@ -143,6 +143,22 @@ pub struct AtlasIdApp {
     pub secret_prefix: Option<String>,
     #[serde(default)]
     pub managed_by_instance_id: Option<String>,
+    /// `instance_toggle` (an instance's Sign in with Atlas toggle app) or
+    /// `adopted` (handed to an instance with `set_managed_by`); `None` otherwise.
+    #[serde(default)]
+    pub managed_via: Option<String>,
+    /// The page origins the Sign in with Atlas button script ran on in the last 7 days (on get).
+    #[serde(default)]
+    pub button_rendered_origins: Vec<super::types::AtlasIdAppPreflightButtonRenderedOriginsItem>,
+    /// With a secret recipient: `client_secret` sealed to it.
+    #[serde(default)]
+    pub sealed_client_secret: Option<String>,
+    /// With a secret recipient: `webhook_secret` sealed to it.
+    #[serde(default)]
+    pub sealed_webhook_secret: Option<String>,
+    /// With a secret recipient: the fields that arrived sealed.
+    #[serde(default)]
+    pub secrets_sealed: Option<super::types::SecretsSealed>,
     /// People who have signed in to the app (on get).
     #[serde(default)]
     pub user_count: Option<u64>,

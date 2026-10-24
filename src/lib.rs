@@ -54,6 +54,7 @@ mod legacy_issuers;
 #[cfg(feature = "backend")]
 mod policy_source;
 mod logout;
+mod oidc_claims;
 mod user;
 mod verify;
 
@@ -117,6 +118,10 @@ pub use sealed_box::{
     generate_seal_key_pair, open_sealed_box, open_sealed_secret, seal_box, SealKeyPair, SealedBoxError,
 };
 pub use claims::Claims;
+pub use oidc_claims::{
+    oidc_authorize_url_with_organization, oidc_organization_of, oidc_organizations_of, oidc_sso_of, OidcOrganization,
+    OidcOrganizationMembership, OidcSsoContext, OIDC_ORGANIZATION_PARAM, OIDC_SCOPE_ORGANIZATIONS,
+};
 pub use key_format::{
     is_access_token, is_partner_link_secret, is_platform_key, is_publishable_key, is_secret_key, is_webhook_secret,
     parse_key_prefix, KeyKind, ParsedKey,

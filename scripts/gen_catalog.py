@@ -35,6 +35,8 @@ Type mapping:
   anyOf/oneOf of >1 shape, empty schema -> serde_json::Value
 """
 import json, re, os, sys, glob, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sealed_fields import add_sealed_fields
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -1097,6 +1099,7 @@ if 'HashMap<' not in types_src.split('use serde::')[1]:
 if 'double_option"' not in types_src:
     types_src = re.sub(r'/// `Some\(None\)` for an explicit.*?\n}\n', '', types_src, flags=re.S)
     types_src = types_src.replace('use serde::{Deserialize, Deserializer, Serialize};', 'use serde::{Deserialize, Serialize};')
+types_src = add_sealed_fields(types_src)  # sealed_* siblings of shown-once secrets (X-Secret-Recipient)
 open(os.path.join(ROOT, 'src/backend/types.rs'), 'w').write(types_src)
 
 # ── emit catalog.rs ─────────────────────────────────────────────────────────
