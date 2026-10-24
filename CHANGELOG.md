@@ -2,6 +2,27 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.23.0 — 2026-10-24
+
+### Added
+
+- **Integrator platform surface.** `whoami()`; `secret_keys()` (create with `owner` / `expires_at` / `allowed_ips` / `key_format`, list, get, update, rotate with overlap, revoke) and `keys()`; `partner_links()` with `.outbound()`; `atlas_id_grants()`; `platform().whoami()`, `list_keys` / `create_key` / `update_key` / `revoke_key`, `audit_logs` and the audit streams (`list` / `create` / `update` / `delete` / `test`); `platform().apps()`: `create_secret_key`, `secret_keys_with`, `clone_config`, `sandbox_teardown`. Typed `SecretKey`, `PartnerLink`, `Whoami`; the other bodies are generic over `Serialize` and the other responses are `serde_json::Value`.
+- **Privacy executor.** `privacy()`: `discover`, `preset`, `lookup`, `create_request` / `get_request` / `cancel_request`, and the orchestrator settings. `verify_privacy_call` verifies the signed case calls and `privacy_request.*` events (HMAC, five-minute window, the `traceparent` Atlas sent); `privacy_request_from_event`.
+- **Identity integrations.** `instance().list_integrations` / `get_integration` / `set_integration` / `delete_integration` / `integration_deliveries` / `reveal_integration_events_secret` / `integration_atlas_id_token`; `sessions().get_integration_token` (the `getToken({for})` mint); `integrations()`: `report_verify_error`, `card`, `revoke_sessions`, `instance_metadata`.
+- **Webhooks.** New endpoint fields (`signature_versions`, `event_naming`, `alert_contacts`, `destination`, `external_ref`, `metadata`, health: `consecutive_failures`, `success_rate_24h`, `last_failure`, `attempts_24h`, `replay`); `UpdateWebhookEndpointBody` carries them and event destinations. `webhook_endpoints()`: `get`, `list_with`, `upsert_by_url`, `test_now` (`?wait=`), `redeliver_window`, `replay`, `deliveries_with` (status / event_type / since / until / `starting_after`, `latency_ms`). `delivery()`: `health`, `egress_ips`, `set_alert_contacts`. `Webhook::verify_url` for the URL-bound `v2` signature (`v1` accepted unless `require_v2`; unknown versions ignored). The deprecated event spellings (`WEBHOOK_EVENT_ALIASES`, `canonical_webhook_event`, `webhook_event_spellings`, `Event::canonical_type`) and the new event types (`webhook_endpoint.*`, `delivery_target.*`, `webhook.test`, `secret_key.expiring` / `revoked`, `privacy_request.*`, `user.deletion_scheduled` / `canceled`).
+- **Instance and status.** `unknown_fields_report`, `openapi_diff`, `integration_health` / `integration_health_providers`, `embed`, `preflight_with`, `install_referral` (provider id `referalli`), `messaging_providers().channel`, `design().import_brand_url` / `remove_brand`; `status()` (subscription, incidents, dependencies), `notices()`, `security_advisories()`, `sub_processors()`, `audit_exports()`, `entitlements()`.
+- **Provisioning and tracing.** `BackendClient::dry_run` / `with_dry_run` (`?dry_run=true`, no `Idempotency-Key`), `ProvisioningInput` (`external_ref`, `metadata`) and `metadata_query` for tag filters, `with_traceparent` / builder `traceparent`, `new_traceparent` / `parse_traceparent` / `traceparent_from_headers`.
+- **Lists.** `users().list_query` (`updated_after` / `updated_before` / `order_by=-updated_at`), `organizations().memberships(id).list_query`, `api_keys().list_revoked_query`.
+- **Errors.** `codes::INSUFFICIENT_SCOPE` (the former `SCOPE_MISSING` is still accepted by `AtlasApiError::is_insufficient_scope`), `STEP_UP_REQUIRED`, `ROUTE_NOT_FOUND`, `NOT_A_LIVE_INSTANCE`, `TEST_MODE_ONLY`, `TESTING_UNAVAILABLE`, `PARTNER_LINK_UNAVAILABLE`; `AtlasErrorItem` gains `docs_url`, `did_you_mean`, `allowed_methods`; `AtlasApiError::required_scope`, `is_step_up_required`, `is_route_not_found`, `did_you_mean`, `is_not_found`.
+- **Key formats.** `is_secret_key`, `is_platform_key`, `is_publishable_key`, `is_webhook_secret`, `is_partner_link_secret`, `is_access_token`, `parse_key_prefix` accept `atlas_<live|test>_<kind>_…` and `sk_` / `pk_` / `psk_` / `whsec_`.
+- **Back-channel logout.** `AtlasBackend::handle_backchannel_logout` and `BackchannelLogoutResponse` (`200` / `400` / `503` + `Retry-After`); the token verifier is unchanged.
+- **CLI device login** (feature `client`). `start_operator_login`, `poll_operator_login`, `exchange_operator_token`, `partner_link_token`, `revoke_leaked_keys`, `get_operator_configuration`; `backend_client_from_access_token` with `backend`.
+- **Sealed secrets** (new feature `sealed-box`, the vetted `crypto_box` crate). `BackendClient` `secret_recipient` (sends `X-Secret-Recipient`), `generate_seal_key_pair`, `open_sealed_secret`, `seal_box`, `open_sealed_box`.
+
+### Not included
+
+- The generated catalog (`src/backend/catalog.rs`, `types.rs`) was not regenerated: the API spec is produced by a running server and the catalog generator was not run for this release. The routes above are hand-written; the catalog's list methods already take a free-form `Query`, so `since` / `starting_after` work there.
+
 ## 0.22.0 — 2026-10-24
 
 ### Added
@@ -67,7 +88,7 @@ All notable changes to the `atlasauth` crate are documented here.
 
 ### Added
 - **Referral delivery v2.** `instance().simulate_referral_signup(&body)` (a sign-up call for a throwaway `atlas_test_…` customer; no user is created), `instance().start_referral_backfill(&body)` and `instance().get_referral_backfill(id)`, `instance().retry_failed_referral_calls(&body)`. `instance().list_referral_calls` gains `starting_after` and `error_code` (`limit` up to 1000); calls carry `latency_ms`, `error_code`, `request_id`, `batch_id`, `response` and `highlights`.
-- **Settings.** `get_referrals` / `update_referrals` gain `tracking_token`, `code_lookup_url`, `signup_code_field`, `forward_lifecycle`, `mirror_to_public_metadata`, `include_referral_claims`, and `connection.last_ping` / `connection.alert`. Provider id `referally`.
+- **Settings.** `get_referrals` / `update_referrals` gain `tracking_token`, `code_lookup_url`, `signup_code_field`, `forward_lifecycle`, `mirror_to_public_metadata`, `include_referral_claims`, and `connection.last_ping` / `connection.alert`. Provider id `referalli` (formerly `referally`, still accepted).
 - **Sign-up hook.** `instance().get_before_user_create_hook()`, `update_before_user_create_hook(&body)` and `test_before_user_create_hook()`.
 - **Users.** `users().get_referral(id)` returns the stored attribution. `types::UserReferral` gains `partner_external_ref`, `referral_status` and `notes`.
 - **Webhooks.** `EventType::UserReferralResolved` (`user.referral_resolved`): attribution finished after `user.created`; the data is the full user.

@@ -19,6 +19,7 @@
 mod error;
 mod native_session;
 mod oauth;
+mod operator;
 mod pkce;
 mod revocation;
 mod self_service;
@@ -36,6 +37,13 @@ pub use oauth::{
     parse_callback, poll_device_token, refresh_token_grant, request_device_code, revoke_token,
     AuthorizationRequest, CallbackParams, DeviceAuthorization, TokenResponse,
 };
+pub use operator::{
+    exchange_operator_token, get_operator_configuration, partner_link_token, poll_operator_login, revoke_leaked_keys,
+    start_operator_login, LeakedKeyResult, OperatorConfiguration, OperatorDeviceAuthorization, OperatorError,
+    OperatorOptions, OperatorTokenResponse, OPERATOR_DEFAULT_API_URL,
+};
+#[cfg(feature = "backend")]
+pub use operator::backend_client_from_access_token;
 pub use pkce::Pkce;
 pub use revocation::{
     token_key_id, ApiKeyToken, ApiKeyTokenClient, ApiKeyTokenError, DenyList, MintOptions,

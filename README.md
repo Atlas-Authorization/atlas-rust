@@ -678,6 +678,124 @@ let app = platform.platform().atlas_id_apps().create(&CreateAtlasIdAppBody {
 `platform().apps()` provisions and manages the apps your platform owns, and
 `platform().upload_design_asset(...)` uploads images for app designs.
 
+## Integrator platform (0.23)
+
+Secret keys, `whoami`, partner links, the privacy executor client, identity
+integrations, webhook health / replay / signature v2, status, notices, audit
+exports and the operator device login live next to the rest of the Management
+API (`backend` feature; `client` for the CLI login helpers).
+
+```rust
+use atlasauth::backend::{
+    metadata_query, new_traceparent, BackendClient, CreateSecretKeyBody, ProvisioningInput, Query,
+};
+use atlasauth::HttpMethod;
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let atlas = BackendClient::new("atlas_live_sk_...")?; // atlas_<env>_sk_… and sk_live_… both work
+
+// What am I calling with?
+let me = atlas.whoami().await?;
+println!("{} {:?}", me.key["type"], me.key["effective_scopes"]);
+
+// Mint a scoped, expiring key (the secret is in `secret` once, or sealed — see below)
+let key = atlas
+    .secret_keys()
+    .create(
+        &CreateSecretKeyBody { name: Some("ci".into()), scopes: vec!["read_only".into()], ..Default::default() },
+        Some("idem-ci-1"),
+    )
+    .await?;
+
+// Preview any write: the changes it would make, nothing changes
+let plan = atlas
+    .dry_run(HttpMethod::Patch, "/v1/platform/apps/ins_1", Some(serde_json::json!({"name": "New"})))
+    .await?;
+assert!(plan.dry_run);
+
+// Trace a call end to end: the trace id lands on webhook deliveries it triggers
+let traced = atlas.with_traceparent(Some(new_traceparent()));
+traced.webhook_endpoints().test_now("we_1", "10s").await?;
+
+// Idempotent provisioning: external_ref + metadata tags, filter by tag
+let body = ProvisioningInput { external_ref: Some("tenant-42".into()), ..Default::default() }
+    .apply(serde_json::json!({"name": "Tenant 42"}));
+# let _ = (key, body);
+# Ok(()) }
+```
+
+- **Credentials**: `secret_keys()` (create / list / get / update / rotate with
+  overlap / revoke), `keys()`, `partner_links()` (+ `.outbound()`),
+  `atlas_id_grants()`, `platform().whoami()` / `list_keys` / `create_key` /
+  `audit_logs` / audit streams. `is_secret_key`, `is_platform_key`,
+  `is_webhook_secret`, `parse_key_prefix` … accept the `atlas_<env>_<kind>_…`
+  and legacy (`sk_` / `pk_` / `psk_` / `whsec_`) formats.
+- **Webhooks**: `webhook_endpoints().get` / `upsert_by_url` / `test_now` /
+  `redeliver_window` / `replay` / `deliveries_with`, the health fields on
+  `WebhookEndpoint`, destinations (EventBridge, Pub/Sub, Cloudflare Queues),
+  `delivery()` (health, egress IPs, alert contacts). `Webhook::verify_url`
+  verifies the URL-bound `v2` signature; `canonical_webhook_event` /
+  `webhook_event_spellings` map the deprecated event names.
+- **Privacy executor**: `privacy()` (lookup, requests, orchestrator),
+  `verify_privacy_call` for the signed calls and `privacy_request.*` events
+  (with the `traceparent` Atlas sent).
+- **Identity integrations**: `instance().set_integration` /
+  `integration_deliveries`, `sessions().get_integration_token`,
+  `integrations().card` / `revoke_sessions`, public instance metadata.
+- **Instance**: `unknown_fields_report`, `openapi_diff`, `integration_health`,
+  `embed`, `preflight_with`, `status()`, `notices()`, `security_advisories()`,
+  `sub_processors()`, `audit_exports()`, `entitlements()`.
+- **Lists**: `users().list_query(&Query)` (`updated_after`, `order_by`), cursor
+  `starting_after` on org memberships, revoked keys and the delivery logs.
+- **Errors**: `AtlasApiError::is_insufficient_scope()` (accepts the old
+  `SCOPE_MISSING`), `required_scope()`, `is_step_up_required()`,
+  `is_route_not_found()` + `did_you_mean()`, and the new codes in `codes::`.
+- **Back-channel logout**: `AtlasBackend::handle_backchannel_logout` verifies
+  the token, runs your callback and returns the `200` / `400` / `503 +
+  Retry-After` answer (`BackchannelLogoutResponse`).
+
+### CLI login (`client` feature)
+
+```rust
+use std::sync::Arc;
+use atlasauth::client::*;
+use atlasauth::{HttpTransport, ReqwestTransport};
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let http: Arc<dyn HttpTransport> = Arc::new(ReqwestTransport::new());
+let opts = OperatorOptions::default();
+
+let start = start_operator_login(&http, None, &opts).await?;
+println!("Open {} and enter {}", start.verification_uri, start.user_code);
+let operator = poll_operator_login(&http, &start, &opts).await?;
+
+// A one-hour token bound to one instance, with only the scopes you ask for
+let t = exchange_operator_token(&http, &operator.access_token, "ins_123", &["users:read"], &opts).await?;
+# let _ = t; Ok(()) }
+```
+
+Root actions need a multi-factor sign-in within five minutes (otherwise
+`STEP_UP_REQUIRED`, see `OperatorError::is_step_up_required`).
+`partner_link_token` runs `client_credentials` for a partner service and
+`revoke_leaked_keys` reports leaked credentials. With the `backend` feature,
+`backend_client_from_access_token` builds a `BackendClient` from the token.
+
+### Sealed secrets (`sealed-box` feature)
+
+```rust
+use atlasauth::{generate_seal_key_pair, open_sealed_secret};
+use atlasauth::backend::BackendClient;
+
+# async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+let pair = generate_seal_key_pair();
+let atlas = BackendClient::builder("atlas_live_sk_...").secret_recipient(pair.recipient()).build()?;
+let key = atlas.secret_keys().rotate("key_1", Some(0), None, None).await?;
+let secret = open_sealed_secret(key.sealed_secret.as_deref().unwrap(), &pair)?; // never in plaintext on the wire
+# let _ = secret; Ok(()) }
+```
+
+Built on the `crypto_box` crate (libsodium `crypto_box_seal`).
+
 ## Custom transport (no reqwest)
 
 Disable the default feature to compile with no HTTP dependency and supply your

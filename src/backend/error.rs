@@ -22,6 +22,15 @@ pub struct AtlasErrorItem {
     pub param: Option<String>,
     #[serde(default)]
     pub meta: Option<serde_json::Value>,
+    /// The code's page in the error reference (`https://atlasauth.net/errors/<code>`).
+    #[serde(default)]
+    pub docs_url: Option<String>,
+    /// On `ROUTE_NOT_FOUND` only: the closest documented paths.
+    #[serde(default)]
+    pub did_you_mean: Vec<String>,
+    /// On `ROUTE_NOT_FOUND` only: the methods the path does support.
+    #[serde(default)]
+    pub allowed_methods: Vec<String>,
 }
 
 /// A non-2xx BAPI response, carrying the HTTP status and the full error
@@ -55,6 +64,53 @@ impl AtlasApiError {
     /// Whether ANY error in the envelope carries the given stable code.
     pub fn has_code(&self, code: &str) -> bool {
         self.errors.iter().any(|e| e.code == code)
+    }
+
+    /// Whether the key lacked a scope the call needs. Accepts
+    /// `INSUFFICIENT_SCOPE` and its former spelling `SCOPE_MISSING`.
+    pub fn is_insufficient_scope(&self) -> bool {
+        self.has_code(codes::INSUFFICIENT_SCOPE) || self.has_code(codes::SCOPE_MISSING)
+    }
+
+    /// The scope an `INSUFFICIENT_SCOPE` (or `SCOPE_MISSING`) error says the
+    /// call needed (`meta.required_scope`), if any.
+    pub fn required_scope(&self) -> Option<String> {
+        self.errors
+            .iter()
+            .filter(|e| e.code == codes::INSUFFICIENT_SCOPE || e.code == codes::SCOPE_MISSING)
+            .find_map(|e| {
+                e.meta
+                    .as_ref()
+                    .and_then(|m| m.get("required_scope"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            })
+    }
+
+    /// Whether a multi-factor sign-in within the last five minutes is needed
+    /// first (`STEP_UP_REQUIRED`).
+    pub fn is_step_up_required(&self) -> bool {
+        self.has_code(codes::STEP_UP_REQUIRED)
+    }
+
+    /// Whether no endpoint matched the method and path (`ROUTE_NOT_FOUND`).
+    pub fn is_route_not_found(&self) -> bool {
+        self.has_code(codes::ROUTE_NOT_FOUND)
+    }
+
+    /// The closest documented paths of a `ROUTE_NOT_FOUND` error (empty
+    /// otherwise).
+    pub fn did_you_mean(&self) -> Vec<String> {
+        self.errors
+            .iter()
+            .find(|e| e.code == codes::ROUTE_NOT_FOUND)
+            .map(|e| e.did_you_mean.clone())
+            .unwrap_or_default()
+    }
+
+    /// Whether the error is a missing object (404 or `NOT_FOUND`).
+    pub fn is_not_found(&self) -> bool {
+        self.status == 404 || self.has_code(codes::NOT_FOUND)
     }
 }
 
@@ -129,8 +185,28 @@ pub mod codes {
     pub const NOT_FOUND: &str = "NOT_FOUND";
     /// A request field failed validation; the error's `param` names it.
     pub const VALIDATION_FAILED: &str = "VALIDATION_FAILED";
-    /// The key lacks a scope this route needs.
+    /// The key lacks a scope this route needs (`meta.required_scope` names it).
+    /// Replaces [`SCOPE_MISSING`]; use `AtlasApiError::is_insufficient_scope`,
+    /// which accepts both.
+    pub const INSUFFICIENT_SCOPE: &str = "INSUFFICIENT_SCOPE";
+    /// The former spelling of [`INSUFFICIENT_SCOPE`] (the new envelope carries
+    /// it as `meta.legacy_code`); still tolerated.
     pub const SCOPE_MISSING: &str = "SCOPE_MISSING";
+    /// A root action (create an app or instance, mint a key) needs a
+    /// multi-factor sign-in within the last five minutes (403).
+    pub const STEP_UP_REQUIRED: &str = "STEP_UP_REQUIRED";
+    /// No endpoint matches the method and path; the error carries
+    /// `did_you_mean` and `allowed_methods`.
+    pub const ROUTE_NOT_FOUND: &str = "ROUTE_NOT_FOUND";
+    /// The call is for a live instance only.
+    pub const NOT_A_LIVE_INSTANCE: &str = "NOT_A_LIVE_INSTANCE";
+    /// The call is for a test-mode instance only.
+    pub const TEST_MODE_ONLY: &str = "TEST_MODE_ONLY";
+    /// Testing helpers are not available on this deployment.
+    pub const TESTING_UNAVAILABLE: &str = "TESTING_UNAVAILABLE";
+    /// The partner-link credential an integration needs is not available on
+    /// this instance.
+    pub const PARTNER_LINK_UNAVAILABLE: &str = "PARTNER_LINK_UNAVAILABLE";
     /// Too many requests; retry after the indicated delay.
     pub const RATE_LIMITED: &str = "RATE_LIMITED";
     /// The same idempotency key was reused with a different request.

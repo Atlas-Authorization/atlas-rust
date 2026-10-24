@@ -108,6 +108,81 @@ impl AtlasBackend {
     }
 }
 
+/// Seconds to put in `Retry-After` when the issuer's keys could not be fetched.
+pub const BACKCHANNEL_RETRY_AFTER_SECONDS: u32 = 30;
+
+/// What to answer to Atlas's back-channel logout POST: `200` when the token
+/// verified (and your callback ended the sessions), `503` + `Retry-After`
+/// when Atlas should retry, `400` for a token that will never verify (Atlas
+/// never retries a `400`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackchannelLogoutResponse {
+    /// The HTTP status to answer with.
+    pub status: u16,
+    /// The `Retry-After` header value (seconds) on a `503`.
+    pub retry_after_seconds: Option<u32>,
+}
+
+impl BackchannelLogoutResponse {
+    /// `200`.
+    pub fn ok() -> Self {
+        BackchannelLogoutResponse { status: 200, retry_after_seconds: None }
+    }
+    /// `400`.
+    pub fn bad_request() -> Self {
+        BackchannelLogoutResponse { status: 400, retry_after_seconds: None }
+    }
+    /// `503` with `Retry-After`.
+    pub fn retry_later() -> Self {
+        BackchannelLogoutResponse { status: 503, retry_after_seconds: Some(BACKCHANNEL_RETRY_AFTER_SECONDS) }
+    }
+    /// The answer for a verification result: `200`, `503` when the failure is
+    /// [`VerifyError::is_retryable`], `400` otherwise.
+    pub fn from_result(result: &Result<LogoutTokenClaims, VerifyError>) -> Self {
+        match result {
+            Ok(_) => Self::ok(),
+            Err(e) if e.is_retryable() => Self::retry_later(),
+            Err(_) => Self::bad_request(),
+        }
+    }
+}
+
+impl AtlasBackend {
+    /// Verify a back-channel `logout_token` and run `end_sessions` (end the
+    /// local sessions by `sid`, else `sub`); returns the response to send.
+    /// `end_sessions` returns `false` when it could not finish, which answers
+    /// `503` so Atlas retries. A replayed `jti` is answered `200` without
+    /// calling `end_sessions` again when you pass a `replay` cache.
+    pub async fn handle_backchannel_logout<F>(
+        &self,
+        logout_token: &str,
+        client_id: &str,
+        replay: Option<&LogoutTokenReplayCache>,
+        end_sessions: F,
+    ) -> BackchannelLogoutResponse
+    where
+        F: FnOnce(&LogoutTokenClaims) -> bool,
+    {
+        let result = self.verify_logout_token(logout_token, client_id).await;
+        match &result {
+            Ok(claims) => {
+                if let Some(cache) = replay {
+                    let now = ((self.clock)() / 1000) as i64;
+                    if !cache.check_and_remember(&claims.jti, now) {
+                        return BackchannelLogoutResponse::ok();
+                    }
+                }
+                if end_sessions(claims) {
+                    BackchannelLogoutResponse::ok()
+                } else {
+                    BackchannelLogoutResponse::retry_later()
+                }
+            }
+            Err(_) => BackchannelLogoutResponse::from_result(&result),
+        }
+    }
+}
+
 /// The §2.6 claim checks, separated from signature verification.
 fn check_logout_claims(claims: &Value, client_id: &str, now: i64) -> Result<LogoutTokenClaims, VerifyError> {
     let skew = CLOCK_SKEW_SECONDS as i64;

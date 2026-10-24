@@ -45,8 +45,11 @@ mod dpop;
 mod introspection;
 #[cfg(feature = "backend")]
 mod botid;
+#[cfg(feature = "sealed-box")]
+mod sealed_box;
 mod error;
 mod jwks;
+mod key_format;
 mod legacy_issuers;
 #[cfg(feature = "backend")]
 mod policy_source;
@@ -109,7 +112,15 @@ pub use dpop::{
     dpop_access_token_hash, jwk_thumbprint, normalize_htu, DpopNonceSource, DpopReplayStore, HmacDpopNonceSource,
     MemoryDpopReplayStore, DPOP_ALGS, DPOP_CLOCK_SKEW_SECONDS, DPOP_PROOF_MAX_AGE_SECONDS,
 };
+#[cfg(feature = "sealed-box")]
+pub use sealed_box::{
+    generate_seal_key_pair, open_sealed_box, open_sealed_secret, seal_box, SealKeyPair, SealedBoxError,
+};
 pub use claims::Claims;
+pub use key_format::{
+    is_access_token, is_partner_link_secret, is_platform_key, is_publishable_key, is_secret_key, is_webhook_secret,
+    parse_key_prefix, KeyKind, ParsedKey,
+};
 pub use clock::{system_clock, Clock};
 pub use error::{ApiKeyError, ConfigError, TransportError, VerifyError};
 pub use jwks::{
@@ -118,7 +129,8 @@ pub use jwks::{
 };
 pub use user::{real_email, EmailAddress, User, NO_EMAIL_SENTINEL_DOMAIN};
 pub use logout::{
-    LogoutTokenClaims, LogoutTokenReplayCache, BACKCHANNEL_LOGOUT_EVENT, LOGOUT_TOKEN_TYPE,
+    BackchannelLogoutResponse, LogoutTokenClaims, LogoutTokenReplayCache, BACKCHANNEL_LOGOUT_EVENT,
+    BACKCHANNEL_RETRY_AFTER_SECONDS, LOGOUT_TOKEN_TYPE,
 };
 pub use legacy_issuers::{
     LegacyIssuer, SubjectResolver, LEGACY_ISSUER_ALGS, LEGACY_SUBJECT_CACHE_MAX, LEGACY_SUBJECT_TTL_MS,

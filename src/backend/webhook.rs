@@ -203,6 +203,81 @@ impl Webhook {
     }
 }
 
+impl Webhook {
+    /// Verify a delivery whose endpoint was created with
+    /// `signature_versions: ["v1","v2"]` (or `["v2"]`). The `v2` signature is
+    /// HMAC-SHA256 over `<id>.<timestamp>.<endpoint url>.<raw body>`, so a
+    /// captured delivery cannot be replayed against another URL of yours.
+    ///
+    /// `endpoint_url` is the exact URL you registered for the endpoint.
+    /// `v1` entries are accepted too (unless `require_v2`), and entries of an
+    /// unknown version are ignored, so a future version never breaks you.
+    /// `require_v2 = true` refuses a delivery that carries only `v1`.
+    pub fn verify_url<H: WebhookHeaders + ?Sized>(
+        &self,
+        raw: &[u8],
+        headers: &H,
+        endpoint_url: &str,
+        require_v2: bool,
+    ) -> Result<VerifiedDelivery, WebhookError> {
+        let id = headers.get_header(HEADER_ID).ok_or(WebhookError::MissingHeaders)?;
+        let ts_raw = headers.get_header(HEADER_TIMESTAMP).ok_or(WebhookError::MissingHeaders)?;
+        let sig = headers.get_header(HEADER_SIGNATURE).ok_or(WebhookError::MissingHeaders)?;
+
+        let decode_all = |version: &str| -> Vec<Vec<u8>> {
+            sig.split_whitespace()
+                .filter_map(|entry| entry.split_once(','))
+                .filter(|(v, value)| *v == version && !value.is_empty())
+                .filter_map(|(_, value)| STANDARD.decode(value).ok())
+                .collect()
+        };
+        let v1 = if require_v2 { Vec::new() } else { decode_all("v1") };
+        let v2 = decode_all("v2");
+        if v1.is_empty() && v2.is_empty() {
+            return Err(WebhookError::MalformedSignature);
+        }
+
+        let timestamp: i64 = ts_raw.parse().map_err(|_| WebhookError::StaleTimestamp)?;
+        let now = self.now_ms.unwrap_or_else(now_epoch_ms);
+        if (now - timestamp).abs() > self.tolerance_ms {
+            return Err(WebhookError::StaleTimestamp);
+        }
+
+        let ts = timestamp.to_string();
+        let mut mac1 = HmacSha256::new_from_slice(self.secret.as_bytes()).expect("HMAC accepts a key of any length");
+        mac1.update(id.as_bytes());
+        mac1.update(b".");
+        mac1.update(ts.as_bytes());
+        mac1.update(b".");
+        mac1.update(raw);
+        let mut mac2 = HmacSha256::new_from_slice(self.secret.as_bytes()).expect("HMAC accepts a key of any length");
+        mac2.update(id.as_bytes());
+        mac2.update(b".");
+        mac2.update(ts.as_bytes());
+        mac2.update(b".");
+        mac2.update(endpoint_url.as_bytes());
+        mac2.update(b".");
+        mac2.update(raw);
+
+        let mut matched = false;
+        for provided in &v1 {
+            if mac1.clone().verify_slice(provided).is_ok() {
+                matched = true;
+            }
+        }
+        for provided in &v2 {
+            if mac2.clone().verify_slice(provided).is_ok() {
+                matched = true;
+            }
+        }
+        if !matched {
+            return Err(WebhookError::SignatureMismatch);
+        }
+        let event = parse_event(raw).ok_or(WebhookError::MalformedBody)?;
+        Ok(VerifiedDelivery { event, delivery_id: id.to_string(), timestamp })
+    }
+}
+
 /// A verified delivery: the envelope plus the signed headers that identify it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VerifiedDelivery {
@@ -299,6 +374,33 @@ pub enum EventType {
     EntitlementOverrideCreated,
     EntitlementOverrideDeleted,
     EntitlementOverrideExpired,
+    /// A webhook endpoint started failing (`webhook_endpoint.failing`).
+    WebhookEndpointFailing,
+    /// Atlas disabled a webhook endpoint after repeated failures.
+    WebhookEndpointDisabled,
+    /// A failing or disabled webhook endpoint recovered.
+    WebhookEndpointRecovered,
+    /// An outbound delivery target (referral connection, back-channel
+    /// receiver, integration) started failing.
+    DeliveryTargetFailing,
+    /// An outbound delivery target was disabled after repeated failures.
+    DeliveryTargetDisabled,
+    /// An outbound delivery target recovered.
+    DeliveryTargetRecovered,
+    /// The event `test` sends (`webhook.test`).
+    WebhookTest,
+    /// A secret key is about to expire.
+    SecretKeyExpiring,
+    /// A secret key was revoked.
+    SecretKeyRevoked,
+    /// A privacy request changed state (`privacy_request.updated`).
+    PrivacyRequestUpdated,
+    /// A privacy request finished (`privacy_request.completed`).
+    PrivacyRequestCompleted,
+    /// A user's deletion was scheduled (`user.deletion_scheduled`).
+    UserDeletionScheduled,
+    /// A user's scheduled deletion was canceled (`user.deletion_canceled`).
+    UserDeletionCanceled,
     /// A user accepted a policy version. The data is the policy acceptance with its evidence.
     UserPolicyAccepted,
     /// A policy version was published.
@@ -346,6 +448,19 @@ impl From<&str> for EventType {
             "entitlement.override.expired" => EventType::EntitlementOverrideExpired,
             "user.policy_accepted" => EventType::UserPolicyAccepted,
             "policy.version_published" => EventType::PolicyVersionPublished,
+            "webhook_endpoint.failing" => EventType::WebhookEndpointFailing,
+            "webhook_endpoint.disabled" => EventType::WebhookEndpointDisabled,
+            "webhook_endpoint.recovered" => EventType::WebhookEndpointRecovered,
+            "delivery_target.failing" => EventType::DeliveryTargetFailing,
+            "delivery_target.disabled" => EventType::DeliveryTargetDisabled,
+            "delivery_target.recovered" => EventType::DeliveryTargetRecovered,
+            "webhook.test" => EventType::WebhookTest,
+            "secret_key.expiring" => EventType::SecretKeyExpiring,
+            "secret_key.revoked" => EventType::SecretKeyRevoked,
+            "privacy_request.updated" => EventType::PrivacyRequestUpdated,
+            "privacy_request.completed" => EventType::PrivacyRequestCompleted,
+            "user.deletion_scheduled" => EventType::UserDeletionScheduled,
+            "user.deletion_canceled" => EventType::UserDeletionCanceled,
             other => EventType::Other(other.to_string()),
         }
     }
@@ -391,6 +506,19 @@ impl EventType {
             EventType::EntitlementOverrideExpired => "entitlement.override.expired",
             EventType::UserPolicyAccepted => "user.policy_accepted",
             EventType::PolicyVersionPublished => "policy.version_published",
+            EventType::WebhookEndpointFailing => "webhook_endpoint.failing",
+            EventType::WebhookEndpointDisabled => "webhook_endpoint.disabled",
+            EventType::WebhookEndpointRecovered => "webhook_endpoint.recovered",
+            EventType::DeliveryTargetFailing => "delivery_target.failing",
+            EventType::DeliveryTargetDisabled => "delivery_target.disabled",
+            EventType::DeliveryTargetRecovered => "delivery_target.recovered",
+            EventType::WebhookTest => "webhook.test",
+            EventType::SecretKeyExpiring => "secret_key.expiring",
+            EventType::SecretKeyRevoked => "secret_key.revoked",
+            EventType::PrivacyRequestUpdated => "privacy_request.updated",
+            EventType::PrivacyRequestCompleted => "privacy_request.completed",
+            EventType::UserDeletionScheduled => "user.deletion_scheduled",
+            EventType::UserDeletionCanceled => "user.deletion_canceled",
             EventType::Other(s) => s,
         }
     }
@@ -402,4 +530,93 @@ fn now_epoch_ms() -> i64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)
         .unwrap_or(0)
+}
+
+// ── event-name aliases ──────────────────────────────────────────────────────
+
+/// The deprecated event spellings and what they became: `(alias, canonical,
+/// kind)`, where `kind` is `"rename"` (the old name is a spelling of the same
+/// event) or `"companion"` (Atlas sends both names for one occurrence).
+///
+/// An endpoint created with `event_naming: "canonical"` receives only the
+/// canonical names; `"legacy"` keeps the old spellings.
+pub const WEBHOOK_EVENT_ALIASES: &[(&str, &str, &str)] = &[
+    ("session.ended", "session.revoked", "companion"),
+    ("session.removed", "session.revoked", "companion"),
+    ("organizationMembership.created", "organization_membership.created", "rename"),
+    ("organizationMembership.updated", "organization_membership.updated", "rename"),
+    ("organizationMembership.deleted", "organization_membership.deleted", "rename"),
+    ("organization.membership.deleted", "organization_membership.deleted", "rename"),
+    ("organizationInvitation.created", "organization_invitation.created", "rename"),
+    ("organizationInvitation.accepted", "organization_invitation.accepted", "rename"),
+    ("organizationInvitation.revoked", "organization_invitation.revoked", "rename"),
+    ("organizationInvitation.declined", "organization_invitation.declined", "rename"),
+    ("organizationInvitation.resent", "organization_invitation.resent", "rename"),
+    ("teamMembership.created", "team_membership.created", "rename"),
+    ("teamMembership.deleted", "team_membership.deleted", "rename"),
+    ("appRole.created", "app_role.created", "rename"),
+    ("appRole.updated", "app_role.updated", "rename"),
+    ("appRole.deleted", "app_role.deleted", "rename"),
+    ("organizationDomain.created", "organization_domain.created", "rename"),
+    ("organizationDomain.updated", "organization_domain.updated", "rename"),
+    ("organizationDomain.deleted", "organization_domain.deleted", "rename"),
+    ("organization.settings.updated", "organization_settings.updated", "rename"),
+    ("waitlistEntry.created", "waitlist_entry.created", "rename"),
+    ("waitlistEntry.updated", "waitlist_entry.updated", "rename"),
+    ("billing.subscription.created", "billing_subscription.created", "rename"),
+    ("billing.subscription.updated", "billing_subscription.updated", "rename"),
+    ("billing.subscription.canceled", "billing_subscription.canceled", "rename"),
+    ("billing.invoice.payment_failed", "billing_invoice.payment_failed", "rename"),
+    ("billing.trial.started", "billing_trial.started", "rename"),
+    ("billing.trial.will_end", "billing_trial.will_end", "rename"),
+    ("billing.trial.ended", "billing_trial.ended", "rename"),
+    ("entitlement.override.created", "entitlement_override.created", "rename"),
+    ("entitlement.override.deleted", "entitlement_override.deleted", "rename"),
+    ("entitlement.override.expired", "entitlement_override.expired", "rename"),
+    ("scimToken.created", "scim_token.created", "rename"),
+    ("scimToken.revoked", "scim_token.revoked", "rename"),
+    ("ssoConnection.created", "sso_connection.created", "rename"),
+    ("ssoConnection.updated", "sso_connection.updated", "rename"),
+    ("ssoConnection.deleted", "sso_connection.deleted", "rename"),
+    ("user.data_export.requested", "user.data_export_requested", "rename"),
+    ("user.deletion_cancelled", "user.deletion_canceled", "companion"),
+];
+
+/// Whether `name` is a deprecated event spelling.
+pub fn is_deprecated_webhook_event(name: &str) -> bool {
+    WEBHOOK_EVENT_ALIASES.iter().any(|(alias, _, _)| *alias == name)
+}
+
+/// The canonical spelling of an event name (the name itself when it is already
+/// canonical or unknown).
+pub fn canonical_webhook_event(name: &str) -> &str {
+    for (alias, canonical, _) in WEBHOOK_EVENT_ALIASES {
+        if *alias == name {
+            return canonical;
+        }
+    }
+    name
+}
+
+/// Every spelling of an event: the canonical name first, then its deprecated
+/// aliases in alphabetical order. Subscribe to all of them to receive the
+/// event on both a `canonical` and a `legacy` endpoint.
+pub fn webhook_event_spellings(name: &str) -> Vec<String> {
+    let canonical = canonical_webhook_event(name).to_string();
+    let mut aliases: Vec<String> = WEBHOOK_EVENT_ALIASES
+        .iter()
+        .filter(|(_, c, _)| *c == canonical)
+        .map(|(a, _, _)| a.to_string())
+        .collect();
+    aliases.sort();
+    let mut out = vec![canonical];
+    out.extend(aliases);
+    out
+}
+
+impl Event {
+    /// This event's type in the canonical spelling.
+    pub fn canonical_type(&self) -> String {
+        canonical_webhook_event(self.event_type.as_str()).to_string()
+    }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "atlasauth"
-version = "0.22.0"
+version = "0.23.0"
 edition = "2021"
 rust-version = "1.70"
 license = "MIT"
@@ -72,6 +72,11 @@ encrypted-file = ["client", "dep:chacha20poly1305", "dep:hkdf", "dep:rand"]
 # `ed25519-dalek` for the keypair + signing. Only useful with `client`.
 machine = ["client", "dep:ed25519-dalek", "dep:rand"]
 
+# Sealed secret delivery: open the `sealed_secret` fields Atlas returns when the
+# client sets a secret recipient (libsodium `crypto_box_seal`, via the vetted
+# `crypto_box` crate; nothing hand-rolled).
+sealed-box = ["dep:crypto_box", "dep:rand"]
+
 [dependencies]
 jsonwebtoken = "9"
 serde = { version = "1", features = ["derive"] }
@@ -106,6 +111,9 @@ ed25519-dalek = { version = "2", default-features = false, features = ["std", "p
 # with an HKDF-SHA256-derived key. All pure-Rust.
 chacha20poly1305 = { version = "0.10", optional = true }
 hkdf = { version = "0.12", optional = true }
+
+# Sealed boxes (`sealed-box` feature): libsodium `crypto_box_seal`.
+crypto_box = { version = "0.9", default-features = false, features = ["seal", "salsa20", "rand_core", "alloc"], optional = true }
 
 # Platform secure-store backends. Declared per-target so a non-matching OS crate
 # never enters the dependency graph — `--all-features` on macOS pulls only the

@@ -29,6 +29,7 @@ mod platform_api;
 mod policies;
 mod resources;
 mod settings_helpers;
+mod suite;
 mod testing;
 pub mod types;
 mod webhook;
@@ -97,8 +98,17 @@ pub use platform::{
     ScheduleDeletionBody, SendNotificationBody, SetOrgBrandingBody, Ticket, Tickets, UserErasure,
     WriteAuditEventBody,
 };
+pub use suite::{
+    metadata_query, new_traceparent, parse_traceparent, privacy_request_from_event, traceparent_from_headers,
+    verify_privacy_call, AtlasIdGrants, AuditExports, CreateSecretKeyBody, Delivery, DryRunChange, DryRunResult,
+    Entitlements, IntegrationToken, Integrations, Keys, Notices, OutboundPartnerLinks, PartnerLink, PartnerLinks,
+    Privacy, PrivacyCall, PrivacyLookupResult, PrivacyRequest, ProvisioningFields, ProvisioningInput,
+    SecretKey, SecretKeys, SecurityAdvisories, Status, SubProcessors, Whoami, WebhookBulkResult, WebhookTestResult,
+    DELIVERY_TARGET_KINDS, PRIVACY_STATUSES, PRIVACY_TYPES, SCOPE_PRIVACY_EXECUTE, SCOPE_PRIVACY_GRANTS_REVOKE,
+    SCOPE_WEBHOOKS_REVEAL, WEBHOOK_DESTINATION_TYPES,
+};
 pub use testing::FakeTransport;
 pub use webhook::{
-    Event, EventType, VerifiedDelivery, Webhook, WebhookError, WebhookHeaders, HEADER_ID,
+    canonical_webhook_event, is_deprecated_webhook_event, webhook_event_spellings, WEBHOOK_EVENT_ALIASES, Event, EventType, VerifiedDelivery, Webhook, WebhookError, WebhookHeaders, HEADER_ID,
     HEADER_SIGNATURE, HEADER_TIMESTAMP,
 };

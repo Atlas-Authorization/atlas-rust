@@ -999,6 +999,49 @@ pub struct WebhookEndpoint {
     /// The signing secret — present only on create.
     #[serde(default)]
     pub secret: Option<String>,
+    /// Delivery health: consecutive failed deliveries.
+    #[serde(default)]
+    pub consecutive_failures: Option<i64>,
+    /// Delivery health: share of the last 24 hours' attempts that succeeded.
+    #[serde(default)]
+    pub success_rate_24h: Option<f64>,
+    /// Delivery health: the last failed attempt (`at`, `status`, `error`).
+    #[serde(default)]
+    pub last_failure: Option<Value>,
+    /// Delivery health: `{ succeeded, failed }` over the last 24 hours.
+    #[serde(default)]
+    pub attempts_24h: Option<Value>,
+    /// Who gets the failure emails (empty = the account's owners).
+    #[serde(default)]
+    pub alert_contacts: Vec<String>,
+    /// Which signatures deliveries carry: `v1`, `v2` (also covers the URL).
+    #[serde(default)]
+    pub signature_versions: Vec<String>,
+    /// `canonical` or `legacy` event names.
+    #[serde(default)]
+    pub event_naming: Option<String>,
+    #[serde(default)]
+    pub external: Option<bool>,
+    #[serde(default)]
+    pub description: Option<String>,
+    /// The event destination (`aws_eventbridge`, `gcp_pubsub`,
+    /// `cloudflare_queue`) when the endpoint is not an HTTPS URL.
+    #[serde(default)]
+    pub destination: Option<Value>,
+    /// Your idempotent-create key.
+    #[serde(default)]
+    pub external_ref: Option<String>,
+    /// The provisioning tag bag.
+    #[serde(default)]
+    pub metadata: Option<Value>,
+    /// `true` on a create that sent an `external_ref` and got the existing
+    /// object back.
+    #[serde(default)]
+    pub idempotent_replay: bool,
+    /// On an endpoint that was re-enabled: the replay call that re-sends what
+    /// it missed.
+    #[serde(default)]
+    pub replay: Option<Value>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -1039,6 +1082,29 @@ pub struct UpdateWebhookEndpointBody {
     pub enabled_events: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub active: Option<bool>,
+    /// `canonical` or `legacy` event names.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_naming: Option<String>,
+    /// `v1`, `v2` (the HMAC also covers the URL).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub signature_versions: Option<Vec<String>>,
+    /// Up to 20 addresses for the failure emails.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alert_contacts: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external: Option<bool>,
+    /// An event destination instead of an HTTPS URL, e.g.
+    /// `json!({"type":"aws_eventbridge","region":"us-east-1","event_bus_name":"default"})`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub destination: Option<Value>,
+    /// Your own credentials for the destination (write-only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub destination_credentials: Option<Value>,
+    /// Replaces the provisioning tags.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<Value>,
 }
 
 /// One delivery attempt record.
@@ -1071,6 +1137,9 @@ pub struct WebhookDelivery {
     pub location: Option<String>,
     #[serde(default)]
     pub response_snippet: Option<String>,
+    /// How long the receiver took to answer (milliseconds).
+    #[serde(default)]
+    pub latency_ms: Option<i64>,
     #[serde(default)]
     pub next_retry_at: Option<i64>,
     #[serde(default)]

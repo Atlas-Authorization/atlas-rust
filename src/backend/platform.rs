@@ -436,6 +436,9 @@ impl NotificationCategories<'_> {
                     message: "Unknown notification category.".into(),
                     param: None,
                     meta: None,
+                    docs_url: None,
+                    did_you_mean: Vec::new(),
+                    allowed_methods: Vec::new(),
                 }],
             })
         })
@@ -621,6 +624,9 @@ impl EntitlementOverrides<'_> {
                     message: "Unknown entitlement override.".into(),
                     param: None,
                     meta: None,
+                    docs_url: None,
+                    did_you_mean: Vec::new(),
+                    allowed_methods: Vec::new(),
                 }],
             })
         })

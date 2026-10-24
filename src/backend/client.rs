@@ -69,6 +69,9 @@ pub struct BackendClient {
     base_delay_ms: u64,
     strict: Option<bool>,
     on_unknown_fields: Option<UnknownFieldsHook>,
+    traceparent: Option<String>,
+    dry_run: bool,
+    secret_recipient: Option<String>,
 }
 
 /// Builder for a [`BackendClient`].
@@ -80,6 +83,8 @@ pub struct BackendClientBuilder {
     base_delay_ms: u64,
     strict: Option<bool>,
     on_unknown_fields: Option<UnknownFieldsHook>,
+    traceparent: Option<String>,
+    secret_recipient: Option<String>,
 }
 
 impl BackendClientBuilder {
@@ -92,7 +97,28 @@ impl BackendClientBuilder {
             base_delay_ms: DEFAULT_BASE_DELAY_MS,
             strict: None,
             on_unknown_fields: None,
+            traceparent: None,
+            secret_recipient: None,
         }
+    }
+
+    /// Send a W3C `traceparent` header on every request, so Atlas stores the
+    /// trace id on the webhook deliveries, back-channel deliveries, referral
+    /// calls and executor requests the call triggers. Mint one with
+    /// [`new_traceparent`](super::new_traceparent). Override per call with
+    /// [`BackendClient::with_traceparent`].
+    pub fn traceparent(mut self, traceparent: impl Into<String>) -> Self {
+        self.traceparent = Some(traceparent.into());
+        self
+    }
+
+    /// Seal every shown-once secret in a response to this recipient
+    /// (`x25519:<base64 public key>`, see `generate_seal_key_pair`): responses
+    /// then carry `sealed_secret` fields instead of plaintext. Sent as
+    /// `X-Secret-Recipient`.
+    pub fn secret_recipient(mut self, recipient: impl Into<String>) -> Self {
+        self.secret_recipient = Some(recipient.into());
+        self
     }
 
     /// Strict request bodies. `true` sends `Atlas-Strict: true` on every write
@@ -162,6 +188,9 @@ impl BackendClientBuilder {
             base_delay_ms: self.base_delay_ms,
             strict: self.strict,
             on_unknown_fields: self.on_unknown_fields,
+            traceparent: self.traceparent,
+            dry_run: false,
+            secret_recipient: self.secret_recipient,
         })
     }
 }
@@ -212,6 +241,35 @@ impl BackendClient {
     pub fn with_strict(&self, strict: Option<bool>) -> BackendClient {
         let mut c = self.clone();
         c.strict = strict;
+        c
+    }
+
+    /// A copy of this client that sends a W3C `traceparent` header on every
+    /// call made through it (`None` sends none). The per-call override of
+    /// [`BackendClientBuilder::traceparent`].
+    pub fn with_traceparent(&self, traceparent: Option<String>) -> BackendClient {
+        let mut c = self.clone();
+        c.traceparent = traceparent;
+        c
+    }
+
+    /// A copy of this client that sends every write (POST, PUT, PATCH,
+    /// DELETE) as a dry run: `?dry_run=true` is added, Atlas validates the
+    /// request and answers with the changes it would make, and nothing
+    /// changes. The `Idempotency-Key` is not sent on a dry run. The typed
+    /// result of a method called through this client is mostly empty; use
+    /// [`BackendClient::dry_run`] to get a [`DryRunResult`](super::DryRunResult).
+    pub fn with_dry_run(&self, dry_run: bool) -> BackendClient {
+        let mut c = self.clone();
+        c.dry_run = dry_run;
+        c
+    }
+
+    /// A copy of this client that seals shown-once secrets to `recipient`
+    /// (see [`BackendClientBuilder::secret_recipient`]); `None` turns it off.
+    pub fn with_secret_recipient(&self, recipient: Option<String>) -> BackendClient {
+        let mut c = self.clone();
+        c.secret_recipient = recipient;
         c
     }
 
@@ -305,7 +363,13 @@ impl BackendClient {
         retry: bool,
     ) -> Result<String, BackendError> {
         let max_retries = if retry { self.max_retries } else { 0 };
-        let url = format!("{}{}{}", self.base(), path, serialize_query(query));
+        let dry = self.dry_run && method != HttpMethod::Get;
+        let mut query_all: Vec<(&str, String)> = query.to_vec();
+        if dry {
+            query_all.push(("dry_run", "true".to_string()));
+        }
+        let idempotency_key = if dry { None } else { idempotency_key };
+        let url = format!("{}{}{}", self.base(), path, serialize_query(&query_all));
 
         let mut attempt: u32 = 0;
         loop {
@@ -325,6 +389,12 @@ impl BackendClient {
             }
             if let Some(key) = idempotency_key {
                 req = req.header("idempotency-key", key);
+            }
+            if let Some(tp) = &self.traceparent {
+                req = req.header("traceparent", tp.clone());
+            }
+            if let Some(recipient) = &self.secret_recipient {
+                req = req.header("x-secret-recipient", recipient.clone());
             }
             for (name, value) in extra_headers {
                 if !name.eq_ignore_ascii_case("authorization") {
@@ -525,6 +595,9 @@ fn to_api_error(status: u16, body: &str) -> AtlasApiError {
             message,
             param: None,
             meta: None,
+            docs_url: None,
+            did_you_mean: Vec::new(),
+            allowed_methods: Vec::new(),
         }],
     }
 }
