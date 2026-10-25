@@ -101,7 +101,9 @@ pub use platform::{
 pub use suite::{
     metadata_query, new_traceparent, parse_traceparent, privacy_request_from_event, traceparent_from_headers,
     verify_privacy_call, AtlasIdGrants, AuditExports, CreateSecretKeyBody, Delivery, DryRunChange, DryRunResult, DryRunValidationSkipped,
-    Entitlements, IntegrationToken, Integrations, Keys, Notices, OutboundPartnerLinks, PartnerLink, PartnerLinks,
+    Entitlements, IntegrationToken, Integrations, Keys, Notices, OutboundPartnerLinks, PartnerDelivery, PartnerLink, PartnerLinks, PartnerPlatform,
+    PartnerPlatformDeleted, PartnerPlatformList, PartnerPlatformRegistration, PartnerPlatformRegistrationState,
+    PartnerPlatformSendTo, PartnerPlatformSignature, PartnerPlatforms, StorePartnerPlatformTokenBody,
     Privacy, PrivacyCall, PrivacyLookupResult, PrivacyRequest, ProvisioningFields, ProvisioningInput,
     SecretKey, SecretKeys, SecurityAdvisories, Status, SubProcessors, Whoami, WebhookBulkResult, WebhookTestResult,
     DELIVERY_TARGET_KINDS, PRIVACY_STATUSES, PRIVACY_TYPES, SCOPE_PRIVACY_EXECUTE, SCOPE_PRIVACY_GRANTS_REVOKE,

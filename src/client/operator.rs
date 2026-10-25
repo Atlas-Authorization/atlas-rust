@@ -97,6 +97,10 @@ pub struct OperatorConfiguration {
     pub token_exchange_endpoint: String,
     pub token_exchange_audience: String,
     pub root_action_max_mfa_age_seconds: i64,
+    /// Other products that accept Atlas operators (pass one as the audience of a login).
+    pub audiences: Vec<String>,
+    /// The claims an operator access token carries.
+    pub access_token_claims: Vec<String>,
 }
 
 /// The RFC 8628 device authorization response.

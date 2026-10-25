@@ -266,6 +266,11 @@ impl BackendClient {
     pub fn partner_links(&self) -> PartnerLinks<'_> {
         PartnerLinks { client: self }
     }
+    /// This instance as a partner platform of another product (signed
+    /// partner deliveries, registration, the stored partner token).
+    pub fn partner_platforms(&self) -> PartnerPlatforms<'_> {
+        PartnerPlatforms { client: self }
+    }
     /// Sign in with Atlas apps managed by this instance and their grants.
     pub fn atlas_id_grants(&self) -> AtlasIdGrants<'_> {
         AtlasIdGrants { client: self }
@@ -562,6 +567,208 @@ impl OutboundPartnerLinks<'_> {
     }
 }
 
+// ── partner platforms ───────────────────────────────────────────────────────
+
+/// Whether the partner has registered with the receiver.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerPlatformRegistrationState {
+    /// `unregistered` or `registered`.
+    pub status: String,
+    pub registered_at: Option<i64>,
+}
+
+/// This instance as a partner platform of another product. The partner token
+/// is stored once, encrypted, and is never part of a response: only
+/// `token_set` and `token_prefix` show it.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerPlatform {
+    pub object: String,
+    pub id: String,
+    pub partner: String,
+    pub name: String,
+    pub preset: bool,
+    pub platform_id: String,
+    pub enabled: bool,
+    pub jwks_url: String,
+    pub signature_header: String,
+    /// `t_kid_ed25519`.
+    pub signature_scheme: String,
+    pub tolerance_seconds: i64,
+    pub allowed_sources: Vec<String>,
+    pub record_consents: bool,
+    pub receiver_url: String,
+    pub receiver_url_template: Option<String>,
+    pub serves_deployment: bool,
+    pub registration: PartnerPlatformRegistrationState,
+    pub token_set: bool,
+    pub token_prefix: Option<String>,
+    pub last_delivery_at: Option<i64>,
+    pub last_delivery_error: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// `GET /v1/partner_platforms`: the configured platforms plus the presets.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerPlatformList {
+    pub object: String,
+    pub data: Vec<PartnerPlatform>,
+    pub has_more: bool,
+    pub presets: Vec<Value>,
+}
+
+/// The signature a partner must use.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerPlatformSignature {
+    pub header: String,
+    pub scheme: String,
+    pub format: String,
+    pub jwks_url: String,
+    pub tolerance_seconds: i64,
+}
+
+/// Where to send the registration details.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerPlatformSendTo {
+    pub contact: String,
+    pub docs: String,
+}
+
+/// What to send a partner so it can be registered.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerPlatformRegistration {
+    pub object: String,
+    pub partner: String,
+    pub platform_id: String,
+    pub receiver_url: String,
+    pub receiver_url_is_template: bool,
+    pub external_id: Option<String>,
+    pub events: Vec<String>,
+    pub signature: PartnerPlatformSignature,
+    pub send_to: Option<PartnerPlatformSendTo>,
+    pub token_prefix: Option<String>,
+    pub next_step: String,
+}
+
+/// One delivery a partner made to the receiver.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerDelivery {
+    pub object: String,
+    pub event_id: Option<String>,
+    pub event_type: Option<String>,
+    /// `recorded`, `unchanged`, `no_subject`, `no_user`, `source_not_allowed` or `ignored`.
+    pub outcome: String,
+    pub user_id: Option<String>,
+    pub received_at: i64,
+}
+
+/// `DELETE /v1/partner_platforms/:partner`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct PartnerPlatformDeleted {
+    pub object: String,
+    pub partner: String,
+    pub deleted: bool,
+}
+
+/// The body of `POST /v1/partner_platforms/:partner/token`. The token is
+/// write-only: it is stored encrypted and never returned, and `Debug` does not
+/// print it.
+#[derive(Clone, Serialize)]
+pub struct StorePartnerPlatformTokenBody {
+    token: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rotate: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    api_base_url: Option<String>,
+}
+
+impl StorePartnerPlatformTokenBody {
+    /// A body carrying the token the partner handed over.
+    pub fn new(token: impl Into<String>) -> Self {
+        Self { token: token.into(), rotate: None, api_base_url: None }
+    }
+    /// Replace a token that is already stored.
+    pub fn rotate(mut self, rotate: bool) -> Self {
+        self.rotate = Some(rotate);
+        self
+    }
+    /// The partner's API base URL.
+    pub fn api_base_url(mut self, url: impl Into<String>) -> Self {
+        self.api_base_url = Some(url.into());
+        self
+    }
+}
+
+impl std::fmt::Debug for StorePartnerPlatformTokenBody {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StorePartnerPlatformTokenBody")
+            .field("token", &"***")
+            .field("rotate", &self.rotate)
+            .field("api_base_url", &self.api_base_url)
+            .finish()
+    }
+}
+
+/// `/v1/partner_platforms`. Reached via [`BackendClient::partner_platforms`].
+pub struct PartnerPlatforms<'a> {
+    client: &'a BackendClient,
+}
+
+impl PartnerPlatforms<'_> {
+    /// `GET /v1/partner_platforms` — the platforms, with the ready-made presets.
+    pub async fn list(&self) -> Result<PartnerPlatformList, BackendError> {
+        self.client.request(HttpMethod::Get, "/v1/partner_platforms", &[], None, None).await
+    }
+    /// `GET /v1/partner_platforms/:partner`.
+    pub async fn get(&self, partner: &str) -> Result<PartnerPlatform, BackendError> {
+        let path = format!("/v1/partner_platforms/{}", seg(partner));
+        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    }
+    /// `PUT /v1/partner_platforms/:partner` — set up or change (a preset fills
+    /// the defaults). Body fields: `name?`, `platform_id?`, `enabled?`,
+    /// `jwks_url?`, `signature_header?`, `signature_scheme?`,
+    /// `tolerance_seconds?`, `allowed_sources?`, `record_consents?`,
+    /// `serves_deployment?`. Send `null` for `name` to clear it.
+    pub async fn set<B: Serialize + ?Sized>(&self, partner: &str, body: &B) -> Result<PartnerPlatform, BackendError> {
+        let path = format!("/v1/partner_platforms/{}", seg(partner));
+        self.client.request(HttpMethod::Put, &path, &[], jb(body)?, None).await
+    }
+    /// `DELETE /v1/partner_platforms/:partner`.
+    pub async fn remove(&self, partner: &str) -> Result<PartnerPlatformDeleted, BackendError> {
+        let path = format!("/v1/partner_platforms/{}", seg(partner));
+        self.client.request(HttpMethod::Delete, &path, &[], None, None).await
+    }
+    /// `GET /v1/partner_platforms/:partner/registration` — what to send the
+    /// partner to be registered.
+    pub async fn registration(&self, partner: &str) -> Result<PartnerPlatformRegistration, BackendError> {
+        let path = format!("/v1/partner_platforms/{}/registration", seg(partner));
+        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    }
+    /// `POST /v1/partner_platforms/:partner/token` — store the token the
+    /// partner handed over (once; `rotate` replaces it). The token is never
+    /// returned.
+    pub async fn store_token(&self, partner: &str, body: &StorePartnerPlatformTokenBody) -> Result<PartnerPlatform, BackendError> {
+        let path = format!("/v1/partner_platforms/{}/token", seg(partner));
+        self.client.request(HttpMethod::Post, &path, &[], jb(body)?, None).await
+    }
+    /// `GET /v1/partner_platforms/:partner/deliveries?limit=`.
+    pub async fn deliveries(&self, partner: &str, limit: Option<u32>) -> Result<ListPage<PartnerDelivery>, BackendError> {
+        let path = format!("/v1/partner_platforms/{}/deliveries", seg(partner));
+        let q = Query::new().set_opt("limit", limit);
+        self.client.request(HttpMethod::Get, &path, &q.as_pairs(), None, None).await
+    }
+}
+
 /// `/v1/atlas_id_apps`. Reached via [`BackendClient::atlas_id_grants`].
 pub struct AtlasIdGrants<'a> {
     client: &'a BackendClient,
@@ -581,7 +788,8 @@ impl AtlasIdGrants<'_> {
         self.client.request(HttpMethod::Get, &path, &[], None, None).await
     }
     /// `GET /v1/atlas_id_apps/:app/users?email=` — the grants of the user with
-    /// that email.
+    /// that email. (The same two routes under `/v1/platform/atlas_id_apps/:app`
+    /// also accept an instance secret key.)
     pub async fn lookup(&self, app_id: &str, email: &str) -> Result<ListPage<Value>, BackendError> {
         let path = format!("/v1/atlas_id_apps/{}/users", seg(app_id));
         let q = vec![("email", email.to_string())];
@@ -694,7 +902,8 @@ impl Privacy<'_> {
         self.client.request(HttpMethod::Get, "/v1/instance/privacy_orchestrator", &[], None, None).await
     }
     /// `PUT /v1/instance/privacy_orchestrator` — configure where Atlas opens
-    /// cases (`provider`, `case_url`, `sign_requests`, …). Send `null` to clear
+    /// cases (`provider`, `case_url`, `sign_requests`, `site_id`,
+    /// `partner_link_id`, `cancel_deletion_on_sign_in`, …). Send `null` to clear
     /// a field.
     pub async fn set_orchestrator<B: Serialize + ?Sized>(&self, body: &B) -> Result<Value, BackendError> {
         self.client.request(HttpMethod::Put, "/v1/instance/privacy_orchestrator", &[], jb(body)?, None).await
@@ -783,7 +992,9 @@ impl Instance<'_> {
     }
     /// `PUT /v1/instance/integrations/:id` — enable or configure an
     /// integration (`enabled`, `audience`, `ttl_seconds`, `events_url`, `cmp`,
-    /// `atlas_id_users`, `external_ref`, …). Send `null` to clear a field.
+    /// `atlas_id_users`, `external_ref`, `per_call_audience`, …). Send `null`
+    /// to clear a field. `per_call_audience` is `{ param, template, allowed[],
+    /// any_matching }`; `null` turns it off.
     pub async fn set_integration<B: Serialize + ?Sized>(
         &self,
         id: &str,
@@ -864,6 +1075,26 @@ impl Sessions<'_> {
     pub async fn get_integration_token(&self, session_id: &str, integration: &str) -> Result<IntegrationToken, BackendError> {
         let path = format!("/v1/sessions/{}/integration_tokens/{}", seg(session_id), seg(integration));
         self.client.request(HttpMethod::Post, &path, &[], None, None).await
+    }
+    /// [`get_integration_token`](Self::get_integration_token) for a per-call
+    /// audience. `audience` is the full audience; `audience_params` carries the
+    /// integration's own parameter (a site id, a channel, an organization id:
+    /// the one named in its `per_call_audience.param`). The token's `aud` is
+    /// that audience when the integration permits it; a value it does not
+    /// permit is refused (403).
+    pub async fn get_integration_token_for(
+        &self,
+        session_id: &str,
+        integration: &str,
+        audience: Option<&str>,
+        audience_params: &[(&str, &str)],
+    ) -> Result<IntegrationToken, BackendError> {
+        let path = format!("/v1/sessions/{}/integration_tokens/{}", seg(session_id), seg(integration));
+        let mut q: Vec<(&str, String)> = audience_params.iter().map(|(k, v)| (*k, (*v).to_string())).collect();
+        if let Some(a) = audience.filter(|a| !a.is_empty()) {
+            q.push(("audience", a.to_string()));
+        }
+        self.client.request(HttpMethod::Post, &path, &q, None, None).await
     }
 }
 
@@ -1244,7 +1475,9 @@ impl WebhookEndpoints<'_> {
 
 impl Users<'_> {
     /// `GET /v1/users` with any query: `updated_after`, `updated_before`
-    /// (epoch ms), `order_by=-updated_at`, `limit`, `starting_after`, ….
+    /// (epoch ms), `order_by=-updated_at`, `limit`, `starting_after`,
+    /// `include_deleted=true` (also list soft-deleted users still in their
+    /// scrub window, each with `deleted_at` set), ….
     pub async fn list_query(&self, query: &Query) -> Result<super::pagination::CursorPage<super::resources::User>, BackendError> {
         self.client.request(HttpMethod::Get, "/v1/users", &query.as_pairs(), None, None).await
     }

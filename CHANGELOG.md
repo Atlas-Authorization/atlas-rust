@@ -2,6 +2,18 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.25.0 — 2026-10-25
+
+### Added
+
+- **Partner platforms.** `partner_platforms()` (`PartnerPlatforms`): `list`, `get`, `set`, `remove`, `registration`, `store_token` and `deliveries` for `/v1/partner_platforms`, with typed `PartnerPlatform`, `PartnerPlatformList`, `PartnerPlatformRegistration`, `PartnerDelivery` and `StorePartnerPlatformTokenBody`. The partner token is write-only: stored encrypted, never in a response model, and the body's `Debug` output masks it.
+- **Per-call audience.** `per_call_audience` (`param`, `template`, `allowed`, `any_matching`; `null` turns it off) is documented on `instance().set_integration`, and `sessions().get_integration_token_for(session, integration, audience, audience_params)` mints a token for one audience (a site id, a channel, an organization id).
+- **Privacy orchestrator.** `site_id`, `partner_link_id` and `cancel_deletion_on_sign_in` are documented on `privacy().set_orchestrator`. An outbound partner link's `source` can be `registration`.
+- `users().list_query` documents `include_deleted`.
+- `OperatorConfiguration` (feature `client`) gains `audiences` and `access_token_claims`.
+- `codes::MANAGED_WAF_NOT_CONFIGURED` (422, `meta.action`).
+- The Sign in with Atlas grant routes under `/v1/platform/atlas_id_apps/{id}` also accept an instance secret key (documented on `atlas_id_grants()`).
+
 ## 0.24.0 — 2026-10-24
 
 ### Added

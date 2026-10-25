@@ -229,6 +229,9 @@ pub mod codes {
     pub const SESSION_IDLE_EXPIRED: &str = "SESSION_IDLE_EXPIRED";
     /// The session is past its absolute expiry and cannot be kept alive.
     pub const SESSION_EXPIRED: &str = "SESSION_EXPIRED";
+    /// 422: managed WAF provision/deprovision on an instance with no WAF
+    /// configuration saved (`meta.action`).
+    pub const MANAGED_WAF_NOT_CONFIGURED: &str = "MANAGED_WAF_NOT_CONFIGURED";
     /// The feature this call needs is not configured on the instance.
     pub const NOT_CONFIGURED: &str = "NOT_CONFIGURED";
 }
