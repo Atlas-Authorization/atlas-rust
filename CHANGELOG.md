@@ -2,6 +2,16 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.26.0 — 2026-10-25
+
+### Added
+
+- **Test and review accounts.** `platform().atlas_id_apps().provisioned_accounts()`: `list`, `create`, `get`, `remove` and `rotate_password` for `/v1/platform/atlas_id_apps/{id}/provisioned_accounts`, with typed `AtlasIdProvisionedAccount`, `AtlasIdProvisionedAccountList`, `CreateAtlasIdProvisionedAccountBody` and `RotateAtlasIdProvisionedPasswordBody`. A password comes back exactly once, on create and rotation, as `password` or, with a secret recipient, `sealed_password`. `Debug` output masks both.
+- **Verified domains.** `platform().domains()`: `list`, `claim`, `check` (also `verify`) and `remove` for `/v1/platform/domains`, with `AccountDomain`.
+- **Test sign-in mode.** `test_mode` and `provisioned_verified_domains_only` on `AtlasIdApp` and `UpdateAtlasIdAppBody`.
+- **Scopes.** Provisioning needs `platform:atlas_id_apps:provision`, or `atlas_id_apps:<app id>:provision` for one app (documented on `provisioned_accounts()`).
+- `codes::TEST_ACCOUNT_RESTRICTED` (403), `codes::PROVISIONED_ACCOUNT_LIMIT_REACHED` (409) and `codes::DOMAIN_NOT_VERIFIED` (422).
+
 ## 0.25.0 — 2026-10-25
 
 ### Added

@@ -675,6 +675,14 @@ let app = platform.platform().atlas_id_apps().create(&CreateAtlasIdAppBody {
 # let _ = app; Ok(()) }
 ```
 
+Test and review accounts (0.26): `platform().atlas_id_apps().provisioned_accounts()` creates accounts
+confined to one app (`list`, `create`, `get`, `remove`, `rotate_password`). It needs the scope
+`platform:atlas_id_apps:provision`, or `atlas_id_apps:<app id>:provision` for a single app. The password is
+returned once as `password`, or as `sealed_password` when the client has a `secret_recipient`; `Debug` never
+prints it. `platform().domains()` (`list`, `claim`, `check`, `remove`) manages the verified domains that
+`test_mode` and `provisioned_verified_domains_only` (on `UpdateAtlasIdAppBody`) rely on. New error codes:
+`TEST_ACCOUNT_RESTRICTED`, `PROVISIONED_ACCOUNT_LIMIT_REACHED`, `DOMAIN_NOT_VERIFIED`.
+
 `platform().apps()` provisions and manages the apps your platform owns, and
 `platform().upload_design_asset(...)` uploads images for app designs.
 

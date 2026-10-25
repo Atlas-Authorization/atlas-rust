@@ -69,6 +69,9 @@ pub use instance::{
 };
 pub use pagination::{collect, CursorPage, CursorParams, Query};
 pub use platform_api::{
+    AccountDomain, AccountDomainList, AccountDomains, AtlasIdProvisionedAccount, AtlasIdProvisionedAccountApp,
+    AtlasIdProvisionedAccountList, AtlasIdProvisionedAccountRemoved, AtlasIdProvisionedAccounts,
+    CreateAtlasIdProvisionedAccountBody, RotateAtlasIdProvisionedPasswordBody,
     AtlasIdApp, AtlasIdAppBranding, AtlasIdAppBrandingInput, AtlasIdAppCopy, AtlasIdAppList,
     AtlasIdApps, AtlasIdPublisherApi, CreateAtlasIdAppBody, CreatePlatformAppBody, PlatformApi, PlatformApp, PlatformApps,
     RotateAtlasIdAppSecretBody, RotatePlatformSecretBody, UpdateAtlasIdAppBody, UpdatePlatformAppBody,

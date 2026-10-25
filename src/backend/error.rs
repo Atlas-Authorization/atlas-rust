@@ -232,6 +232,15 @@ pub mod codes {
     /// 422: managed WAF provision/deprovision on an instance with no WAF
     /// configuration saved (`meta.action`).
     pub const MANAGED_WAF_NOT_CONFIGURED: &str = "MANAGED_WAF_NOT_CONFIGURED";
+    /// 403: a Sign in with Atlas test or review account used outside the app it
+    /// was made for.
+    pub const TEST_ACCOUNT_RESTRICTED: &str = "TEST_ACCOUNT_RESTRICTED";
+    /// 409: the account already holds its maximum number of test and review
+    /// accounts (`meta.limit`).
+    pub const PROVISIONED_ACCOUNT_LIMIT_REACHED: &str = "PROVISIONED_ACCOUNT_LIMIT_REACHED";
+    /// 422: the setting or address needs a domain the account has verified,
+    /// and this one is not.
+    pub const DOMAIN_NOT_VERIFIED: &str = "DOMAIN_NOT_VERIFIED";
     /// The feature this call needs is not configured on the instance.
     pub const NOT_CONFIGURED: &str = "NOT_CONFIGURED";
 }

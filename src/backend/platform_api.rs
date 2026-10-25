@@ -198,6 +198,13 @@ pub struct AtlasIdApp {
     /// On a rotation: the overlap applied, in seconds.
     #[serde(default)]
     pub overlap_seconds: Option<u64>,
+    /// Test sign-in mode: `+atlas_test` addresses on a verified domain sign in
+    /// to this app with the fixed code 424242. Off by default.
+    #[serde(default)]
+    pub test_mode: Option<bool>,
+    /// Test and review accounts must use an address on a domain you verified.
+    #[serde(default)]
+    pub provisioned_verified_domains_only: Option<bool>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -323,11 +330,293 @@ pub struct UpdateAtlasIdAppBody {
     /// `webhook_secret` once; `Some(None)` removes it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub webhook_url: Option<Option<String>>,
+    /// Turn test sign-in mode on or off. Turning it on needs a verified domain
+    /// on the account (422 `DOMAIN_NOT_VERIFIED` otherwise).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_mode: Option<bool>,
+    /// Require test and review accounts to use an address on a domain you verified.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provisioned_verified_domains_only: Option<bool>,
+}
+
+// ── Test and review accounts ──────────────────────────────────────────────
+
+/// An app a provisioned account is confined to.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(default)]
+pub struct AtlasIdProvisionedAccountApp {
+    pub id: String,
+    pub client_id: String,
+    pub name: String,
+}
+
+/// A Sign in with Atlas test or review account: a real Atlas account confined
+/// to the app(s) it was made for. The password is present only on create and
+/// password rotation (exactly once); with a secret recipient it arrives as
+/// `sealed_password` instead. `Debug` never prints either.
+#[derive(Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AtlasIdProvisionedAccount {
+    pub object: String,
+    pub id: String,
+    /// The Atlas ID subject the app sees.
+    pub sub: String,
+    pub email: Option<String>,
+    pub email_verified: bool,
+    pub label: String,
+    /// `provisioned`, `test_mode` or `developer`.
+    pub kind: String,
+    /// `app` or `staff`.
+    pub provisioned_by: String,
+    pub app_ids: Vec<String>,
+    pub apps: Vec<AtlasIdProvisionedAccountApp>,
+    pub any_app: bool,
+    pub two_factor_exempt: bool,
+    /// Epoch ms; `None` = never expires.
+    pub expires_at: Option<i64>,
+    pub expired: bool,
+    pub developer_account_id: Option<String>,
+    pub created_by: Value,
+    pub last_sign_in_at: Option<i64>,
+    pub password_rotated_at: Option<i64>,
+    pub created_at: i64,
+    pub updated_at: i64,
+    /// Only on create and password rotation: the password, returned once.
+    pub password: Option<String>,
+    /// With a secret recipient: the password sealed to it (open it with
+    /// [`open_sealed_secret`](crate::open_sealed_secret)).
+    pub sealed_password: Option<String>,
+    pub note: Option<String>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl std::fmt::Debug for AtlasIdProvisionedAccount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AtlasIdProvisionedAccount")
+            .field("id", &self.id)
+            .field("sub", &self.sub)
+            .field("email", &self.email)
+            .field("label", &self.label)
+            .field("kind", &self.kind)
+            .field("app_ids", &self.app_ids)
+            .field("any_app", &self.any_app)
+            .field("expires_at", &self.expires_at)
+            .field("expired", &self.expired)
+            .field("password", &self.password.as_ref().map(|_| "***"))
+            .field("sealed_password", &self.sealed_password.as_ref().map(|_| "***"))
+            .finish_non_exhaustive()
+    }
+}
+
+/// The accounts of one app, with the account-wide cap.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AtlasIdProvisionedAccountList {
+    pub object: String,
+    pub data: Vec<AtlasIdProvisionedAccount>,
+    /// The account-wide cap (default 25).
+    pub limit: u32,
+    /// Test accounts the account holds across all its apps.
+    pub total: u32,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The result of removing a provisioned account.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AtlasIdProvisionedAccountRemoved {
+    pub object: String,
+    pub id: String,
+    pub deleted: bool,
+    pub sessions_ended: u32,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Body for `POST /v1/platform/atlas_id_apps/:id/provisioned_accounts`.
+/// `Debug` masks the password.
+#[derive(Clone, Default, Serialize)]
+pub struct CreateAtlasIdProvisionedAccountBody {
+    pub email: String,
+    /// What the account is for, e.g. "app-store reviewer".
+    pub label: String,
+    /// At least 12 characters; leave `None` and Atlas generates one. Returned once either way.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// Default true.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email_verified: Option<bool>,
+    /// Never asked for a second factor when signing in to this app. A risk you opt into.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub two_factor_exempt: Option<bool>,
+    /// Epoch ms or ISO 8601 string; `Some(Value::Null)` or `None` for a
+    /// non-expiring account.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<Value>,
+}
+
+impl std::fmt::Debug for CreateAtlasIdProvisionedAccountBody {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CreateAtlasIdProvisionedAccountBody")
+            .field("email", &self.email)
+            .field("label", &self.label)
+            .field("password", &self.password.as_ref().map(|_| "***"))
+            .field("email_verified", &self.email_verified)
+            .field("two_factor_exempt", &self.two_factor_exempt)
+            .field("expires_at", &self.expires_at)
+            .finish()
+    }
+}
+
+/// Body for `POST .../provisioned_accounts/:id/password`. `Debug` masks the password.
+#[derive(Clone, Default, Serialize)]
+pub struct RotateAtlasIdProvisionedPasswordBody {
+    /// At least 12 characters; leave `None` and Atlas generates one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+}
+
+impl std::fmt::Debug for RotateAtlasIdProvisionedPasswordBody {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RotateAtlasIdProvisionedPasswordBody")
+            .field("password", &self.password.as_ref().map(|_| "***"))
+            .finish()
+    }
+}
+
+/// `/v1/platform/atlas_id_apps/:id/provisioned_accounts` — test and review
+/// accounts confined to one app (reviewer logins, CI, demos). Needs the scope
+/// `platform:atlas_id_apps:provision` or the per-app
+/// `atlas_id_apps:<app id>:provision`. Passwords come back exactly once, on
+/// create and on rotation; build the client with a secret recipient to receive
+/// them sealed (`sealed_password`). Reached via [`AtlasIdApps::provisioned_accounts`].
+pub struct AtlasIdProvisionedAccounts<'a> {
+    client: &'a BackendClient,
+}
+
+impl AtlasIdProvisionedAccounts<'_> {
+    /// `GET /v1/platform/atlas_id_apps/:id/provisioned_accounts`.
+    pub async fn list(&self, app_id: &str) -> Result<AtlasIdProvisionedAccountList, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/provisioned_accounts", seg(app_id));
+        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    }
+    /// `POST /v1/platform/atlas_id_apps/:id/provisioned_accounts` — the
+    /// password is returned once (`password`, or `sealed_password`).
+    pub async fn create(
+        &self,
+        app_id: &str,
+        body: &CreateAtlasIdProvisionedAccountBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<AtlasIdProvisionedAccount, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/provisioned_accounts", seg(app_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, idempotency_key)
+            .await
+    }
+    /// `GET /v1/platform/atlas_id_apps/:id/provisioned_accounts/:account`.
+    pub async fn get(&self, app_id: &str, account_id: &str) -> Result<AtlasIdProvisionedAccount, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/provisioned_accounts/{}", seg(app_id), seg(account_id));
+        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    }
+    /// `DELETE /v1/platform/atlas_id_apps/:id/provisioned_accounts/:account` —
+    /// deletes the account and ends every session and grant it holds.
+    pub async fn remove(&self, app_id: &str, account_id: &str) -> Result<AtlasIdProvisionedAccountRemoved, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/provisioned_accounts/{}", seg(app_id), seg(account_id));
+        self.client.request(HttpMethod::Delete, &path, &[], None, None).await
+    }
+    /// `POST /v1/platform/atlas_id_apps/:id/provisioned_accounts/:account/password`
+    /// — a new password (yours, or one Atlas generates), returned once. Pass
+    /// `None` to have Atlas generate it.
+    pub async fn rotate_password(
+        &self,
+        app_id: &str,
+        account_id: &str,
+        body: Option<&RotateAtlasIdProvisionedPasswordBody>,
+    ) -> Result<AtlasIdProvisionedAccount, BackendError> {
+        let path = format!(
+            "/v1/platform/atlas_id_apps/{}/provisioned_accounts/{}/password",
+            seg(app_id),
+            seg(account_id)
+        );
+        let b = match body {
+            Some(b) => body_of(b)?,
+            None => None,
+        };
+        self.client.request(HttpMethod::Post, &path, &[], b, None).await
+    }
+}
+
+// ── Verified domains ──────────────────────────────────────────────────────
+
+/// A domain the account claimed; verified ones gate test sign-in mode.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AccountDomain {
+    pub object: String,
+    pub id: String,
+    pub domain: String,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The account's domains and the verified ones.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AccountDomainList {
+    pub object: String,
+    pub data: Vec<AccountDomain>,
+    pub verified_domains: Vec<String>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// `/v1/platform/domains` — domains the account verified by DNS; they gate
+/// test sign-in mode and the test-account domain restriction. Reached via
+/// [`PlatformApi::domains`].
+pub struct AccountDomains<'a> {
+    client: &'a BackendClient,
+}
+
+impl AccountDomains<'_> {
+    /// `GET /v1/platform/domains`.
+    pub async fn list(&self) -> Result<AccountDomainList, BackendError> {
+        self.client.request(HttpMethod::Get, "/v1/platform/domains", &[], None, None).await
+    }
+    /// `POST /v1/platform/domains` — claim a domain; the result carries the
+    /// TXT record to publish.
+    pub async fn claim(&self, domain: &str) -> Result<AccountDomain, BackendError> {
+        let body = serde_json::json!({ "domain": domain });
+        self.client.request(HttpMethod::Post, "/v1/platform/domains", &[], Some(body), None).await
+    }
+    /// `POST /v1/platform/domains/:id/verify` — check the DNS record.
+    pub async fn check(&self, domain_id: &str) -> Result<AccountDomain, BackendError> {
+        let path = format!("/v1/platform/domains/{}/verify", seg(domain_id));
+        self.client.request(HttpMethod::Post, &path, &[], None, None).await
+    }
+    /// Alias of [`check`](Self::check), the name the other SDKs use.
+    pub async fn verify(&self, domain_id: &str) -> Result<AccountDomain, BackendError> {
+        self.check(domain_id).await
+    }
+    /// `DELETE /v1/platform/domains/:id`.
+    pub async fn remove(&self, domain_id: &str) -> Result<Value, BackendError> {
+        let path = format!("/v1/platform/domains/{}", seg(domain_id));
+        self.client.request(HttpMethod::Delete, &path, &[], None, None).await
+    }
 }
 
 /// `/v1/platform/atlas_id_apps`.
 pub struct AtlasIdApps<'a> {
     pub(super) client: &'a BackendClient,
+}
+
+impl<'a> AtlasIdApps<'a> {
+    /// Test and review accounts confined to one app (scope
+    /// `platform:atlas_id_apps:provision` or `atlas_id_apps:<id>:provision`).
+    pub fn provisioned_accounts(&self) -> AtlasIdProvisionedAccounts<'a> {
+        AtlasIdProvisionedAccounts { client: self.client }
+    }
 }
 
 impl AtlasIdApps<'_> {
@@ -656,6 +945,10 @@ impl<'a> PlatformApi<'a> {
     /// The account's Sign in with Atlas publisher name and DNS-verified domain.
     pub fn atlas_id_publisher(&self) -> AtlasIdPublisherApi<'a> {
         AtlasIdPublisherApi { client: self.client }
+    }
+    /// Domains the account verified by DNS (gate test sign-in mode).
+    pub fn domains(&self) -> AccountDomains<'a> {
+        AccountDomains { client: self.client }
     }
     /// The apps (instances) the platform owns.
     pub fn apps(&self) -> PlatformApps<'a> {
