@@ -351,7 +351,7 @@ impl ActionGallery<'_> {
     /// `GET /v1/action_gallery` — Browse the Actions gallery (first-party and published community
     /// templates), best first.
     ///
-    /// Query parameters: `q`, `category`, `trigger`, `source`.
+    /// Query parameters: `q`, `category`, `trigger`, `source`, `limit`, `starting_after`.
     ///
     /// Returns [`types::ActionGalleryListResponse`].
     pub async fn list(
@@ -404,7 +404,7 @@ impl ActionGallery<'_> {
     /// the gallery, with the installed and latest versions, update_available and the secrets still
     /// missing.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::ActionGalleryInstallsResponse`].
     pub async fn installs(
@@ -427,7 +427,7 @@ impl ActionTemplates<'_> {
     /// `GET /v1/action_templates` — The gallery templates this instance publishes, with every
     /// version and its review status.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::ActionTemplatesListResponse`].
     pub async fn list(
@@ -573,7 +573,7 @@ impl Actions<'_> {
     /// `GET /v1/actions` — List Actions (tenant code that runs at auth-pipeline hooks). Secret
     /// values are never returned, only their names.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::ActionsListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::ActionsListResponse, BackendError> {
@@ -587,8 +587,11 @@ impl Actions<'_> {
             )
             .await
     }
-    /// `POST /v1/actions` — Create an Action for a trigger (post_login, pre_user_registration,
-    /// post_user_registration). Secrets are write-only.
+    /// `POST /v1/actions` — Create an Action for a trigger (see the Actions guide for the 22
+    /// triggers: sign-in, registration, tokens, credentials, MFA, profile, organizations, billing).
+    /// Secrets are write-only. `runtime: "http"` (with `http_target` and an optional
+    /// `signing_secret`) makes the Action call your own HTTPS endpoint, Standard Webhooks signed,
+    /// instead of running code; a generated signing secret is returned once as `signing_secret`.
     ///
     /// Takes [`types::ActionsCreateBody`]. Returns [`types::Action`].
     pub async fn create(
@@ -682,7 +685,9 @@ impl Actions<'_> {
             .await
     }
     /// `POST /v1/actions/{id}/test` — Dry-run an Action against a sample event in the sandbox and
-    /// return its claims/deny/logs. Touches no real data.
+    /// return its claims, deny, lock, suppressed claims, user edits, sign-up changes and logs. The
+    /// sample event takes the trigger's `context`, `sign_up_fields` and `organization`. Touches no
+    /// real data.
     ///
     /// Takes [`types::ActionsTestBody`]. Returns [`types::ActionTestResult`].
     pub async fn test(
@@ -732,7 +737,7 @@ impl AllowlistIdentifiers<'_> {
     /// `GET /v1/allowlist_identifiers` — List allowlist identifiers (emails, @domains, phones)
     /// permitted in allow-list-only mode.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::AllowlistIdentifiersListResponse`].
     pub async fn list(
@@ -846,7 +851,7 @@ impl AppRoles<'_> {
     /// `GET /v1/app_roles` — List the instance's app-level user roles with how many users hold
     /// each.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::AppRolesListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::AppRolesListResponse, BackendError> {
@@ -915,7 +920,7 @@ impl AppRoles<'_> {
     }
     /// `GET /v1/app_roles/{id}/users` — The users holding an app role, oldest assignment first.
     ///
-    /// Query parameters: `limit`, `offset`.
+    /// Query parameters: `limit`, `starting_after`, `offset`.
     ///
     /// Returns [`types::AppRolesListUsersResponse`].
     pub async fn list_users(
@@ -1026,7 +1031,7 @@ impl BetterAuthImports<'_> {
     /// `GET /v1/better_auth_imports/jwks` — Better Auth JWT verification keys published in this
     /// instance's JWKS for the cutover window, so tokens Better Auth signed keep verifying.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::BetterAuthImportsListJwksResponse`].
     pub async fn list_jwks(
@@ -1227,7 +1232,7 @@ impl Billing<'_> {
     /// instance's OWN provider account; secrets are reported as *_set markers only, never returned.
     /// Each entry carries the webhook URL to register with the provider.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::BillingListProvidersResponse`].
     pub async fn list_providers(
@@ -1246,7 +1251,8 @@ impl Billing<'_> {
     }
     /// `GET /v1/billing/providers/{provider}` — One billing provider's settings: environment, which
     /// credentials are set, public fields (e.g. Stripe publishable key), status and the webhook URL
-    /// to register.
+    /// to register. When the provider has no credentials: 200 `{ object: "billing_provider",
+    /// provider, configured: false }` (not a 404).
     ///
     /// Returns [`types::BillingGetProviderResponse`].
     pub async fn get_provider(
@@ -1458,7 +1464,7 @@ impl Billing<'_> {
 impl BlocklistIdentifiers<'_> {
     /// `GET /v1/blocklist_identifiers` — List blocklist identifiers that cannot sign up or sign in.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::BlocklistIdentifiersListResponse`].
     pub async fn list(
@@ -1512,7 +1518,7 @@ impl BotSignals<'_> {
     /// `GET /v1/bot_labels` — Export the supervised training labels (bot / human / suspect) with
     /// their subject and source.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::BotSignalsListLabelsResponse`].
     pub async fn list_labels(
@@ -1552,7 +1558,7 @@ impl BotSignals<'_> {
     /// network features, risk verdict, heuristic score), newest first with a `before` epoch-ms
     /// cursor. Training data for an in-house bot-vs-human model. No raw IPs/PII.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::BotSignalsListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::BotSignalsListResponse, BackendError> {
@@ -1639,16 +1645,17 @@ impl Captcha<'_> {
 
 impl ConfigChangelog<'_> {
     /// `GET /v1/config_changelog` — Config change history for this instance — who changed which
-    /// config, when, with the per-field before/after diff where the source recorded one (else the
-    /// changed field names). Covers the instance, auth_config, branding, OAuth clients, custom
-    /// domains, webhook endpoints, messaging providers, cookie consent, captcha and other secrets,
-    /// and origin moves. Secrets never appear: a secret field reads "set", "cleared" or "rotated".
-    /// `target` names the object changed. A normalized view over the audit log across every
-    /// config-mutation action. Filter with `action`, page with `limit`/`starting_after`, bound with
-    /// `since`. Sign in with Atlas apps belong to the account: see GET
-    /// /v1/platform/config_changelog.
+    /// config, when, with one `changes\[\]` schema on every entry: the per-field before/after where
+    /// the source recorded it, else the changed field names with `values_recorded: false`. A write
+    /// that changed nothing is tagged `no_op: true` (leave those out with include_no_op=false).
+    /// Covers the instance, auth_config, branding, OAuth clients, custom domains, webhook
+    /// endpoints, messaging providers, cookie consent, captcha and other secrets, and origin moves.
+    /// Secrets never appear: a secret field reads "set", "cleared" or "rotated". `target` names the
+    /// object changed. A normalized view over the audit log across every config-mutation action.
+    /// Filter with `action`, page with `limit`/`starting_after`, bound with `since`. Sign in with
+    /// Atlas apps belong to the account: see GET /v1/platform/config_changelog.
     ///
-    /// Query parameters: `action`, `limit`, `starting_after`, `since`.
+    /// Query parameters: `action`, `limit`, `starting_after`, `since`, `include_no_op`.
     ///
     /// Returns [`types::ConfigChangelogListResponse`].
     pub async fn list(
@@ -1671,7 +1678,7 @@ impl Connectors<'_> {
     /// `GET /v1/connectors` — List the caller's own community connector profiles (draft +
     /// published), with adoption counts.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::ConnectorsListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::ConnectorsListResponse, BackendError> {
@@ -1805,7 +1812,7 @@ impl CustomOAuthProviders<'_> {
     /// `GET /v1/custom_oauth_providers` — List the instance's custom OAuth 2.0 / OpenID Connect
     /// login providers. The client secret is never returned (has_secret only).
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::CustomOAuthProvidersListResponse`].
     pub async fn list(
@@ -1955,7 +1962,7 @@ impl CustomOAuthProviders<'_> {
     /// `GET /v1/custom_oauth_providers/{id}/signing_keys` — The provider's private_key_jwt signing
     /// keys (public halves only), newest first.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::CustomOAuthProvidersListSigningKeysResponse`].
     pub async fn list_signing_keys(
@@ -2017,7 +2024,9 @@ impl DataSubjectRequests<'_> {
     /// backend — the twin of the self-service /client/me flows, for a DSAR orchestrator. Identify
     /// the subject by user_id OR subject_email (an orchestrator that knows people by email need not
     /// translate to an id itself). Flows through the same worker, grace window and
-    /// data_subject_request.* webhooks; idempotent on an in-flight request. → 202.
+    /// data_subject_request.* webhooks; idempotent on an in-flight request. An erasure also emits
+    /// user.deletion_scheduled (with deletion_effective_at) and opens one case at the instance's
+    /// data-rights orchestrator, shown as external_case. → 202.
     ///
     /// Takes [`types::DataSubjectRequestsCreateBody`]. Returns [`types::DataSubjectRequest`].
     pub async fn create(
@@ -2067,8 +2076,9 @@ impl DataSubjectRequests<'_> {
     }
     /// `POST /v1/data_subject_requests/{id}/cancel` — Cancel a scheduled erasure within its grace
     /// window — the sibling to /fulfill (which expedites). Aborts the deletion so the account is
-    /// not erased. Only a `scheduled` (or legacy `pending`) erasure cancels; once processing or
-    /// terminal it is a 409. Export requests are not cancellable.
+    /// not erased, and cancels the case at the instance's data-rights orchestrator. Only a
+    /// `scheduled` (or legacy `pending`) erasure, or a restriction / rectification still waiting,
+    /// cancels; once processing or terminal it is a 409. Export requests are not cancellable.
     ///
     /// Returns [`types::DataSubjectRequest`].
     pub async fn cancel(
@@ -2176,7 +2186,7 @@ impl Directory<'_> {
     /// `GET /v1/directory` — Browse the unified connector directory — built-in providers plus
     /// published community connectors, ranked popular-first.
     ///
-    /// Query parameters: `category`, `verified`, `q`, `limit`, `offset`.
+    /// Query parameters: `category`, `verified`, `q`, `limit`, `starting_after`, `offset`.
     ///
     /// Returns [`types::DirectoryListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::DirectoryListResponse, BackendError> {
@@ -2227,7 +2237,7 @@ impl EmailTemplates<'_> {
     /// `GET /v1/email_templates` — List email templates with their defaults and any instance
     /// override.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::EmailTemplatesListResponse`].
     pub async fn list(
@@ -2288,10 +2298,13 @@ impl EmailTemplates<'_> {
 }
 
 impl Events<'_> {
-    /// `GET /v1/events` — Read the product activity feed (events), filterable by type and time and
-    /// cursor-paginated, with the list of event types this instance has actually emitted.
+    /// `GET /v1/events` — Read the event log (the same events webhooks deliver), filterable by type
+    /// and time and cursor-paginated. For reconciliation after an outage, pass since= and walk
+    /// forward with starting_after until has_more is false: events come oldest first. Events are
+    /// kept 90 days (`retention.oldest_available_at` says what is still held). A type filter by any
+    /// spelling matches every spelling.
     ///
-    /// Query parameters: `type`, `from`, `to`, `limit`, `starting_after`.
+    /// Query parameters: `type`, `since`, `until`, `from`, `to`, `order`, `limit`, `starting_after`.
     ///
     /// Returns [`types::EventsListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::EventsListResponse, BackendError> {
@@ -2305,7 +2318,7 @@ impl Fga<'_> {
     /// `GET /v1/fga/stores` — List fine-grained authorization (ReBAC / Zanzibar) stores in the
     /// instance. Each store namespaces its own authorization models and relationship tuples.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::FgaListStoresResponse`].
     pub async fn list_stores(
@@ -2366,7 +2379,7 @@ impl Fga<'_> {
     /// `GET /v1/fga/stores/{id}/authorization-models` — List the immutable authorization-model
     /// versions of a store, newest first.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::FgaListAuthorizationModelsResponse`].
     pub async fn list_authorization_models(
@@ -2435,8 +2448,10 @@ impl Fga<'_> {
     }
     /// `POST /v1/fga/stores/{id}/check` — Check whether a user has a relation on an object,
     /// resolving the authorization model (direct tuples, computed usersets, tuple-to-userset hops,
-    /// set operators) with cycle + depth safety. Supports contextual tuples and a pinned
-    /// authorization_model_id.
+    /// set operators, tuple conditions) with cycle + depth safety. Supports contextual tuples,
+    /// request `context` for conditions and a pinned authorization_model_id. `consistency` /
+    /// `consistency_token` choose between the result cache and a primary read; the response carries
+    /// a `consistency_token`.
     ///
     /// Takes [`types::FgaCheckBody`]. Returns [`types::FgaCheckResponse`].
     pub async fn check(
@@ -2465,7 +2480,8 @@ impl Fga<'_> {
     }
     /// `POST /v1/fga/stores/{id}/list-objects` — List the object ids of a type that a user has a
     /// relation on. Exact (check-filtered over the complete candidate set); cost is linear in the
-    /// objects of that type.
+    /// objects of that type. Send `limit` (and `starting_after` from `next_cursor`) to page the
+    /// sorted result; without a limit every object is returned.
     ///
     /// Takes [`types::FgaListObjectsBody`]. Returns [`types::FgaListObjectsResponse`].
     pub async fn list_objects(
@@ -2521,9 +2537,9 @@ impl Fraud<'_> {
     /// IP, user agent, the SDK `device_id`, optional device features and email; get back signals
     /// (country, ASN, datacenter, Tor, headless/automation, client class
     /// human/crawler/ai_agent/automation, bot score, disposable email, hourly IP/device/email
-    /// velocity) and an allow / challenge / block verdict with reason codes from your
-    /// `fraud.rules` and `fraud.sanctioned_countries` on /v1/risk_based_mfa. Every call counts
-    /// toward the velocity signals.
+    /// velocity) and an allow / challenge / block verdict with reason codes from your `fraud.rules`
+    /// and `fraud.sanctioned_countries` on /v1/risk_based_mfa. Every call counts toward the
+    /// velocity signals.
     ///
     /// Takes [`types::FraudLookupBody`]. Returns [`types::FraudLookupResponse`].
     pub async fn lookup(
@@ -2557,19 +2573,23 @@ impl Instance<'_> {
     /// `PATCH /v1/instance` — Update allowed origins and auth_config (a partial, validated, merged
     /// patch — not a replace). Open or public-suffix wildcard origins refused (a single-label
     /// https://*.your-domain.com is accepted; shared hosts like *.vercel.app on development
-    /// instances only); an invalid auth_config returns 422. Turning email code or email link
-    /// sign-in ON while the instance cannot deliver email (a production instance with no email
-    /// provider) returns 422 EMAIL_PROVIDER_REQUIRED naming the field; configure one first with PUT
-    /// /v1/messaging_providers/email. Methods that are already on are left alone. Captcha always
-    /// runs on your own provider keys: turning a captcha ON for a flow (or changing its provider)
-    /// before both the provider site key (auth_config.captcha.siteKey) and its secret (PUT
-    /// /v1/instance/captcha_secret) are set returns 422 CAPTCHA_KEYS_REQUIRED with param naming the
-    /// missing one — store the secret first, then enable. Removing the site key while a flow uses
-    /// it returns 409 CAPTCHA_IN_USE unless force=true, which also turns the captcha off on those
-    /// flows. Setting the retired raw branding fields (branding.customCss / customHtmlHeader /
-    /// customHtmlFooter) returns 422 naming the field — use the design settings (PUT
-    /// /v1/instance/design) instead; clearing them (null or "") is accepted. The response echoes
-    /// auth_config_resolved so you can confirm the change took effect. Strict writes:
+    /// instances only); an invalid auth_config returns 422. A method that needs email (email code,
+    /// email link, password sign-up that verifies by email) is accepted even when the instance has
+    /// no email provider yet (email is bring-your-own; Terraform or config import may add the
+    /// provider later in the same apply): the response lists it under inactive_methods, users are
+    /// not offered it, and it becomes active on its own once a provider is configured (PUT
+    /// /v1/messaging_providers/email). Captcha always runs on your own provider keys: turning a
+    /// captcha ON for a flow (or changing its provider) before both the provider site key
+    /// (auth_config.captcha.siteKey) and its secret (PUT /v1/instance/captcha_secret) are set
+    /// returns 422 CAPTCHA_KEYS_REQUIRED with param naming the missing one — store the secret
+    /// first, then enable. Removing the site key while a flow uses it returns 409 CAPTCHA_IN_USE
+    /// unless force=true, which also turns the captcha off on those flows. Setting the retired raw
+    /// branding fields (branding.customCss / customHtmlHeader / customHtmlFooter) returns 422
+    /// naming the field — use the design settings (PUT /v1/instance/design) instead; clearing them
+    /// (null or "") is accepted. The response echoes auth_config_resolved so you can confirm the
+    /// change took effect, and `warnings`: an origin_still_referenced entry for every removed
+    /// origin that webhook endpoints (not marked external) or OAuth client URIs still point at,
+    /// naming each one and the POST /v1/instance/move_origin call that moves them. Strict writes:
     /// auth_config.strictRequestBodies (true on instances created from 2026-10 on) refuses unknown
     /// body fields with 422 UNKNOWN_FIELD on every Backend API write; set it to opt in or out, or
     /// send Atlas-Strict: true | false on one request.
@@ -2639,11 +2659,12 @@ impl Instance<'_> {
     /// one row per link in the shared shape {check, ok, severity, subject, fix_hint,
     /// last_checked_at} plus kind and details: privacy-request (data subject request) webhook
     /// endpoints with their last verified delivery, the consent-management platform on the hosted
-    /// pages (with the Cookie Munch site check), Sign in with Atlas apps tied to the instance, and
-    /// JWT templates that mint tokens for another service's audience. Only what Atlas can observe
-    /// itself. ok is false when any warning or error row fails. Read-only.
+    /// pages (with the Cookie Munch site check), the Sign in with Atlas apps the instance manages
+    /// (account-registered apps are never listed to an instance key), and JWT templates that mint
+    /// tokens for another service's audience. Only what Atlas can observe itself. ok is false when
+    /// any warning or error row fails. Read-only.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::InstanceConnectionsResponse`].
     pub async fn connections(
@@ -2742,116 +2763,6 @@ impl Instance<'_> {
             )
             .await
     }
-    /// `GET /v1/instance/integrations/chatly` — Read the Chatly connection: the channel, and the
-    /// issuer / JWKS / audience the channel's identity verification uses for getToken({ template:
-    /// 'chatly' }) tokens.
-    ///
-    /// Returns [`types::InstanceGetChatlyIntegrationResponse`].
-    pub async fn get_chatly_integration(
-        &self,
-    ) -> Result<types::InstanceGetChatlyIntegrationResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/instance/integrations/chatly",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
-    /// `PUT /v1/instance/integrations/chatly` — Connect a Chatly channel: getToken({ template:
-    /// 'chatly' }) then mints a 120-second RS256 token with aud chatly:&lt;channel&gt;, sub (the
-    /// Atlas user id), email, email_verified and name, verifiable against the instance JWKS. A
-    /// stored jwt template named chatly takes precedence.
-    ///
-    /// Takes [`types::InstanceSetChatlyIntegrationBody`]. Returns [`types::InstanceSetChatlyIntegrationResponse`].
-    pub async fn set_chatly_integration(
-        &self,
-        body: &types::InstanceSetChatlyIntegrationBody,
-    ) -> Result<types::InstanceSetChatlyIntegrationResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Put,
-                "/v1/instance/integrations/chatly",
-                &[],
-                body_of(body)?,
-                None,
-            )
-            .await
-    }
-    /// `DELETE /v1/instance/integrations/chatly` — Remove the Chatly connection; getToken({
-    /// template: 'chatly' }) answers 404 unless a stored template has that name.
-    ///
-    /// Returns [`types::InstanceDeleteChatlyIntegrationResponse`].
-    pub async fn delete_chatly_integration(
-        &self,
-    ) -> Result<types::InstanceDeleteChatlyIntegrationResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/instance/integrations/chatly",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
-    /// `GET /v1/instance/integrations/forumulate` — Read the Forumulate connection: the org and
-    /// spaces whose readers Atlas signs in, the token audience/issuer/JWKS, and the external_jwt
-    /// provider config to store on each space.
-    ///
-    /// Returns [`types::InstanceGetForumulateIntegrationResponse`].
-    pub async fn get_forumulate_integration(
-        &self,
-    ) -> Result<types::InstanceGetForumulateIntegrationResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/instance/integrations/forumulate",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
-    /// `PUT /v1/instance/integrations/forumulate` — Connect Forumulate spaces: Atlas then mints
-    /// reader tokens for the signed-in user (GET /v1/client/forumulate/reader_token), so your app
-    /// needs no reader hand-off route. Store the returned reader_auth_provider on each space in
-    /// Forumulate. Replaces the whole connection.
-    ///
-    /// Takes [`types::InstanceSetForumulateIntegrationBody`]. Returns [`types::InstanceSetForumulateIntegrationResponse`].
-    pub async fn set_forumulate_integration(
-        &self,
-        body: &types::InstanceSetForumulateIntegrationBody,
-    ) -> Result<types::InstanceSetForumulateIntegrationResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Put,
-                "/v1/instance/integrations/forumulate",
-                &[],
-                body_of(body)?,
-                None,
-            )
-            .await
-    }
-    /// `DELETE /v1/instance/integrations/forumulate` — Remove the Forumulate connection;
-    /// reader_token answers 404 from then on.
-    ///
-    /// Returns [`types::InstanceDeleteForumulateIntegrationResponse`].
-    pub async fn delete_forumulate_integration(
-        &self,
-    ) -> Result<types::InstanceDeleteForumulateIntegrationResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/instance/integrations/forumulate",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
     /// `PUT /v1/instance/kerberos_secret` — Store the per-instance Kerberos/IWA trusted-proxy
     /// secret (write-only, encrypted; never read back). Refused while the kerberos strategy is off.
     ///
@@ -2926,11 +2837,16 @@ impl Instance<'_> {
     /// keeping each URL's path: allowed_origins; the branding logo, font, background and legal
     /// URLs; every OAuth client's redirect_uris, post_logout_redirect_uris, backchannel_logout_uri,
     /// frontchannel_logout_uri, homepage_url, logo_url, jwks_uri and legal links; webhook endpoint
-    /// URLs; the redirect-URL allowlist; and the same fields on this account's Sign in with Atlas
-    /// apps. Returns the before → after diff. dry_run: true writes nothing. A rewritten value the
-    /// field would refuse (e.g. a webhook moving to a loopback host) is listed in problems, and a
-    /// real run then answers 422 without writing. A second run returns an empty diff. Each changed
-    /// object gets a config-changelog entry (instance.origin_moved).
+    /// URLs; the redirect-URL allowlist; and the same fields on the Sign in with Atlas apps this
+    /// instance manages (apps the account registered itself are account resources: an instance key
+    /// never lists or rewrites them; move those with POST
+    /// /v1/platform/atlas_id_apps/{id}/move_origin). Returns the before → after diff. dry_run: true
+    /// writes nothing. A rewritten value the field would refuse (e.g. a webhook moving to a
+    /// loopback host) is listed in problems, and a real run then answers 422 without writing. A
+    /// second run returns an empty diff. Each changed object gets a config-changelog entry
+    /// (instance.origin_moved). The response lists moved_webhook_endpoints with the call that tests
+    /// each; test_webhooks: true (on a real run) sends each one a webhook.test now and returns
+    /// webhook_tests with each result.
     ///
     /// Takes [`types::OriginMoveRequest`]. Returns [`types::OriginMove`].
     pub async fn move_origin(
@@ -3220,7 +3136,7 @@ impl Instance<'_> {
     /// the next retry and the platform's answer (personal fields redacted; matched_via and notes
     /// highlighted).
     ///
-    /// Query parameters: `limit`, `starting_after`, `error_code`, `status`, `kind`, `user_id`.
+    /// Query parameters: `trace`, `limit`, `starting_after`, `error_code`, `status`, `kind`, `user_id`.
     ///
     /// Returns [`types::InstanceListReferralCallsResponse`].
     pub async fn list_referral_calls(
@@ -3429,7 +3345,7 @@ impl Instance<'_> {
     /// the `current` key (signs every new token) and, inside a rotation's grace window, the
     /// `previous` key with `retires_at` (epoch ms) — when it leaves the JWKS.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::InstanceListSigningKeysResponse`].
     pub async fn list_signing_keys(
@@ -3535,7 +3451,7 @@ impl Jobs<'_> {
     }
     /// `GET /v1/jobs/{id}/errors` — List a job's per-row errors ({ index, email, code, message }).
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::JobsListErrorsResponse`].
     pub async fn list_errors(
@@ -3555,8 +3471,10 @@ impl JwtTemplates<'_> {
     /// DEMAND via POST /v1/sessions/{id}/tokens/{template} (Clerk getToken({template}) parity) —
     /// they do NOT alter the session cookie. To shape the session token itself, use auth_config
     /// (entitlements → `pla`/`fea`, identityTraits) and public_metadata
-    /// (`progression`/`tier`/`flair`); see session-tokens-and-claims. Reserved claims and private
-    /// fields are refused.
+    /// (`progression`/`tier`/`flair`); see session-tokens-and-claims. Claims resolve per session at
+    /// mint time (`{{org.id}}`, `{{org.membership_id}}`, `{{org.role}}` follow the session's active
+    /// organization). Optional `settings.lifetime_seconds` (10–86400, default 60) sets the token
+    /// lifetime. Reserved claims and private fields are refused.
     ///
     /// Takes [`types::JwtTemplatesCreateBody`]. Returns [`types::JwtTemplatesCreateResponse`].
     pub async fn create(
@@ -3575,7 +3493,7 @@ impl JwtTemplates<'_> {
     }
     /// `GET /v1/jwt_templates` — List the defined JWT templates and their claim maps.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::JwtTemplatesListResponse`].
     pub async fn list(
@@ -3601,8 +3519,9 @@ impl JwtTemplates<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
-    /// `PATCH /v1/jwt_templates/{id}` — Replace a JWT template claim map. Reserved claims and
-    /// private fields are refused.
+    /// `PATCH /v1/jwt_templates/{id}` — Replace a JWT template claim map and/or merge its settings
+    /// (lifetime_seconds, audience, algorithm). Send claims, settings or both; omitted parts are
+    /// kept. Reserved claims and private fields are refused.
     ///
     /// Takes [`types::JwtTemplatesUpdateBody`]. Returns [`types::JwtTemplatesUpdateResponse`].
     pub async fn update(
@@ -3647,9 +3566,11 @@ impl LegacyAuthConnection<'_> {
             .await
     }
     /// `PUT /v1/legacy_auth_connection` — Create or replace the instance's lazy-migration
-    /// connection (verify_url + signing_secret, enabled, import_on_login, timeout_ms). The signing
-    /// secret is write-only; one connection per instance; verify_url must be public https in
-    /// production.
+    /// connection: your verify webhook (strategy password: verify_url + signing_secret) or a vendor
+    /// preset (strategy preset: preset + preset_config + secret) that checks the password against
+    /// your previous provider. enabled, import_on_login, timeout_ms apply to both. Secrets are
+    /// write-only; one connection per instance; URLs must be public https in production. Fails
+    /// closed; a vendor MFA challenge after a correct password counts as verified.
     ///
     /// Takes [`types::LegacyAuthConnectionSetBody`]. Returns [`types::LegacyAuthConnectionSetResponse`].
     pub async fn set(
@@ -3691,7 +3612,7 @@ impl Localizations<'_> {
     /// `GET /v1/localizations` — List per-language localization overrides (email/SMS templates,
     /// hosted-page copy).
     ///
-    /// Query parameters: `resource_type`, `resource_name`, `locale`.
+    /// Query parameters: `resource_type`, `resource_name`, `locale`, `limit`, `starting_after`.
     ///
     /// Returns [`types::LocalizationsListResponse`].
     pub async fn list(
@@ -3765,7 +3686,7 @@ impl LogStreams<'_> {
     /// `GET /v1/log_streams` — List log streams (event forwarding to Datadog, Splunk or a generic
     /// HTTP sink). Secret values are never returned, only has_* markers.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::LogStreamsListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::LogStreamsListResponse, BackendError> {
@@ -3850,7 +3771,7 @@ impl LogoutNotifyEndpoints<'_> {
     /// downstream services that receive the same signed logout_token as your OIDC apps whenever a
     /// session ends, and a subject-wide one on ban or deletion.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::LogoutNotifyEndpointsListResponse`].
     pub async fn list(
@@ -3943,7 +3864,7 @@ impl LogoutNotifyEndpoints<'_> {
     /// first: each logout_token sent (sub, sid — null for a subject-wide logout), status, HTTP
     /// status and the next retry.
     ///
-    /// Query parameters: `limit`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::LogoutNotifyEndpointsListDeliveriesResponse`].
     pub async fn list_deliveries(
@@ -3962,7 +3883,7 @@ impl LtiPlatforms<'_> {
     /// `GET /v1/lti_platforms` — List the LTI 1.3 platform registrations allowed to launch this
     /// instance.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::LtiPlatformsListResponse`].
     pub async fn list(
@@ -4064,7 +3985,8 @@ impl ManagedWaf<'_> {
             .await
     }
     /// `POST /v1/managed_waf/deprovision` — §5 Deprovision: disassociate the WebACL from the edge
-    /// and delete it, then clear the stored state. Fail-safe like provision.
+    /// and delete it, then clear the stored state. Fail-safe like provision. 422
+    /// MANAGED_WAF_NOT_CONFIGURED when no WAF configuration has been saved.
     ///
     /// Returns [`types::ManagedWafDeprovisionResponse`].
     pub async fn deprovision(&self) -> Result<types::ManagedWafDeprovisionResponse, BackendError> {
@@ -4080,7 +4002,8 @@ impl ManagedWaf<'_> {
     }
     /// `POST /v1/managed_waf/provision` — §5 Provision now: idempotently create-or-update the AWS
     /// WAF WebACL with the CAPTCHA rule and associate it with the edge (ALB or CloudFront).
-    /// Fail-safe: AWS errors are recorded, not thrown into auth.
+    /// Fail-safe: AWS errors are recorded, not thrown into auth. 422 MANAGED_WAF_NOT_CONFIGURED
+    /// when no WAF configuration has been saved.
     ///
     /// Returns [`types::ManagedWafProvisionResponse`].
     pub async fn provision(&self) -> Result<types::ManagedWafProvisionResponse, BackendError> {
@@ -4183,7 +4106,8 @@ impl McpConnector<'_> {
 impl MessagingProvidersApi<'_> {
     /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
     /// mode: whether it is active, the provider, the From address, the subject prefix, the
-    /// templates it sends and the limits. 404 when the provider is not in development mode.
+    /// templates it sends and the limits. When the provider is not in development mode: 200 `{
+    /// object: "development_email", configured: false, enabled: false }`.
     ///
     /// Returns [`types::DevelopmentEmail`].
     pub async fn get_development_email(&self) -> Result<types::DevelopmentEmail, BackendError> {
@@ -4249,7 +4173,8 @@ impl MessagingProvidersApi<'_> {
     }
     /// `GET /v1/messaging_providers/email/managed` — Read the managed sending domain: status
     /// (refreshed from your provider while unverified), the records to publish, and sent / bounce /
-    /// complaint counts. 404 when none is configured. Never returns an API key or DNS token.
+    /// complaint counts. When none is configured: 200 `{ object: "managed_email", configured: false
+    /// }`. Never returns an API key or DNS token.
     ///
     /// Returns [`types::ManagedEmail`].
     pub async fn get_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
@@ -4398,7 +4323,7 @@ impl NetworkAcls<'_> {
     /// `GET /v1/network_acls` — List network ACLs — per-instance IP allow/deny rules that gate
     /// access to the instance, in priority order.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::NetworkAclsListResponse`].
     pub async fn list(
@@ -4415,9 +4340,9 @@ impl NetworkAcls<'_> {
             )
             .await
     }
-    /// `POST /v1/network_acls` — Create a network ACL rule (allow|deny, a CIDR or single address, a
-    /// priority). A malformed CIDR is refused. First match in priority order decides; an allow-list
-    /// denies every unnamed IP.
+    /// `POST /v1/network_acls` — Create a network ACL rule (allow|deny, a CIDR or single address or
+    /// a `zone_id`, a priority). A malformed CIDR is refused. First match in priority order
+    /// decides; an allow-list denies every unnamed IP.
     ///
     /// Takes [`types::NetworkAclsCreateBody`]. Returns [`types::NetworkAcl`].
     pub async fn create(
@@ -4443,8 +4368,8 @@ impl NetworkAcls<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
-    /// `PATCH /v1/network_acls/{id}` — Update a network ACL rule's action, cidr, description,
-    /// priority or enabled flag.
+    /// `PATCH /v1/network_acls/{id}` — Update a network ACL rule's action, cidr or zone_id,
+    /// description, priority or enabled flag.
     ///
     /// Takes [`types::NetworkAclsUpdateBody`]. Returns [`types::NetworkAcl`].
     pub async fn update(
@@ -4471,9 +4396,10 @@ impl NetworkAcls<'_> {
 
 impl OAuthClients<'_> {
     /// `GET /v1/oauth_clients` — List "Sign in with Atlas" OAuth clients. The client secret is
-    /// never returned.
+    /// never returned. Filter with ?metadata\[key\]=value; each item carries `metadata` and
+    /// `external_ref`.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::OAuthClientsListResponse`].
     pub async fn list(
@@ -4491,7 +4417,9 @@ impl OAuthClients<'_> {
             .await
     }
     /// `POST /v1/oauth_clients` — Register an OAuth client (confidential or public PKCE). A
-    /// confidential client's secret is revealed exactly once.
+    /// confidential client's secret is revealed exactly once. Idempotent create: `external_ref`
+    /// returns the existing object on a repeat (200, `idempotent_replay: true`, no secret
+    /// re-shown); `metadata` tags it (filter lists with ?metadata\[key\]=value).
     ///
     /// Takes [`types::OAuthClientsCreateBody`]. Returns [`types::OAuthClientsCreateResponse`].
     pub async fn create(
@@ -4531,7 +4459,7 @@ impl OAuthClients<'_> {
     /// `GET /v1/oauth_clients/{clientId}/grants` — List the resource-server grants
     /// (client_credentials authorizations) of a client.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::OAuthClientsListGrantsResponse`].
     pub async fn list_grants(
@@ -4587,7 +4515,7 @@ impl OAuthClients<'_> {
             .await
     }
     /// `PATCH /v1/oauth_clients/{id}` — Update an OAuth client's registration (name, redirect_uris,
-    /// scopes). The secret is immutable here.
+    /// scopes). The secret is immutable here. Accepts `metadata` (replaces the provisioning tags).
     ///
     /// Takes [`types::OAuthClientsUpdateBody`]. Returns [`types::OAuthClientsUpdateResponse`].
     pub async fn update(
@@ -4702,7 +4630,7 @@ impl OAuthInitialAccessTokens<'_> {
     /// registration (RFC 7591 §3), newest first, with status (active, expired, used_up, revoked)
     /// and use counts. The tokens themselves are never returned.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::OAuthInitialAccessTokensListResponse`].
     pub async fn list(
@@ -4944,7 +4872,7 @@ impl OrgLdapConnections<'_> {
     /// `GET /v1/org_ldap_connections` — List the organization-owned LDAP / AD connections. Never
     /// the bind password. Optional `?organization_id=` filters to one organization server-side.
     ///
-    /// Query parameters: `organization_id`.
+    /// Query parameters: `organization_id`, `limit`, `starting_after`.
     ///
     /// Returns [`types::OrgLdapConnectionsListResponse`].
     pub async fn list(
@@ -5101,7 +5029,7 @@ impl Organizations<'_> {
     /// destinations. Reports has_secret, never the signing secret. Another instance's or org's id
     /// is a 404, never a 403.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::OrganizationsListAuditStreamsResponse`].
     pub async fn list_audit_streams(
@@ -5220,7 +5148,7 @@ impl Organizations<'_> {
     /// `GET /v1/organizations/{id}/roles` — The roles an organization can assign: the instance-wide
     /// roles plus its own custom roles (organization_id set). ?own=true lists only its own.
     ///
-    /// Query parameters: `own`.
+    /// Query parameters: `own`, `limit`, `starting_after`.
     ///
     /// Returns [`types::OrganizationsListRolesResponse`].
     pub async fn list_roles(
@@ -5310,7 +5238,7 @@ impl Organizations<'_> {
     /// `GET /v1/organizations/{id}/teams` — List the organization's teams with member counts.
     /// ?user_id= narrows to the teams that user is in.
     ///
-    /// Query parameters: `user_id`.
+    /// Query parameters: `user_id`, `limit`, `starting_after`.
     ///
     /// Returns [`types::OrganizationsListTeamsResponse`].
     pub async fn list_teams(
@@ -5381,7 +5309,7 @@ impl Organizations<'_> {
     }
     /// `GET /v1/organizations/{id}/teams/{teamId}/members` — List a team's members.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::OrganizationsListTeamMembersResponse`].
     pub async fn list_team_members(
@@ -5557,7 +5485,7 @@ impl Organizations<'_> {
     /// `GET /v1/organizations/{orgId}/reader_domain` — List the organization's reader domain(s) —
     /// the host(s) whose sign-ups join this org's end-user pool, with DNS/certificate status.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::OrganizationsGetReaderDomainResponse`].
     pub async fn get_reader_domain(
@@ -5698,7 +5626,7 @@ impl Pca<'_> {
 impl Permissions<'_> {
     /// `GET /v1/permissions` — List permissions available to roles on this instance.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::PermissionsListResponse`].
     pub async fn list(
@@ -5804,6 +5732,9 @@ impl AtlasIdApps<'_> {
     /// the consent screen again; the app's refresh tokens for the user stop working; a back-channel
     /// logout goes to the app (and its logout fan-out endpoints) for each live sign-in, and the
     /// app's webhook gets grant.revoked. The person's Atlas account and other apps are untouched.
+    /// Also accepts an instance secret key (`secretKey`) with `atlas_id_grants:write` (or the
+    /// `privacy:grants:revoke` / `privacy:execute` presets), for the apps that instance manages or
+    /// has adopted (PUT …/managed_by); any other app is 404 to it.
     ///
     /// Returns [`types::AtlasIdAppsRevokeGrantResponse`].
     pub async fn revoke_grant(
@@ -5818,6 +5749,28 @@ impl AtlasIdApps<'_> {
         );
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/platform/atlas_id_apps/{id}/managed_by` — Hand an existing app's grant management
+    /// to an instance of the same account (adoption), or take it back with `instance_id: null`.
+    /// That instance's secret key, scoped to `atlas_id_grants:read|write` or
+    /// `privacy:grants:revoke`, can then list the app (GET /v1/atlas_id_apps), look a person up
+    /// (…/users?email=) and revoke their grant (DELETE …/grants/{grantId}), here or at
+    /// /v1/platform/atlas_id_apps/{id}/…, and an erasure on that instance revokes the person's
+    /// grant (matched by verified email). The app stays yours to edit; `managed_via` becomes
+    /// `adopted`. 404 for an instance of another account; 409 for the app of an instance's Sign in
+    /// with Atlas toggle (already managed). With an operator token, needs multi-factor sign-in
+    /// within 5 minutes. Audited on the account and on the instance.
+    ///
+    /// Takes [`types::AtlasIdAppsSetManagedByBody`]. Returns [`types::AtlasIdAppsSetManagedByResponse`].
+    pub async fn set_managed_by(
+        &self,
+        id: &str,
+        body: &types::AtlasIdAppsSetManagedByBody,
+    ) -> Result<types::AtlasIdAppsSetManagedByResponse, BackendError> {
+        let path = format!("/v1/platform/atlas_id_apps/{}/managed_by", seg(id));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
     /// `POST /v1/platform/atlas_id_apps/{id}/move_origin` — Move one Sign in with Atlas app from
@@ -5845,8 +5798,13 @@ impl AtlasIdApps<'_> {
     /// the back-channel logout URI set and recently delivered (oauth_client_backchannel_failing
     /// after 3 consecutive failed deliveries or one redirect), homepage_url on a redirect_uris host
     /// (homepage_url_not_in_redirect_hosts), privacy and terms links once the app has users
-    /// (legal_urls_missing), and the client secret's age. ok is true when there are no errors.
-    /// Read-only.
+    /// (legal_urls_missing), the client secret's age, and whether the Sign in with Atlas button
+    /// renders: button_rendered_origins lists the page origins the button script ran on in the last
+    /// 7 days, and atlas_id_button_never_rendered (info) fires when every authorize request of the
+    /// last 7 days arrived without the button marker (atlasid_button) while the app's homepage
+    /// includes the script. ok is true when there are no errors. Read-only. Also accepts an
+    /// instance secret key (diagnostics:read or atlas_id_grants:read) for an app that instance
+    /// manages; the same report is at GET /v1/atlas_id_apps/{id}/preflight.
     ///
     /// Returns [`types::AtlasIdAppPreflight`].
     pub async fn preflight(&self, id: &str) -> Result<types::AtlasIdAppPreflight, BackendError> {
@@ -5859,9 +5817,12 @@ impl AtlasIdApps<'_> {
     /// app's users? Exact match on a verified email of an Atlas account that has approved this app;
     /// returns `{atlas_id_user: true, sub, grant_id, scopes, granted_at}`. Anyone else (no account,
     /// unverified address, never approved this app) gets the same empty list, so the call reveals
-    /// nothing about who has an Atlas account.
+    /// nothing about who has an Atlas account. Also accepts an instance secret key (`secretKey`)
+    /// with `atlas_id_grants:read` (or the `privacy:grants:revoke` / `privacy:execute` presets),
+    /// for the apps that instance manages or has adopted (PUT …/managed_by); any other app is 404
+    /// to it.
     ///
-    /// Query parameters: `email`.
+    /// Query parameters: `email`, `limit`, `starting_after`.
     ///
     /// Returns [`types::AtlasIdAppsFindUsersResponse`].
     pub async fn find_users(
@@ -5872,23 +5833,6 @@ impl AtlasIdApps<'_> {
         let path = format!("/v1/platform/atlas_id_apps/{}/users", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
-            .await
-    }
-    /// `PUT /v1/platform/atlas_id_apps/{id}/managed_by` — Hand one Sign in with Atlas app's grant
-    /// management to an instance of the same account (`managed_via: "adopted"`), or take it back
-    /// with `instance_id: null`. That instance's secret key, scoped to `privacy:grants:revoke` or
-    /// `atlas_id_apps:*`, then lists and revokes the app's grants, so a data-rights tool never
-    /// needs the platform key. The app stays yours to edit.
-    ///
-    /// Takes [`types::AtlasIdAppsSetManagedByBody`]. Returns [`types::AtlasIdAppsSetManagedByResponse`].
-    pub async fn set_managed_by(
-        &self,
-        id: &str,
-        body: &types::AtlasIdAppsSetManagedByBody,
-    ) -> Result<types::AtlasIdAppsSetManagedByResponse, BackendError> {
-        let path = format!("/v1/platform/atlas_id_apps/{}/managed_by", seg(id));
-        self.client
-            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
     /// `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret` — Rotate the app's webhook
@@ -5929,8 +5873,8 @@ impl AtlasIdApps<'_> {
 
 impl AtlasIdPublisherApi<'_> {
     /// `GET /v1/platform/atlas_id_publisher` — The account's Sign in with Atlas publisher: name,
-    /// domain, whether it is verified, the DNS TXT record to publish, and skip_consent. 404 until
-    /// claimed.
+    /// domain, whether it is verified, the DNS TXT record to publish, and skip_consent. Until one
+    /// is claimed: 200 `{ object: "atlas_id_publisher", configured: false }` (not a 404).
     ///
     /// Returns [`types::AtlasIdPublisherGetResponse`].
     pub async fn get(&self) -> Result<types::AtlasIdPublisherGetResponse, BackendError> {
@@ -6022,7 +5966,7 @@ impl PlatformApi<'_> {
     /// never its value). The same entry shape as GET /v1/config_changelog. Filter with action, page
     /// with limit/starting_after, bound with since.
     ///
-    /// Query parameters: `action`, `limit`, `starting_after`, `since`.
+    /// Query parameters: `action`, `limit`, `starting_after`, `since`, `include_no_op`.
     ///
     /// Returns [`types::PlatformConfigChangelogResponse`].
     pub async fn config_changelog(
@@ -6045,7 +5989,7 @@ impl Policies<'_> {
     /// `GET /v1/policies` — List the policies (active; include_retired=true for all), each with its
     /// current, upcoming and latest version.
     ///
-    /// Query parameters: `include_retired`.
+    /// Query parameters: `include_retired`, `limit`, `starting_after`.
     ///
     /// Returns [`types::PoliciesListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::PoliciesListResponse, BackendError> {
@@ -6128,7 +6072,7 @@ impl Policies<'_> {
     /// `GET /v1/policies/{id}/versions` — The policy's versions, newest first, each with
     /// acceptance_count.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::PoliciesListVersionsResponse`].
     pub async fn list_versions(
@@ -6244,7 +6188,7 @@ impl RadiusClients<'_> {
     /// allowed to authenticate this instance's users over RADIUS. The per-NAS shared secret is
     /// never returned, only whether one is set.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::RadiusClientsListResponse`].
     pub async fn list(
@@ -6358,7 +6302,7 @@ impl RateLimitPolicy<'_> {
 impl RedirectUrls<'_> {
     /// `GET /v1/redirect_urls` — List the allowlisted OAuth/SSO redirect URLs.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::RedirectUrlsListResponse`].
     pub async fn list(
@@ -6420,7 +6364,7 @@ impl ResourceServers<'_> {
     /// `GET /v1/resource_servers` — List resource servers (machine-to-machine APIs) and their
     /// scopes.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::ResourceServersListResponse`].
     pub async fn list(
@@ -6504,9 +6448,13 @@ impl RiskBasedMfa<'_> {
             .request(HttpMethod::Get, "/v1/risk_based_mfa", &[], None, None)
             .await
     }
-    /// `PATCH /v1/risk_based_mfa` — Tune adaptive MFA: enable it, set the step-up threshold and the
-    /// high-risk-no-factor policy, and adjust the per-signal weights/toggles. Off by default; it
-    /// can only add friction, never weaken the gate.
+    /// `PATCH /v1/risk_based_mfa` — Tune adaptive MFA: enable it, choose `mode` (enforce, or audit
+    /// to score and record without acting), set the step-up threshold, the per-level action matrix
+    /// (`level_actions`: default, allow, notify, mfa, block) and the high-risk-no-factor policy,
+    /// and adjust the per-signal weights/toggles, configure the `fraud` rules and sanctions list
+    /// used by POST /v1/fraud/lookup, and configure the `reputation` feeds (IP reputation via your
+    /// own ipqs/spur/minfraud key, plus disposable-domain and no-MX email checks) that add risk
+    /// signals. Off by default; it can only add friction, never weaken the gate.
     ///
     /// Takes [`types::RiskBasedMfaUpdateBody`]. Returns [`types::RiskBasedMfa`].
     pub async fn update(
@@ -6526,10 +6474,11 @@ impl RiskBasedMfa<'_> {
 }
 
 impl RiskEvents<'_> {
-    /// `GET /v1/risk_events` — The risk-event timeline: every scored sign-in, newest first. `before`
-    /// is an ISO `created_at` cursor.
+    /// `GET /v1/risk_events` — List risk-scored sign-ins (the audit / shadow-mode timeline), newest
+    /// first, with level, score, fired signals, the action decided, mode and any operator feedback.
+    /// Filter by user_id or level; page with a `before` created_at cursor.
     ///
-    /// Query parameters: `user_id`, `level`, `limit`, `before`.
+    /// Query parameters: `user_id`, `level`, `limit`, `before`, `starting_after`.
     ///
     /// Returns [`types::RiskEventsListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::RiskEventsListResponse, BackendError> {
@@ -6543,8 +6492,9 @@ impl RiskEvents<'_> {
             )
             .await
     }
-    /// `GET /v1/risk_events/metrics` — Counts per level, action and mode over the last `days` (1-90,
-    /// default 7): the shadow-mode view.
+    /// `GET /v1/risk_events/metrics` — Counts of risk-scored sign-ins per level / action / mode
+    /// over the last `days` (default 7, max 90) — the dashboard view for judging audit-mode results
+    /// before enforcing.
     ///
     /// Query parameters: `days`.
     ///
@@ -6563,9 +6513,9 @@ impl RiskEvents<'_> {
             )
             .await
     }
-    /// `POST /v1/risk_events/{id}/feedback` — Mark a scored sign-in `legit` or `fraud`. The weight of
-    /// every signal that fired on it moves by 5 (up for fraud, down for legit, clamped 0-100), so
-    /// the engine tunes itself from review. Flipping a verdict undoes the previous adjustment.
+    /// `POST /v1/risk_events/{id}/feedback` — Mark a scored sign-in `legit` or `fraud`. The weight
+    /// of every signal that fired on it moves by 5 (up for fraud, down for legit, clamped 0-100),
+    /// so the engine tunes itself from review. Flipping a verdict undoes the previous adjustment.
     ///
     /// Takes [`types::RiskEventsFeedbackBody`]. Returns [`types::RiskEvent`].
     pub async fn feedback(
@@ -6583,7 +6533,7 @@ impl RiskEvents<'_> {
 impl Roles<'_> {
     /// `GET /v1/roles` — List roles with their permissions and how many members hold each.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::RolesListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::RolesListResponse, BackendError> {
@@ -6591,7 +6541,9 @@ impl Roles<'_> {
             .request(HttpMethod::Get, "/v1/roles", &query.as_pairs(), None, None)
             .await
     }
-    /// `POST /v1/roles` — Create a custom role. Keys are namespaced and sys_ is reserved.
+    /// `POST /v1/roles` — Create a custom role. Keys are namespaced and sys_ is reserved. Pass
+    /// visibility "internal" for a role only your backend may assign (hidden from org-admin role
+    /// pickers, refused by the frontend API).
     ///
     /// Takes [`types::RolesCreateBody`]. Returns [`types::Role`].
     pub async fn create(&self, body: &types::RolesCreateBody) -> Result<types::Role, BackendError> {
@@ -6599,7 +6551,8 @@ impl Roles<'_> {
             .request(HttpMethod::Post, "/v1/roles", &[], body_of(body)?, None)
             .await
     }
-    /// `PATCH /v1/roles/{id}` — Relabel a role. The key is immutable once published.
+    /// `PATCH /v1/roles/{id}` — Relabel a role or change its visibility (public/internal). The key
+    /// is immutable once published.
     ///
     /// Takes [`types::RolesUpdateBody`]. Returns [`types::Role`].
     pub async fn update(
@@ -6648,7 +6601,7 @@ impl ScimProvisioningTargets<'_> {
     /// SCIM 2.0 endpoints Atlas pushes users to). The downstream bearer is never returned, only
     /// has_bearer_token.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::ScimProvisioningTargetsListResponse`].
     pub async fn list(
@@ -6665,9 +6618,10 @@ impl ScimProvisioningTargets<'_> {
             )
             .await
     }
-    /// `POST /v1/scim_provisioning_targets` — Create an outbound SCIM provisioning target. base_url
-    /// must be https; the downstream bearer_token is write-only; the cursor starts at the current
-    /// event so only new users forward (use sync_user to backfill).
+    /// `POST /v1/scim_provisioning_targets` — Create an outbound SCIM provisioning target,
+    /// optionally from a preset (preset + preset_params instead of base_url). base_url must be
+    /// https; the downstream bearer_token is write-only; the cursor starts at the current event so
+    /// only new users forward (use sync_user to backfill).
     ///
     /// Takes [`types::ScimProvisioningTargetsCreateBody`]. Returns [`types::ScimProvisioningTargetsCreateResponse`].
     pub async fn create(
@@ -6779,7 +6733,7 @@ impl ScimTokens<'_> {
     /// `GET /v1/scim_tokens` — List SCIM provisioning tokens. Reports the recognisable prefix only,
     /// never the token. Optional `?organization_id=` filters to one organization server-side.
     ///
-    /// Query parameters: `organization_id`.
+    /// Query parameters: `organization_id`, `limit`, `starting_after`.
     ///
     /// Returns [`types::ScimTokensListResponse`].
     pub async fn list(&self, query: &Query) -> Result<types::ScimTokensListResponse, BackendError> {
@@ -6847,7 +6801,7 @@ impl SessionExchangeApps<'_> {
     /// `GET /v1/session_exchange_apps` — List registered session-exchange apps (downstream apps
     /// that exchange an Atlas session for their own) and their back-channel logout endpoints.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::SessionExchangeAppsListResponse`].
     pub async fn list(
@@ -7045,7 +6999,7 @@ impl SmsTemplates<'_> {
     /// `GET /v1/sms_templates` — List SMS templates with their built-in defaults and any instance
     /// override.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::SmsTemplatesListResponse`].
     pub async fn list(
@@ -7135,7 +7089,7 @@ impl SsoConnections<'_> {
     /// DiscourseConnect). Never the client secret. Optional `?organization_id=` filters to one
     /// organization server-side.
     ///
-    /// Query parameters: `organization_id`.
+    /// Query parameters: `organization_id`, `limit`, `starting_after`.
     ///
     /// Returns [`types::SsoConnectionsListResponse`].
     pub async fn list(
@@ -7304,7 +7258,7 @@ impl SsoConnections<'_> {
     /// `GET /v1/sso_connections/{id}/signing_keys` — An OIDC connection's private_key_jwt signing
     /// keys (public halves only).
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::SsoConnectionsListSigningKeysResponse`].
     pub async fn list_signing_keys(
@@ -7362,7 +7316,7 @@ impl SsoOnboarding<'_> {
     /// `GET /v1/sso_onboarding_profiles` — List self-service SSO onboarding profiles (the templates
     /// tickets are issued from).
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::SsoOnboardingListProfilesResponse`].
     pub async fn list_profiles(
@@ -7743,7 +7697,7 @@ impl Users<'_> {
     /// `GET /v1/users/{id}/consents` — List a user's recorded consents with their versions and
     /// timestamps.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::UsersListConsentsResponse`].
     pub async fn list_consents(
@@ -7868,7 +7822,7 @@ impl Users<'_> {
     /// `GET /v1/users/{id}/identities` — List a user's linked identities: their Atlas
     /// email/password identity plus each linked external/OAuth provider account. No tokens.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::UsersListIdentitiesResponse`].
     pub async fn list_identities(
@@ -8134,7 +8088,7 @@ impl Users<'_> {
     /// `GET /v1/users/{id}/policies` — A user's standing on every policy (accepted / current
     /// version, needs_reaccept, blocking, grace_ends_at).
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::UsersGetPoliciesResponse`].
     pub async fn get_policies(
@@ -8228,7 +8182,7 @@ impl Users<'_> {
     }
     /// `GET /v1/users/{id}/sessions` — List a user's active sessions.
     ///
-    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    /// Query parameters: `limit`, `starting_after`.
     ///
     /// Returns [`types::UsersListSessionsResponse`].
     pub async fn list_sessions(

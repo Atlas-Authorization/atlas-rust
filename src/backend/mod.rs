@@ -34,6 +34,7 @@ mod suite;
 mod testing;
 pub mod types;
 pub mod types_ext;
+pub mod legacy;
 mod webhook;
 
 pub use better_auth::{

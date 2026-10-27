@@ -1202,54 +1202,6 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
-    c.instance().get_chatly_integration().await.unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/instance/integrations/chatly".into(),
-        B::None,
-        false,
-    ));
-    c.instance()
-        .set_chatly_integration(&types::InstanceSetChatlyIntegrationBody::default())
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Put,
-        "/v1/instance/integrations/chatly".into(),
-        B::Obj,
-        false,
-    ));
-    c.instance().delete_chatly_integration().await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/instance/integrations/chatly".into(),
-        B::None,
-        false,
-    ));
-    c.instance().get_forumulate_integration().await.unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/instance/integrations/forumulate".into(),
-        B::None,
-        false,
-    ));
-    c.instance()
-        .set_forumulate_integration(&types::InstanceSetForumulateIntegrationBody::default())
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Put,
-        "/v1/instance/integrations/forumulate".into(),
-        B::Obj,
-        false,
-    ));
-    c.instance().delete_forumulate_integration().await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/instance/integrations/forumulate".into(),
-        B::None,
-        false,
-    ));
     c.instance()
         .set_kerberos_secret(&types::InstanceSetKerberosSecretBody::default())
         .await
@@ -2755,6 +2707,17 @@ async fn every_catalog_operation_hits_its_route() {
     ));
     c.platform()
         .atlas_id_apps()
+        .set_managed_by("p0_id", &types::AtlasIdAppsSetManagedByBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/platform/atlas_id_apps/p0_id/managed_by".into(),
+        B::Obj,
+        false,
+    ));
+    c.platform()
+        .atlas_id_apps()
         .move_origin("p0_id", &types::OriginMoveRequest::default())
         .await
         .unwrap();
@@ -2784,17 +2747,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Get,
         "/v1/platform/atlas_id_apps/p0_id/users?limit=2".into(),
         B::None,
-        false,
-    ));
-    c.platform()
-        .atlas_id_apps()
-        .set_managed_by("p0_id", &types::AtlasIdAppsSetManagedByBody::default())
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Put,
-        "/v1/platform/atlas_id_apps/p0_id/managed_by".into(),
-        B::Obj,
         false,
     ));
     c.platform()
@@ -4129,4 +4081,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 466 operations, 466 typed; 466 calls.
+// 461 operations, 461 typed; 461 calls.

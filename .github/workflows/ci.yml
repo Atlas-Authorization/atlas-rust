@@ -15,3 +15,20 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-features
+  generated:
+    # The generated catalog must match scripts/openapi.snapshot.json + catalog_pins.json.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Regenerate and fail on any diff
+        run: |
+          set -euo pipefail
+          gen="src/backend/catalog.rs src/backend/types.rs tests/catalog.rs tests/catalog_types.rs"
+          # Compare formatted-to-formatted, so the check does not depend on the rustfmt version that wrote the commit.
+          rustfmt --edition 2021 $gen
+          mkdir -p /tmp/before && cp --parents $gen /tmp/before
+          python3 -I scripts/gen_catalog.py
+          for f in $gen; do diff -u "/tmp/before/$f" "$f" || { echo "::error::$f is out of date: run python3 scripts/gen_catalog.py"; exit 1; }; done
