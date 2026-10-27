@@ -44,6 +44,10 @@ const EMPTY: &[(HttpMethod, &str)] = &[
     ),
     (
         HttpMethod::Post,
+        "https://api.atlasauth.net/v1/users/search/export",
+    ),
+    (
+        HttpMethod::Post,
         "https://api.atlasauth.net/v1/groups/p0_id/members",
     ),
     (
@@ -59,8 +63,20 @@ const EMPTY: &[(HttpMethod, &str)] = &[
         "https://api.atlasauth.net/v1/directory_pull_sources/p0_id/csv",
     ),
     (
+        HttpMethod::Put,
+        "https://api.atlasauth.net/v1/org_ldap_connections/p0_id/sync",
+    ),
+    (
+        HttpMethod::Post,
+        "https://api.atlasauth.net/v1/org_ldap_connections/p0_id/sync_runs",
+    ),
+    (
         HttpMethod::Delete,
         "https://api.atlasauth.net/v1/relay_agents/p0_id",
+    ),
+    (
+        HttpMethod::Put,
+        "https://api.atlasauth.net/v1/org_ldap_connections/p0_id/relay",
     ),
     (
         HttpMethod::Put,
@@ -311,8 +327,47 @@ async fn every_additional_operation_hits_its_route() {
         true,
     ));
     c.users()
-        .bulk_required_actions(
-            &types_ext::UsersBulkRequiredActionsBody::default(),
+        .required_actions()
+        .request(
+            "p0_id",
+            &types_ext::UsersRequiredActionsRequestBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/required_actions?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .required_actions()
+        .list("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/required_actions?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.users()
+        .required_actions()
+        .clear("p0_id", "p1_rid", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/required_actions/p1_rid?limit=2".into(),
+        B::None,
+        true,
+    ));
+    c.users()
+        .required_actions()
+        .bulk(
+            &types_ext::UsersRequiredActionsBulkBody::default(),
             &q,
             Some("idem_1"),
         )
@@ -322,6 +377,125 @@ async fn every_additional_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/required_actions/bulk?limit=2".into(),
         B::Obj,
+        true,
+    ));
+    c.users().notes().list("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/notes?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.users()
+        .notes()
+        .create(
+            "p0_id",
+            &types_ext::UsersNotesCreateBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/notes?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .notes()
+        .update(
+            "p0_id",
+            "p1_note_id",
+            &types_ext::UsersNotesUpdateBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/users/p0_id/notes/p1_note_id?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .notes()
+        .delete("p0_id", "p1_note_id", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/notes/p1_note_id?limit=2".into(),
+        B::None,
+        true,
+    ));
+    c.users().history("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/history?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.users().minor_status("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/minor_status".into(),
+        B::None,
+        false,
+    ));
+    c.users()
+        .assess_minor("p0_id", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/minor_status/assess?limit=2".into(),
+        B::None,
+        true,
+    ));
+    c.users()
+        .guardians()
+        .request(
+            "p0_id",
+            &types_ext::UsersGuardiansRequestBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/guardians?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .guardians()
+        .approve(
+            "p0_id",
+            "p1_link_id",
+            &types_ext::UsersGuardiansApproveBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/guardians/p1_link_id/approve?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .guardians()
+        .revoke("p0_id", "p1_link_id", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/guardians/p1_link_id?limit=2".into(),
+        B::None,
         true,
     ));
     c.journeys().list(&q).await.unwrap();
@@ -396,6 +570,87 @@ async fn every_additional_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.users()
+        .search()
+        .query(
+            &types_ext::UsersSearchQueryBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/search?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .search()
+        .export(
+            &types_ext::UsersSearchExportBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/search/export?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users().search().views().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/search/views?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.users()
+        .search()
+        .views()
+        .create(
+            &types_ext::UsersSearchViewsCreateBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/search/views?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .search()
+        .views()
+        .update(
+            "p0_id",
+            &types_ext::UsersSearchViewsUpdateBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/users/search/views/p0_id?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.users()
+        .search()
+        .views()
+        .delete("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/search/views/p0_id?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.groups().list(&q).await.unwrap();
     expected.push((HttpMethod::Get, "/v1/groups?limit=2".into(), B::None, false));
     c.groups()
@@ -469,6 +724,13 @@ async fn every_additional_operation_hits_its_route() {
         B::None,
         true,
     ));
+    c.groups().for_user("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/groups?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.groups().rules().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -535,6 +797,38 @@ async fn every_additional_operation_hits_its_route() {
     expected.push((
         HttpMethod::Post,
         "/v1/group_rules/p0_id/apply?limit=2".into(),
+        B::None,
+        true,
+    ));
+    c.users()
+        .create_link(
+            "p0_id",
+            &types_ext::UsersCreateLinkBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/links?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.users().list_device_keys("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/device_keys?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.users()
+        .delete_device_key("p0_id", "p1_key_id", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/device_keys/p1_key_id?limit=2".into(),
         B::None,
         true,
     ));
@@ -755,6 +1049,81 @@ async fn every_additional_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.flags()
+        .assign_organization_entitlements(
+            "p0_id",
+            &types_ext::FlagsAssignOrganizationEntitlementsBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/organizations/p0_id/entitlements?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.mfa_factors()
+        .set_yubico_secret(&types_ext::MfaFactorsSetYubicoSecretBody::default(), &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/instance/yubico_secret?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.mfa_factors().remove_yubico_secret(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/yubico_secret?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.mfa_factors()
+        .set_duo_secret(&types_ext::MfaFactorsSetDuoSecretBody::default(), &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/instance/duo_secret?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.mfa_factors().remove_duo_secret(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/duo_secret?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.mfa_factors()
+        .set_smart_card_secret(&types_ext::MfaFactorsSetSmartCardSecretBody::default(), &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/instance/smart_card_secret?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.mfa_factors().remove_smart_card_secret(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/smart_card_secret?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.mfa_factors()
+        .duo_health_check(&q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/duo_health_check?limit=2".into(),
+        B::None,
+        true,
+    ));
     c.mfa_factors().yubikeys().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -785,6 +1154,54 @@ async fn every_additional_operation_hits_its_route() {
     expected.push((
         HttpMethod::Delete,
         "/v1/yubikeys/p0_id?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.mfa_factors()
+        .smart_card_mappings()
+        .list("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/smartcard_mappings?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.mfa_factors()
+        .smart_card_mappings()
+        .add(
+            "p0_id",
+            &types_ext::MfaFactorsSmartCardMappingsAddBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/smartcard_mappings?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.mfa_factors()
+        .smart_card_mappings()
+        .remove("p0_id", "p1_mapping_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/smartcard_mappings/p1_mapping_id?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.mfa_factors()
+        .reset_security_questions("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/security_questions?limit=2".into(),
         B::None,
         false,
     ));
@@ -1167,6 +1584,65 @@ async fn every_additional_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.org_ldap_connections().get_sync("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/org_ldap_connections/p0_id/sync".into(),
+        B::None,
+        false,
+    ));
+    c.org_ldap_connections()
+        .set_sync(
+            "p0_id",
+            &types_ext::OrgLdapConnectionsSetSyncBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/org_ldap_connections/p0_id/sync?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.org_ldap_connections()
+        .sync_runs()
+        .create(
+            "p0_id",
+            &types_ext::OrgLdapConnectionsSyncRunsCreateBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/org_ldap_connections/p0_id/sync_runs?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.org_ldap_connections()
+        .sync_runs()
+        .list("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/org_ldap_connections/p0_id/sync_runs?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.org_ldap_connections()
+        .sync_runs()
+        .get("p0_id", "p1_run_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/org_ldap_connections/p0_id/sync_runs/p1_run_id".into(),
+        B::None,
+        false,
+    ));
     c.relay_agents().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1222,6 +1698,50 @@ async fn every_additional_operation_hits_its_route() {
         B::None,
         true,
     ));
+    c.org_ldap_connections().get_relay("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/org_ldap_connections/p0_id/relay".into(),
+        B::None,
+        false,
+    ));
+    c.org_ldap_connections()
+        .set_relay(
+            "p0_id",
+            &types_ext::OrgLdapConnectionsSetRelayBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/org_ldap_connections/p0_id/relay?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.oauth_clients().app_settings().get("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/oauth_clients/p0_id/app_settings".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .app_settings()
+        .update(
+            "p0_id",
+            &types_ext::OAuthClientsAppSettingsUpdateBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/oauth_clients/p0_id/app_settings?limit=2".into(),
+        B::Obj,
+        true,
+    ));
     c.oauth_clients()
         .workload_identity()
         .presets(&q)
@@ -1241,6 +1761,98 @@ async fn every_additional_operation_hits_its_route() {
     expected.push((
         HttpMethod::Get,
         "/v1/workload_identity/cloud_trust?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .trusted_issuers()
+        .list("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/oauth_clients/p0_id/trusted_issuers?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .trusted_issuers()
+        .create(
+            "p0_id",
+            &types_ext::OAuthClientsTrustedIssuersCreateBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/oauth_clients/p0_id/trusted_issuers?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.oauth_clients()
+        .trusted_issuers()
+        .delete("p0_id", "p1_issuer_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/oauth_clients/p0_id/trusted_issuers/p1_issuer_id?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .get_exchange_policy("p0_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/oauth_clients/p0_id/exchange_policy".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .set_exchange_policy(
+            "p0_id",
+            &types_ext::OAuthClientsSetExchangePolicyBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/oauth_clients/p0_id/exchange_policy?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.oauth_clients()
+        .delete_exchange_policy("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/oauth_clients/p0_id/exchange_policy?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .list_connected_apps("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/connected_apps?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .revoke_connected_app("p0_id", "p1_grant_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/connected_apps/p1_grant_id?limit=2".into(),
         B::None,
         false,
     ));
@@ -1273,6 +1885,34 @@ async fn every_additional_operation_hits_its_route() {
         HttpMethod::Delete,
         "/v1/oauth_client_profiles/p0_name?limit=2".into(),
         B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .set_profile(
+            "p0_id",
+            &types_ext::OAuthClientsSetProfileBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/oauth_clients/p0_id/profile?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.oauth_clients()
+        .set_delegated_ui(
+            "p0_id",
+            &types_ext::OAuthClientsSetDelegatedUiBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/oauth_clients/p0_id/delegated_ui?limit=2".into(),
+        B::Obj,
         false,
     ));
     c.oauth_clients().login_requests().get(&q).await.unwrap();
@@ -1630,6 +2270,13 @@ async fn every_additional_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.actions().calls("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/actions/p0_id/calls?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.workflows().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1711,6 +2358,61 @@ async fn every_additional_operation_hits_its_route() {
         "/v1/workflows/p0_id/runs?limit=2".into(),
         B::None,
         false,
+    ));
+    c.page_templates().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/page_templates?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.page_templates().get("p0_page").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/page_templates/p0_page".into(),
+        B::None,
+        false,
+    ));
+    c.page_templates()
+        .save_draft(
+            "p0_page",
+            &types_ext::PageTemplatesSaveDraftBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/instance/page_templates/p0_page?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.page_templates().discard("p0_page", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/page_templates/p0_page?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.page_templates()
+        .preview("p0_page", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/page_templates/p0_page/preview?limit=2".into(),
+        B::None,
+        true,
+    ));
+    c.page_templates()
+        .promote("p0_page", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/page_templates/p0_page/promote?limit=2".into(),
+        B::None,
+        true,
     ));
     c.service_connectors().catalog(&q).await.unwrap();
     expected.push((
@@ -1901,6 +2603,31 @@ async fn every_additional_operation_hits_its_route() {
     expected.push((
         HttpMethod::Post,
         "/v1/identity_verifications/p0_id/decide?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.identity_verification()
+        .for_user("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/identity_verifications?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.identity_verification()
+        .start(
+            "p0_id",
+            &types_ext::IdentityVerificationStartBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/identity_verifications?limit=2".into(),
         B::Obj,
         true,
     ));
@@ -2329,6 +3056,93 @@ async fn every_additional_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.organizations()
+        .webhook_endpoints()
+        .list("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/webhook_endpoints?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .webhook_endpoints()
+        .create(
+            "p0_id",
+            &types_ext::OrganizationsWebhookEndpointsCreateBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/organizations/p0_id/webhook_endpoints?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.organizations()
+        .webhook_endpoints()
+        .get("p0_id", "p1_endpoint_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/webhook_endpoints/p1_endpoint_id".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .webhook_endpoints()
+        .update(
+            "p0_id",
+            "p1_endpoint_id",
+            &types_ext::OrganizationsWebhookEndpointsUpdateBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/organizations/p0_id/webhook_endpoints/p1_endpoint_id?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.organizations()
+        .webhook_endpoints()
+        .delete("p0_id", "p1_endpoint_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/webhook_endpoints/p1_endpoint_id?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .webhook_endpoints()
+        .rotate_secret("p0_id", "p1_endpoint_id", &q, Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/organizations/p0_id/webhook_endpoints/p1_endpoint_id/rotate_secret?limit=2".into(),
+        B::None,
+        true,
+    ));
+    c.organizations()
+        .webhook_endpoints()
+        .deliveries("p0_id", "p1_endpoint_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/webhook_endpoints/p1_endpoint_id/deliveries?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.vault()
         .create(&types_ext::VaultCreateBody::default(), &q, Some("idem_1"))
         .await
@@ -2630,6 +3444,16 @@ async fn every_additional_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.organizations()
+        .get_connection_secret("p0_id", "p1_connection_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/connections/p1_connection_id/secret?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.connections().secret_versions("p0_id", &q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -2772,6 +3596,110 @@ async fn every_additional_operation_hits_its_route() {
         "/v1/feature_flags/evaluate?limit=2".into(),
         B::Obj,
         true,
+    ));
+    c.flags()
+        .assign_user_entitlements(
+            "p0_id",
+            &types_ext::FlagsAssignUserEntitlementsBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/users/p0_id/entitlements?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.fga()
+        .list_users(
+            "p0_id",
+            &types_ext::FgaListUsersBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fga/stores/p0_id/list-users?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.fga().read_changes("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fga/stores/p0_id/changes?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.openfga()
+        .list_users(
+            "p0_store",
+            &types_ext::OpenFgaListUsersBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/openfga/stores/p0_store/list-users?limit=2".into(),
+        B::Obj,
+        true,
+    ));
+    c.openfga().read_changes("p0_store", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/openfga/stores/p0_store/changes?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.attack_protection()
+        .set_app_attestation_secret(
+            &types_ext::AttackProtectionSetAppAttestationSecretBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/attack_protection/app_attestation_secret?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.attack_protection()
+        .remove_app_attestation_secret(&q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/attack_protection/app_attestation_secret?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.risk_based_mfa()
+        .set_reputation_secret(
+            &types_ext::RiskBasedMfaSetReputationSecretBody::default(),
+            &q,
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/risk_based_mfa/reputation_secret?limit=2".into(),
+        B::Obj,
+        false,
+    ));
+    c.risk_based_mfa()
+        .remove_reputation_secret(&q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/risk_based_mfa/reputation_secret?limit=2".into(),
+        B::None,
+        false,
     ));
     c.ssf().streams().list(&q).await.unwrap();
     expected.push((
@@ -3894,6 +4822,22 @@ async fn every_additional_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance()
+        .integrations()
+        .rotate_events_secret(
+            "p0_product",
+            &types_ext::InstanceIntegrationsRotateEventsSecretBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/integrations/p0_product/events_secret/rotate?limit=2".into(),
+        B::Obj,
+        true,
+    ));
     c.integrations()
         .run_card_action(
             "p0_integration",
@@ -3933,4 +4877,4 @@ async fn every_additional_operation_hits_its_route() {
     }
 }
 
-// 371 operations; 371 calls.
+// 452 operations; 452 calls.

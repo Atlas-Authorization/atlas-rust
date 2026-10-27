@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::{json, Value};
 
 use crate::error::TransportError;
-use crate::http::{HttpFullResponse, HttpMethod, HttpRequest, HttpResponse, HttpTransport};
+use crate::http::{HttpBytesResponse, HttpFullResponse, HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 use crate::jwks::{BoxFuture, Jwks, JwksSource};
 
 type Handler = Arc<dyn Fn(&HttpRequest) -> HttpResponse + Send + Sync>;
@@ -45,6 +45,7 @@ pub struct FakeTransport {
     recorded: Arc<Mutex<Vec<HttpRequest>>>,
     raw_bodies: Arc<Mutex<Vec<Option<Vec<u8>>>>>,
     response_headers: Arc<Vec<(String, String)>>,
+    bytes_body: Option<Arc<Vec<u8>>>,
     signing: Option<Arc<SigningMaterial>>,
 }
 
@@ -56,6 +57,7 @@ impl FakeTransport {
             recorded: Arc::new(Mutex::new(Vec::new())),
             raw_bodies: Arc::new(Mutex::new(Vec::new())),
             response_headers: Arc::new(Vec::new()),
+            bytes_body: None,
             signing: None,
         }
     }
@@ -154,6 +156,14 @@ impl FakeTransport {
         self
     }
 
+    /// Answer a [`HttpTransport::send_bytes`] request with exactly these bytes
+    /// (any content, valid UTF-8 or not), keeping the handler's status.
+    /// Chainable.
+    pub fn with_bytes_body(mut self, body: impl Into<Vec<u8>>) -> Self {
+        self.bytes_body = Some(Arc::new(body.into()));
+        self
+    }
+
     /// How many requests have been received — handy for asserting retries.
     pub fn request_count(&self) -> usize {
         self.recorded.lock().unwrap().len()
@@ -194,5 +204,17 @@ impl HttpTransport for FakeTransport {
         self.raw_bodies.lock().unwrap().push(raw_body);
         let headers = self.response_headers.as_ref().clone();
         Box::pin(async move { Ok(HttpFullResponse { status: resp.status, body: resp.body, headers }) })
+    }
+
+    fn send_bytes<'a>(&'a self, req: HttpRequest) -> BoxFuture<'a, Result<HttpBytesResponse, TransportError>> {
+        let resp = (self.handler)(&req);
+        self.recorded.lock().unwrap().push(req);
+        self.raw_bodies.lock().unwrap().push(None);
+        let headers = self.response_headers.as_ref().clone();
+        let body = match &self.bytes_body {
+            Some(b) => b.as_ref().clone(),
+            None => resp.body.into_bytes(),
+        };
+        Box::pin(async move { Ok(HttpBytesResponse { status: resp.status, body, headers }) })
     }
 }

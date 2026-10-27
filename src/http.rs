@@ -128,6 +128,28 @@ pub trait HttpTransport: Send + Sync {
             Ok(HttpFullResponse { status: resp.status, body: resp.body, headers: Vec::new() })
         })
     }
+
+    /// Perform a request whose RESPONSE body must reach the caller byte for
+    /// byte (a gzip archive): no UTF-8 decoding happens on the way.
+    ///
+    /// The default implementation delegates to [`Self::send_full`] and returns
+    /// the text body as bytes, so an existing custom transport keeps working
+    /// unchanged (a binary answer is only exact on a transport that overrides
+    /// this). The built-in reqwest transport and the test `FakeTransport` do.
+    fn send_bytes<'a>(&'a self, req: HttpRequest) -> BoxFuture<'a, Result<HttpBytesResponse, TransportError>> {
+        Box::pin(async move {
+            let resp = self.send_full(req, None).await?;
+            Ok(HttpBytesResponse { status: resp.status, body: resp.body.into_bytes(), headers: resp.headers })
+        })
+    }
+}
+
+/// A response whose body is raw bytes, returned by [`HttpTransport::send_bytes`].
+#[derive(Debug, Clone, Default)]
+pub struct HttpBytesResponse {
+    pub status: u16,
+    pub body: Vec<u8>,
+    pub headers: Vec<(String, String)>,
 }
 
 /// A response with its headers, returned by [`HttpTransport::send_full`].

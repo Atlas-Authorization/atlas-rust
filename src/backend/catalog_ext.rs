@@ -21,7 +21,10 @@ use super::pagination::Query;
 use super::resources::{body_of, seg};
 use super::{types, types_ext};
 #[allow(unused_imports)]
-use super::{Integrations, OAuthClients, Users};
+use super::{
+    Actions, AttackProtection, Fga, Instance, Integrations, OAuthClients, OpenFga,
+    OrgLdapConnections, Organizations, RiskBasedMfa, Users,
+};
 
 /// The `app_catalog` operations of the Backend API. Reached via [`BackendClient::app_catalog`].
 pub struct AppCatalog<'a> {
@@ -33,8 +36,33 @@ pub struct LdapServerClients<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The `users / required_actions` operations of the Backend API. Reached via [`Users::required_actions`].
+pub struct UsersRequiredActions<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The `users / notes` operations of the Backend API. Reached via [`Users::notes`].
+pub struct UsersNotes<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The `users / guardians` operations of the Backend API. Reached via [`Users::guardians`].
+pub struct UsersGuardians<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The `journeys` operations of the Backend API. Reached via [`BackendClient::journeys`].
 pub struct Journeys<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The `users / search` operations of the Backend API. Reached via [`Users::search`].
+pub struct UsersSearch<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The `users / search / views` operations of the Backend API. Reached via [`UsersSearch::views`].
+pub struct UsersSearchViews<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -73,6 +101,11 @@ pub struct DeliveryHealth<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The `flags` operations of the Backend API. Reached via [`BackendClient::flags`].
+pub struct Flags<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The `mfa_factors` operations of the Backend API. Reached via [`BackendClient::mfa_factors`].
 pub struct MfaFactors<'a> {
     pub(super) client: &'a BackendClient,
@@ -80,6 +113,11 @@ pub struct MfaFactors<'a> {
 
 /// The `mfa_factors / yubikeys` operations of the Backend API. Reached via [`MfaFactors::yubikeys`].
 pub struct MfaFactorsYubikeys<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The `mfa_factors / smart_card_mappings` operations of the Backend API. Reached via [`MfaFactors::smart_card_mappings`].
+pub struct MfaFactorsSmartCardMappings<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -118,13 +156,28 @@ pub struct DirectoryPullSourcesSyncRuns<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The `org_ldap_connections / sync_runs` operations of the Backend API. Reached via [`OrgLdapConnections::sync_runs`].
+pub struct OrgLdapConnectionsSyncRuns<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The `relay_agents` operations of the Backend API. Reached via [`BackendClient::relay_agents`].
 pub struct RelayAgents<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The `oauth_clients / app_settings` operations of the Backend API. Reached via [`OAuthClients::app_settings`].
+pub struct OAuthClientsAppSettings<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The `oauth_clients / workload_identity` operations of the Backend API. Reached via [`OAuthClients::workload_identity`].
 pub struct OAuthClientsWorkloadIdentity<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The `oauth_clients / trusted_issuers` operations of the Backend API. Reached via [`OAuthClients::trusted_issuers`].
+pub struct OAuthClientsTrustedIssuers<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -193,6 +246,11 @@ pub struct Workflows<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The `page_templates` operations of the Backend API. Reached via [`BackendClient::page_templates`].
+pub struct PageTemplates<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The `service_connectors` operations of the Backend API. Reached via [`BackendClient::service_connectors`].
 pub struct ServiceConnectors<'a> {
     pub(super) client: &'a BackendClient,
@@ -253,6 +311,11 @@ pub struct ScimProvisioningPresets<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The `organizations / webhook_endpoints` operations of the Backend API. Reached via [`Organizations::webhook_endpoints`].
+pub struct OrganizationsWebhookEndpoints<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The `vault` operations of the Backend API. Reached via [`BackendClient::vault`].
 pub struct Vault<'a> {
     pub(super) client: &'a BackendClient,
@@ -275,11 +338,6 @@ pub struct ConnectionsOauthClients<'a> {
 
 /// The `connections / webhooks` operations of the Backend API. Reached via [`Connections::webhooks`].
 pub struct ConnectionsWebhooks<'a> {
-    pub(super) client: &'a BackendClient,
-}
-
-/// The `flags` operations of the Backend API. Reached via [`BackendClient::flags`].
-pub struct Flags<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -380,6 +438,11 @@ pub struct McpGateways<'a> {
 
 /// The `mcp_gateways / budgets` operations of the Backend API. Reached via [`McpGateways::budgets`].
 pub struct McpGatewaysBudgets<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// The `instance / integrations` operations of the Backend API. Reached via [`Instance::integrations`].
+pub struct InstanceIntegrations<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -610,7 +673,76 @@ impl LdapServerClients<'_> {
     }
 }
 
-impl Users<'_> {
+impl UsersRequiredActions<'_> {
+    /// `POST /v1/users/{id}/required_actions` — Make a user owe an action at their next sign-in,
+    /// whatever the method: update_password, verify_email, accept_policy, configure_mfa,
+    /// update_profile, or custom (sent to an https url; the app closes it with DELETE). The sign-in
+    /// attempt holds at needs_required_action until it is done (configure_mfa alone routes through
+    /// MFA enrollment; accept_policy is closed once the policy gate passes; verify_email and
+    /// configure_mfa clear themselves when already true). Re-requesting an open action is a 200
+    /// with the same row. Emits user.required_action_requested. → 201.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersRequiredActionsRequestBody`]. Returns [`types_ext::RequiredAction`].
+    pub async fn request(
+        &self,
+        id: &str,
+        body: &types_ext::UsersRequiredActionsRequestBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::RequiredAction, BackendError> {
+        let path = format!("/v1/users/{}/required_actions", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/users/{id}/required_actions` — The actions a user currently owes, oldest first.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::UsersRequiredActionsListResponse`].
+    pub async fn list(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::UsersRequiredActionsListResponse, BackendError> {
+        let path = format!("/v1/users/{}/required_actions", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `DELETE /v1/users/{id}/required_actions/{rid}` — Withdraw an owed action. This is also how
+    /// an application closes a custom action once the user has finished its step. Emits
+    /// user.required_action_cleared. 404 when it is not open.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::UsersRequiredActionsClearResponse`].
+    pub async fn clear(
+        &self,
+        id: &str,
+        rid: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersRequiredActionsClearResponse, BackendError> {
+        let path = format!("/v1/users/{}/required_actions/{}", seg(id), seg(rid));
+        self.client
+            .request(
+                HttpMethod::Delete,
+                &path,
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
+            .await
+    }
     /// `POST /v1/required_actions/bulk` — Owe the same action for many users at once: every member
     /// of one organization (organization_id) or an explicit user_ids list, at most 5000. Users
     /// outside the instance are skipped, and an already-open action counts as already_open. Emits
@@ -618,10 +750,10 @@ impl Users<'_> {
     ///
     /// Query parameters: `dry_run`.
     ///
-    /// Takes [`types_ext::UsersBulkRequiredActionsBody`]. Returns nothing (`204 No Content`).
-    pub async fn bulk_required_actions(
+    /// Takes [`types_ext::UsersRequiredActionsBulkBody`]. Returns nothing (`204 No Content`).
+    pub async fn bulk(
         &self,
-        body: &types_ext::UsersBulkRequiredActionsBody,
+        body: &types_ext::UsersRequiredActionsBulkBody,
         query: &Query,
         idempotency_key: Option<&str>,
     ) -> Result<(), BackendError> {
@@ -631,6 +763,330 @@ impl Users<'_> {
                 "/v1/required_actions/bulk",
                 &query.as_pairs(),
                 body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl UsersNotes<'_> {
+    /// `GET /v1/users/{id}/notes` — The notes on a user: pinned notes first, then newest first.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::UsersNotesListResponse`].
+    pub async fn list(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::UsersNotesListResponse, BackendError> {
+        let path = format!("/v1/users/{}/notes", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/users/{id}/notes` — Add a note to a user (up to 5000 characters; at most 500 notes
+    /// per user). The audit log records that a note was added, never its text. → 201.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersNotesCreateBody`]. Returns [`types_ext::UserNote`].
+    pub async fn create(
+        &self,
+        id: &str,
+        body: &types_ext::UsersNotesCreateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UserNote, BackendError> {
+        let path = format!("/v1/users/{}/notes", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `PATCH /v1/users/{id}/notes/{noteId}` — Edit a note: its text, its pin, or both.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersNotesUpdateBody`]. Returns [`types_ext::UserNote`].
+    pub async fn update(
+        &self,
+        id: &str,
+        note_id: &str,
+        body: &types_ext::UsersNotesUpdateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UserNote, BackendError> {
+        let path = format!("/v1/users/{}/notes/{}", seg(id), seg(note_id));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/notes/{noteId}` — Delete a note from a user. The audit log keeps that
+    /// it was deleted.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::UsersNotesDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        note_id: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersNotesDeleteResponse, BackendError> {
+        let path = format!("/v1/users/{}/notes/{}", seg(id), seg(note_id));
+        self.client
+            .request(
+                HttpMethod::Delete,
+                &path,
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl Users<'_> {
+    /// The `users / required_actions` operations of the Backend API.
+    pub fn required_actions(&self) -> UsersRequiredActions<'_> {
+        UsersRequiredActions {
+            client: self.client,
+        }
+    }
+    /// The `users / notes` operations of the Backend API.
+    pub fn notes(&self) -> UsersNotes<'_> {
+        UsersNotes {
+            client: self.client,
+        }
+    }
+    /// The `users / guardians` operations of the Backend API.
+    pub fn guardians(&self) -> UsersGuardians<'_> {
+        UsersGuardians {
+            client: self.client,
+        }
+    }
+    /// The `users / search` operations of the Backend API.
+    pub fn search(&self) -> UsersSearch<'_> {
+        UsersSearch {
+            client: self.client,
+        }
+    }
+    /// `GET /v1/users/{id}/history` — The user change history, newest first: every profile,
+    /// metadata and status change (ban, lock, directives and their reversal) with who made it, the
+    /// reason and expiry, and each changed field with its value before and after. A password change
+    /// and private_metadata values are recorded as redacted (the field name only). Pages with
+    /// starting_after.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `action`.
+    ///
+    /// Returns [`types_ext::UsersHistoryResponse`].
+    pub async fn history(
+        &self,
+        user_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::UsersHistoryResponse, BackendError> {
+        let path = format!("/v1/users/{}/history", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `GET /v1/users/{id}/minor_status` — A user's parental-consent state (not_required for anyone
+    /// at or above the age of digital consent) and their guardian links, newest first.
+    ///
+    /// Returns [`types_ext::UsersMinorStatusResponse`].
+    pub async fn minor_status(
+        &self,
+        user_id: &str,
+    ) -> Result<types_ext::UsersMinorStatusResponse, BackendError> {
+        let path = format!("/v1/users/{}/minor_status", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/users/{id}/minor_status/assess` — Re-assess a user from their date-of-birth trait
+    /// now (for users created before age gating was turned on). 400 when compliance.minors is off.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::UsersAssessMinorResponse`].
+    pub async fn assess_minor(
+        &self,
+        user_id: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersAssessMinorResponse, BackendError> {
+        let path = format!("/v1/users/{}/minor_status/assess", seg(user_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/users/{id}/links` — Mint an email-verification or password-reset link (and code)
+    /// for a user WITHOUT sending it, for support tools and invite flows that deliver it
+    /// themselves. type "email_verification" needs an unverified address (default: the primary);
+    /// the url opens GET /v1/client/email_addresses/verify and the code works wherever the address
+    /// is verified by code. type "password_reset" needs a verified address and returns the url
+    /// and/or code the instance's password-reset setting would have mailed, plus the reset
+    /// attempt_id; redeeming it is the ordinary reset (it still asks for the second factor and sets
+    /// a new password). Single-use, expires_in_seconds 60 to 86400 (default 3600). Audited as
+    /// user.link_generated, never with the secret. Treat the response as a credential. → 201.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersCreateLinkBody`]. Returns [`types_ext::UserLink`].
+    pub async fn create_link(
+        &self,
+        user_id: &str,
+        body: &types_ext::UsersCreateLinkBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UserLink, BackendError> {
+        let path = format!("/v1/users/{}/links", seg(user_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/users/{id}/device_keys` — List a user’s device keys (native biometric sign-in).
+    /// Never returns key material.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::UsersListDeviceKeysResponse`].
+    pub async fn list_device_keys(
+        &self,
+        user_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::UsersListDeviceKeysResponse, BackendError> {
+        let path = format!("/v1/users/{}/device_keys", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `DELETE /v1/users/{id}/device_keys/{keyId}` — Revoke one of a user’s device keys so that
+    /// device can no longer sign in. Scoped to the user; the account holder is notified when
+    /// account-change notices are on.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::UsersDeleteDeviceKeyResponse`].
+    pub async fn delete_device_key(
+        &self,
+        user_id: &str,
+        key_id: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersDeleteDeviceKeyResponse, BackendError> {
+        let path = format!("/v1/users/{}/device_keys/{}", seg(user_id), seg(key_id));
+        self.client
+            .request(
+                HttpMethod::Delete,
+                &path,
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl UsersGuardians<'_> {
+    /// `POST /v1/users/{id}/guardians` — Ask a parent or guardian to approve a minor's account.
+    /// Name them by email or by guardian_user_id (their address is used). Returns the pending link
+    /// with a one-time consent_url that expires after compliance.minors.consentTtlHours. With
+    /// send_email: true Atlas mails it through the application's own email provider (422 when none
+    /// is set up); otherwise deliver consent_url yourself. → 201.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersGuardiansRequestBody`]. Returns [`types_ext::UsersGuardiansRequestResponse`].
+    pub async fn request(
+        &self,
+        id: &str,
+        body: &types_ext::UsersGuardiansRequestBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersGuardiansRequestResponse, BackendError> {
+        let path = format!("/v1/users/{}/guardians", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/users/{id}/guardians/{linkId}/approve` — Record consent obtained another way (a
+    /// signed form, a verified call): the link becomes active with consent_method admin and the
+    /// account is consented. 409 for a revoked link.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersGuardiansApproveBody`]. Returns [`types_ext::UsersGuardiansApproveResponse`].
+    pub async fn approve(
+        &self,
+        id: &str,
+        link_id: &str,
+        body: &types_ext::UsersGuardiansApproveBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersGuardiansApproveResponse, BackendError> {
+        let path = format!("/v1/users/{}/guardians/{}/approve", seg(id), seg(link_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/guardians/{linkId}` — Withdraw a guardian link. When no active
+    /// guardian is left, the account needs consent again.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::UsersGuardiansRevokeResponse`].
+    pub async fn revoke(
+        &self,
+        id: &str,
+        link_id: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersGuardiansRevokeResponse, BackendError> {
+        let path = format!("/v1/users/{}/guardians/{}", seg(id), seg(link_id));
+        self.client
+            .request(
+                HttpMethod::Delete,
+                &path,
+                &query.as_pairs(),
+                None,
                 idempotency_key,
             )
             .await
@@ -781,6 +1237,148 @@ impl Journeys<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
+            .await
+    }
+}
+
+impl UsersSearch<'_> {
+    /// The `users / search / views` operations of the Backend API.
+    pub fn views(&self) -> UsersSearchViews<'_> {
+        UsersSearchViews {
+            client: self.client,
+        }
+    }
+    /// `POST /v1/users/search` — Search users with a boolean filter tree (and/or/not) over profile
+    /// columns, traits and metadata keys, organization and org role, MFA enrolled/strategy, sign-in
+    /// strategy, last sign-in country or IP, and date ranges. Sort with order_by; page with
+    /// starting_after (creation/update order) or offset (last_sign_in_at order).
+    /// include_total_count adds total_count. Containment tests on public metadata and traits are
+    /// answered by an index. Same user objects as GET /v1/users.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersSearchQueryBody`]. Returns [`types_ext::UsersSearchQueryResponse`].
+    pub async fn query(
+        &self,
+        body: &types_ext::UsersSearchQueryBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UsersSearchQueryResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/users/search",
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/users/search/export` — Export every user a search matches (up to 10,000;
+    /// x-export-truncated says when more matched) as CSV (default) or NDJSON. fields picks columns:
+    /// id, primary_email, username, first_name, last_name, external_id, created_at,
+    /// last_sign_in_at, banned, mfa_enrolled, plus traits.&lt;key&gt; /
+    /// public_metadata.&lt;path&gt;. CSV cells that start with = + - @ are prefixed with an
+    /// apostrophe so a spreadsheet never runs them as formulas.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersSearchExportBody`]. Returns nothing (`204 No Content`).
+    pub async fn export(
+        &self,
+        body: &types_ext::UsersSearchExportBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/users/search/export",
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl UsersSearchViews<'_> {
+    /// `GET /v1/users/search/views` — The saved user-search views of the instance, by name.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::UsersSearchViewsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types_ext::UsersSearchViewsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/users/search/views",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/users/search/views` — Save a named filter (and sort) to re-run. A filter that
+    /// could never run is refused; a duplicate name is a 400. → 201.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersSearchViewsCreateBody`]. Returns [`types_ext::UserSearchView`].
+    pub async fn create(
+        &self,
+        body: &types_ext::UsersSearchViewsCreateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::UserSearchView, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/users/search/views",
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `PATCH /v1/users/search/views/{id}` — Rename a saved view or change its filter or sort.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::UsersSearchViewsUpdateBody`]. Returns [`types_ext::UserSearchView`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types_ext::UsersSearchViewsUpdateBody,
+        query: &Query,
+    ) -> Result<types_ext::UserSearchView, BackendError> {
+        let path = format!("/v1/users/search/views/{}", seg(id));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/search/views/{id}` — Delete a saved user-search view.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::UsersSearchViewsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::UsersSearchViewsDeleteResponse, BackendError> {
+        let path = format!("/v1/users/search/views/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
             .await
     }
 }
@@ -957,6 +1555,21 @@ impl Groups<'_> {
                 None,
                 idempotency_key,
             )
+            .await
+    }
+    /// `GET /v1/users/{id}/groups` — A user's direct groups and how they joined each.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::GroupsForUserResponse`].
+    pub async fn for_user(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::GroupsForUserResponse, BackendError> {
+        let path = format!("/v1/users/{}/groups", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
 }
@@ -1613,6 +2226,351 @@ impl DeliveryHealth<'_> {
     }
 }
 
+impl Flags<'_> {
+    /// `PUT /v1/organizations/{id}/entitlements` — Assign an organization's entitlements (a plan, a
+    /// feature list and/or limits, optionally expiring) without a billing subscription. Replaces
+    /// whatever was assigned or overridden before; an empty body clears it and the organization
+    /// falls back to its billing plan. Reaches the `pla`, `fea` and `ent` session claims on the
+    /// next token.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::FlagsAssignOrganizationEntitlementsBody`]. Returns [`types_ext::FlagsAssignOrganizationEntitlementsResponse`].
+    pub async fn assign_organization_entitlements(
+        &self,
+        id: &str,
+        body: &types_ext::FlagsAssignOrganizationEntitlementsBody,
+        query: &Query,
+    ) -> Result<types_ext::FlagsAssignOrganizationEntitlementsResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/entitlements", seg(id));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/feature_flags` — Create a feature flag: a typed value (`boolean`, `string`, `int`
+    /// or `json`) with a `default_value`, an `off_value` (served while `enabled` is false; defaults
+    /// to false for a boolean, else the default) and ordered targeting `rules` by org, user, plan
+    /// and percentage. 409 when the key exists.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::FlagsCreateBody`]. Returns [`types_ext::FlagsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types_ext::FlagsCreateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::FlagsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/feature_flags",
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/feature_flags` — List feature flags ordered by key. `starting_after` is the key of
+    /// the last flag of the previous page.
+    ///
+    /// Query parameters: `starting_after`, `limit`.
+    ///
+    /// Returns [`types_ext::FlagsListResponse`].
+    pub async fn list(&self, query: &Query) -> Result<types_ext::FlagsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/feature_flags",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/feature_flags/{key}` — Read one feature flag.
+    ///
+    /// Returns [`types_ext::FlagsRetrieveResponse`].
+    pub async fn retrieve(
+        &self,
+        key: &str,
+    ) -> Result<types_ext::FlagsRetrieveResponse, BackendError> {
+        let path = format!("/v1/feature_flags/{}", seg(key));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/feature_flags/{key}` — Change a flag's description, kill switch, default or off
+    /// value, or replace its rules. The type and key are fixed.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::FlagsUpdateBody`]. Returns [`types_ext::FlagsUpdateResponse`].
+    pub async fn update(
+        &self,
+        key: &str,
+        body: &types_ext::FlagsUpdateBody,
+        query: &Query,
+    ) -> Result<types_ext::FlagsUpdateResponse, BackendError> {
+        let path = format!("/v1/feature_flags/{}", seg(key));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/feature_flags/{key}` — Delete a feature flag.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::FlagsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        key: &str,
+        query: &Query,
+    ) -> Result<types_ext::FlagsDeleteResponse, BackendError> {
+        let path = format!("/v1/feature_flags/{}", seg(key));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/feature_flags/evaluate` — Evaluate every flag (or the listed `keys`) for a subject
+    /// (`user_id`, `org_id`, `plan`). When `plan` is omitted it is the organization's (else the
+    /// user's) resolved plan. Each result carries the `value` and a `reason` (`off`, `default` or
+    /// `rule:&lt;index&gt;`).
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::FlagsEvaluateBody`]. Returns [`types_ext::FlagsEvaluateResponse`].
+    pub async fn evaluate(
+        &self,
+        body: &types_ext::FlagsEvaluateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::FlagsEvaluateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/feature_flags/evaluate",
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `PUT /v1/users/{id}/entitlements` — Assign a user's entitlements the same way as for an
+    /// organization.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::FlagsAssignUserEntitlementsBody`]. Returns [`types_ext::FlagsAssignUserEntitlementsResponse`].
+    pub async fn assign_user_entitlements(
+        &self,
+        id: &str,
+        body: &types_ext::FlagsAssignUserEntitlementsBody,
+        query: &Query,
+    ) -> Result<types_ext::FlagsAssignUserEntitlementsResponse, BackendError> {
+        let path = format!("/v1/users/{}/entitlements", seg(id));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+}
+
+impl MfaFactors<'_> {
+    /// The `mfa_factors / yubikeys` operations of the Backend API.
+    pub fn yubikeys(&self) -> MfaFactorsYubikeys<'_> {
+        MfaFactorsYubikeys {
+            client: self.client,
+        }
+    }
+    /// The `mfa_factors / smart_card_mappings` operations of the Backend API.
+    pub fn smart_card_mappings(&self) -> MfaFactorsSmartCardMappings<'_> {
+        MfaFactorsSmartCardMappings {
+            client: self.client,
+        }
+    }
+    /// `PUT /v1/instance/yubico_secret` — Store (write-only, encrypted) the Yubico cloud API secret
+    /// key (base64, from upgrade.yubico.com/getapikey). The client id is mfa.yubikey.clientId. Used
+    /// when mfa.yubikey.mode is "cloud".
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::MfaFactorsSetYubicoSecretBody`]. Returns [`types_ext::MfaFactorsSetYubicoSecretResponse`].
+    pub async fn set_yubico_secret(
+        &self,
+        body: &types_ext::MfaFactorsSetYubicoSecretBody,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsSetYubicoSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/yubico_secret",
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/yubico_secret` — Remove the stored Yubico cloud secret. Cloud-mode
+    /// YubiKey sign-ins then fail until a new one is stored.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::MfaFactorsRemoveYubicoSecretResponse`].
+    pub async fn remove_yubico_secret(
+        &self,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsRemoveYubicoSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/yubico_secret",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/duo_secret` — Store (write-only, encrypted) the Duo Web SDK / Universal
+    /// Prompt client secret. The client id (integration key) and API host are mfa.duo.clientId and
+    /// mfa.duo.apiHost.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::MfaFactorsSetDuoSecretBody`]. Returns [`types_ext::MfaFactorsSetDuoSecretResponse`].
+    pub async fn set_duo_secret(
+        &self,
+        body: &types_ext::MfaFactorsSetDuoSecretBody,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsSetDuoSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/duo_secret",
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/duo_secret` — Remove the stored Duo client secret.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::MfaFactorsRemoveDuoSecretResponse`].
+    pub async fn remove_duo_secret(
+        &self,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsRemoveDuoSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/duo_secret",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/smart_card_secret` — Store (write-only, encrypted) the shared secret your
+    /// TLS proxy sends in the mfa.smartCard.secretHeader header, so Atlas believes the certificate
+    /// headers only from your proxy. Use a random value of at least 24 characters.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::MfaFactorsSetSmartCardSecretBody`]. Returns [`types_ext::MfaFactorsSetSmartCardSecretResponse`].
+    pub async fn set_smart_card_secret(
+        &self,
+        body: &types_ext::MfaFactorsSetSmartCardSecretBody,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsSetSmartCardSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/smart_card_secret",
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/smart_card_secret` — Remove the stored proxy secret. Smart card sign-in
+    /// then refuses every request.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::MfaFactorsRemoveSmartCardSecretResponse`].
+    pub async fn remove_smart_card_secret(
+        &self,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsRemoveSmartCardSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/smart_card_secret",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/duo_health_check` — Ask Duo whether the configured integration key,
+    /// stored secret and API host are accepted (Duo's health check). Reports ok and a message;
+    /// nothing is changed.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::MfaFactorsDuoHealthCheckResponse`].
+    pub async fn duo_health_check(
+        &self,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::MfaFactorsDuoHealthCheckResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/duo_health_check",
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/security_questions` — Clear a user's security-question answers (and
+    /// any lockout). They set new ones from their account.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::MfaFactorsResetSecurityQuestionsResponse`].
+    pub async fn reset_security_questions(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsResetSecurityQuestionsResponse, BackendError> {
+        let path = format!("/v1/users/{}/security_questions", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
 impl MfaFactorsYubikeys<'_> {
     /// `GET /v1/yubikeys` — List the registered self-held YubiKeys (public id, owner, replay
     /// counter). The AES keys are never returned.
@@ -1670,6 +2628,72 @@ impl MfaFactorsYubikeys<'_> {
         query: &Query,
     ) -> Result<types_ext::MfaFactorsYubikeysRemoveResponse, BackendError> {
         let path = format!("/v1/yubikeys/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
+impl MfaFactorsSmartCardMappings<'_> {
+    /// `GET /v1/users/{id}/smartcard_mappings` — List the certificate attributes registered for a
+    /// user.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::MfaFactorsSmartCardMappingsListResponse`].
+    pub async fn list(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsSmartCardMappingsListResponse, BackendError> {
+        let path = format!("/v1/users/{}/smartcard_mappings", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/users/{id}/smartcard_mappings` — Pre-register the certificate attribute that signs
+    /// this user in with a smart card: kind fingerprint (SHA-256, 64 hex), serial (hex, plus the
+    /// issuer DN), san_email, san_upn or subject_cn. A registered mapping only applies while its
+    /// kind is listed in mfa.smartCard.mappingRules. 409 when the value is already mapped.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::MfaFactorsSmartCardMappingsAddBody`]. Returns [`types_ext::MfaFactorsSmartCardMappingsAddResponse`].
+    pub async fn add(
+        &self,
+        id: &str,
+        body: &types_ext::MfaFactorsSmartCardMappingsAddBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::MfaFactorsSmartCardMappingsAddResponse, BackendError> {
+        let path = format!("/v1/users/{}/smartcard_mappings", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/smartcard_mappings/{mappingId}` — Remove a registered certificate
+    /// mapping.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::MfaFactorsSmartCardMappingsRemoveResponse`].
+    pub async fn remove(
+        &self,
+        id: &str,
+        mapping_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::MfaFactorsSmartCardMappingsRemoveResponse, BackendError> {
+        let path = format!(
+            "/v1/users/{}/smartcard_mappings/{}",
+            seg(id),
+            seg(mapping_id)
+        );
         self.client
             .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
             .await
@@ -2421,6 +3445,154 @@ impl DirectoryPullSourcesSyncRuns<'_> {
     }
 }
 
+impl OrgLdapConnections<'_> {
+    /// The `org_ldap_connections / sync_runs` operations of the Backend API.
+    pub fn sync_runs(&self) -> OrgLdapConnectionsSyncRuns<'_> {
+        OrgLdapConnectionsSyncRuns {
+            client: self.client,
+        }
+    }
+    /// `GET /v1/org_ldap_connections/{id}/sync` — Read the directory-sync settings of an
+    /// organization LDAP / Active Directory connection (schedule, filters, group-to-role mapping,
+    /// disable-on-removal).
+    ///
+    /// Returns [`types_ext::OrgLdapConnectionsGetSyncResponse`].
+    pub async fn get_sync(
+        &self,
+        id: &str,
+    ) -> Result<types_ext::OrgLdapConnectionsGetSyncResponse, BackendError> {
+        let path = format!("/v1/org_ldap_connections/{}/sync", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/org_ldap_connections/{id}/sync` — Set the directory-sync settings. Fields you omit
+    /// keep their value. Enabling requires an active connection and schedules the first run
+    /// immediately; disabling clears the schedule. Role mappings are matched in order, by group DN.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OrgLdapConnectionsSetSyncBody`]. Returns nothing (`204 No Content`).
+    pub async fn set_sync(
+        &self,
+        id: &str,
+        body: &types_ext::OrgLdapConnectionsSetSyncBody,
+        query: &Query,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/org_ldap_connections/{}/sync", seg(id));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/org_ldap_connections/{id}/relay` — Which relay agent an organization LDAP
+    /// connection reaches its directory through, if any.
+    ///
+    /// Returns [`types_ext::OrgLdapConnectionsGetRelayResponse`].
+    pub async fn get_relay(
+        &self,
+        id: &str,
+    ) -> Result<types_ext::OrgLdapConnectionsGetRelayResponse, BackendError> {
+        let path = format!("/v1/org_ldap_connections/{}/relay", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/org_ldap_connections/{id}/relay` — Route an LDAP connection through a relay agent
+    /// (agent_id), or back to a direct connection (null). The agent must be active and allow the
+    /// LDAP server.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OrgLdapConnectionsSetRelayBody`]. Returns nothing (`204 No Content`).
+    pub async fn set_relay(
+        &self,
+        id: &str,
+        body: &types_ext::OrgLdapConnectionsSetRelayBody,
+        query: &Query,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/org_ldap_connections/{}/relay", seg(id));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+}
+
+impl OrgLdapConnectionsSyncRuns<'_> {
+    /// `POST /v1/org_ldap_connections/{id}/sync_runs` — Queue a sync run now (202). `full`
+    /// (default) lists the whole directory and, when disable-on-removal is on, bans users that left
+    /// it; `delta` only reads entries changed since the last successful run. Refused with 409 while
+    /// another run is queued or running.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OrgLdapConnectionsSyncRunsCreateBody`]. Returns nothing (`204 No Content`).
+    pub async fn create(
+        &self,
+        id: &str,
+        body: &types_ext::OrgLdapConnectionsSyncRunsCreateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/org_ldap_connections/{}/sync_runs", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/org_ldap_connections/{id}/sync_runs` — The sync run log, newest first, with per-run
+    /// counts (seen, created, updated, skipped, disabled, role changes, groups, errors) and any
+    /// failure message.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::OrgLdapConnectionsSyncRunsListResponse`].
+    pub async fn list(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OrgLdapConnectionsSyncRunsListResponse, BackendError> {
+        let path = format!("/v1/org_ldap_connections/{}/sync_runs", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `GET /v1/org_ldap_connections/{id}/sync_runs/{runId}` — Read one LDAP directory sync run
+    /// with its counts and error.
+    ///
+    /// Returns [`types_ext::OrgLdapConnectionsSyncRunsGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+        run_id: &str,
+    ) -> Result<types_ext::OrgLdapConnectionsSyncRunsGetResponse, BackendError> {
+        let path = format!(
+            "/v1/org_ldap_connections/{}/sync_runs/{}",
+            seg(id),
+            seg(run_id)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+}
+
 impl RelayAgents<'_> {
     /// `GET /v1/relay_agents` — List the on-prem relay agents with their allowed destinations and
     /// whether each is online. Secrets are never returned.
@@ -2533,6 +3705,48 @@ impl RelayAgents<'_> {
     }
 }
 
+impl OAuthClientsAppSettings<'_> {
+    /// `GET /v1/oauth_clients/{id}/app_settings` — The per-application settings of an OAuth client:
+    /// allowed sign-in methods, hosted-page branding, the user-claim allow-list for ID tokens and
+    /// userinfo, and the traits a session from this app may write. Null = no restriction.
+    ///
+    /// Returns [`types_ext::OAuthClientsAppSettingsGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+    ) -> Result<types_ext::OAuthClientsAppSettingsGetResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/app_settings", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/oauth_clients/{id}/app_settings` — Change the per-application settings. Each
+    /// field sent replaces the stored one and null clears it; fields left out keep their value.
+    /// Unknown fields and malformed values are refused.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OAuthClientsAppSettingsUpdateBody`]. Returns [`types_ext::OAuthClientsAppSettingsUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types_ext::OAuthClientsAppSettingsUpdateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::OAuthClientsAppSettingsUpdateResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/app_settings", seg(id));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
 impl OAuthClientsWorkloadIdentity<'_> {
     /// `GET /v1/workload_identity/presets` — List the workload platforms Atlas knows defaults for
     /// (SPIFFE, Kubernetes, GitHub Actions, GCP, Azure): issuer, JWKS URL and the shape of the
@@ -2575,6 +3789,282 @@ impl OAuthClientsWorkloadIdentity<'_> {
                 None,
                 None,
             )
+            .await
+    }
+}
+
+impl OAuthClientsTrustedIssuers<'_> {
+    /// `GET /v1/oauth_clients/{id}/trusted_issuers` — List the external issuers this OAuth client
+    /// trusts to assert users through the RFC 7523 jwt-bearer grant.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::OAuthClientsTrustedIssuersListResponse`].
+    pub async fn list(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OAuthClientsTrustedIssuersListResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/trusted_issuers", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/oauth_clients/{id}/trusted_issuers` — Trust an external issuer for this client.
+    /// With purpose user_assertion (default) its signed JWTs (verified against the inline jwks or
+    /// the https jwks_uri) can then be presented to POST /oauth2/token with
+    /// grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer. subject_mapping says how the JWT sub
+    /// names an Atlas user. With purpose client_auth or both (PRO-06 workload identity) a client
+    /// registered with token_endpoint_auth_method workload_jwt authenticates by presenting a token
+    /// from this issuer as its client_assertion; subject_pattern is then required and must name the
+    /// workload. workload_kind github_actions, gcp and azure fill in the issuer and JWKS URL.
+    /// Audited as oauth_trusted_issuer.created.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OAuthClientsTrustedIssuersCreateBody`]. Returns [`types_ext::OAuthClientsTrustedIssuersCreateResponse`].
+    pub async fn create(
+        &self,
+        id: &str,
+        body: &types_ext::OAuthClientsTrustedIssuersCreateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::OAuthClientsTrustedIssuersCreateResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/trusted_issuers", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/oauth_clients/{id}/trusted_issuers/{issuerId}` — Stop trusting an issuer: its
+    /// assertions are refused at once. Audited as oauth_trusted_issuer.deleted.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::OAuthClientsTrustedIssuersDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        issuer_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OAuthClientsTrustedIssuersDeleteResponse, BackendError> {
+        let path = format!(
+            "/v1/oauth_clients/{}/trusted_issuers/{}",
+            seg(id),
+            seg(issuer_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
+impl OAuthClients<'_> {
+    /// The `oauth_clients / app_settings` operations of the Backend API.
+    pub fn app_settings(&self) -> OAuthClientsAppSettings<'_> {
+        OAuthClientsAppSettings {
+            client: self.client,
+        }
+    }
+    /// The `oauth_clients / workload_identity` operations of the Backend API.
+    pub fn workload_identity(&self) -> OAuthClientsWorkloadIdentity<'_> {
+        OAuthClientsWorkloadIdentity {
+            client: self.client,
+        }
+    }
+    /// The `oauth_clients / trusted_issuers` operations of the Backend API.
+    pub fn trusted_issuers(&self) -> OAuthClientsTrustedIssuers<'_> {
+        OAuthClientsTrustedIssuers {
+            client: self.client,
+        }
+    }
+    /// The `oauth_clients / login_requests` operations of the Backend API.
+    pub fn login_requests(&self) -> OAuthClientsLoginRequests<'_> {
+        OAuthClientsLoginRequests {
+            client: self.client,
+        }
+    }
+    /// The `oauth_clients / consent_requests` operations of the Backend API.
+    pub fn consent_requests(&self) -> OAuthClientsConsentRequests<'_> {
+        OAuthClientsConsentRequests {
+            client: self.client,
+        }
+    }
+    /// `GET /v1/oauth_clients/{id}/exchange_policy` — Read the token-exchange policy of an OAuth
+    /// client (the defaults, with configured=false, when none is set).
+    ///
+    /// Returns [`types_ext::OAuthClientsGetExchangePolicyResponse`].
+    pub async fn get_exchange_policy(
+        &self,
+        id: &str,
+    ) -> Result<types_ext::OAuthClientsGetExchangePolicyResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/exchange_policy", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/oauth_clients/{id}/exchange_policy` — Set the token-exchange policy of an OAuth
+    /// client: allowed audiences and scopes, whether it may impersonate (no actor_token), whether
+    /// delegation needs may_act, and the maximum act-chain depth. Audited as
+    /// oauth_exchange_policy.updated.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OAuthClientsSetExchangePolicyBody`]. Returns [`types_ext::OAuthClientsSetExchangePolicyResponse`].
+    pub async fn set_exchange_policy(
+        &self,
+        id: &str,
+        body: &types_ext::OAuthClientsSetExchangePolicyBody,
+        query: &Query,
+    ) -> Result<types_ext::OAuthClientsSetExchangePolicyResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/exchange_policy", seg(id));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/oauth_clients/{id}/exchange_policy` — Remove the token-exchange policy of an
+    /// OAuth client, restoring the defaults.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::OAuthClientsDeleteExchangePolicyResponse`].
+    pub async fn delete_exchange_policy(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OAuthClientsDeleteExchangePolicyResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/exchange_policy", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `PUT /v1/oauth_clients/{id}/profile` — Assign a policy profile to an OAuth client (profile
+    /// null clears it). The client must already conform (auth method, redirect URIs); the profile
+    /// is then enforced at /oauth2/authorize, /oauth2/par and /oauth2/token.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OAuthClientsSetProfileBody`]. Returns [`types_ext::OAuthClientsSetProfileResponse`].
+    pub async fn set_profile(
+        &self,
+        id: &str,
+        body: &types_ext::OAuthClientsSetProfileBody,
+        query: &Query,
+    ) -> Result<types_ext::OAuthClientsSetProfileResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/profile", seg(id));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/oauth_clients/{id}/delegated_ui` — Set (or clear, with null) the URLs of your own
+    /// sign-in and consent pages for an OAuth client. /oauth2/authorize then sends the browser
+    /// there with a login_challenge / consent_challenge instead of Atlas’s pages. A client URL
+    /// overrides the instance-wide oauthProvider.loginUrl / consentUrl.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OAuthClientsSetDelegatedUiBody`]. Returns [`types_ext::OAuthClientsSetDelegatedUiResponse`].
+    pub async fn set_delegated_ui(
+        &self,
+        id: &str,
+        body: &types_ext::OAuthClientsSetDelegatedUiBody,
+        query: &Query,
+    ) -> Result<types_ext::OAuthClientsSetDelegatedUiResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/delegated_ui", seg(id));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+}
+
+impl Organizations<'_> {
+    /// The `organizations / webhook_endpoints` operations of the Backend API.
+    pub fn webhook_endpoints(&self) -> OrganizationsWebhookEndpoints<'_> {
+        OrganizationsWebhookEndpoints {
+            client: self.client,
+        }
+    }
+    /// `GET /v1/organizations/{id}/connected_apps` — List the apps (OAuth clients) that hold an
+    /// active grant in this organization's context, one entry per grant.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::OrganizationsListConnectedAppsResponse`].
+    pub async fn list_connected_apps(
+        &self,
+        org_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OrganizationsListConnectedAppsResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/connected_apps", seg(org_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `DELETE /v1/organizations/{id}/connected_apps/{grantId}` — Revoke one connected app grant of
+    /// the organization: its tokens and any session minted from it stop working. Emits
+    /// grant.revoked; audited as organization.connected_app_revoked.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::OrganizationsRevokeConnectedAppResponse`].
+    pub async fn revoke_connected_app(
+        &self,
+        org_id: &str,
+        grant_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OrganizationsRevokeConnectedAppResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/connected_apps/{}",
+            seg(org_id),
+            seg(grant_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `GET /v1/organizations/{id}/connections/{connectionId}/secret` — The same read, scoped to an
+    /// organization: 404 unless the connection is owned by that organization. Needs
+    /// connections:secret_read; audited.
+    ///
+    /// Query parameters: `version`.
+    ///
+    /// Returns [`types_ext::OrganizationsGetConnectionSecretResponse`].
+    pub async fn get_connection_secret(
+        &self,
+        org_id: &str,
+        connection_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OrganizationsGetConnectionSecretResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/connections/{}/secret",
+            seg(org_id),
+            seg(connection_id)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
 }
@@ -3360,6 +4850,26 @@ impl AgentAccessRequests<'_> {
     }
 }
 
+impl Actions<'_> {
+    /// `GET /v1/actions/{id}/calls` — The call log of an `http` Action (an Action that calls your
+    /// own endpoint), newest first, with 24 hour stats: calls, denied, failed, timeouts and p95
+    /// latency. Real calls and dry-run tests are both logged (`test`). 409 for a `node` Action.
+    ///
+    /// Query parameters: `limit`, `status`, `test`, `starting_after`.
+    ///
+    /// Returns [`types_ext::ActionHttpCallList`].
+    pub async fn calls(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::ActionHttpCallList, BackendError> {
+        let path = format!("/v1/actions/{}/calls", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
 impl Workflows<'_> {
     /// `GET /v1/workflows` — List lifecycle workflows: a trigger (cron, user created, inactive for
     /// N days, membership age, trial end, webhook event) plus ordered steps, run by the worker.
@@ -3515,6 +5025,127 @@ impl Workflows<'_> {
         let path = format!("/v1/workflows/{}/runs", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
+impl PageTemplates<'_> {
+    /// `GET /v1/instance/page_templates` — The hosted-page templates of the instance: for each page
+    /// (sign-in, sign-up, user-profile) the live template and the draft waiting to be previewed or
+    /// promoted.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::PageTemplatesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types_ext::PageTemplatesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/page_templates",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/page_templates/{page}` — Read one page's live and draft template.
+    ///
+    /// Returns [`types_ext::PageTemplate`].
+    pub async fn get(&self, page: &str) -> Result<types_ext::PageTemplate, BackendError> {
+        let path = format!("/v1/instance/page_templates/{}", seg(page));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/instance/page_templates/{page}` — Save a page template as the page's draft. A
+    /// template is data: components (heading, text, image, link, button_link, list, divider,
+    /// spacer, columns) in four regions (header, above_form, below_form, footer). It is validated
+    /// on save: no raw HTML, CSS or script, https and mailto links only. The live page is unchanged
+    /// until you promote.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::PageTemplatesSaveDraftBody`]. Returns [`types_ext::PageTemplate`].
+    pub async fn save_draft(
+        &self,
+        page: &str,
+        body: &types_ext::PageTemplatesSaveDraftBody,
+        query: &Query,
+    ) -> Result<types_ext::PageTemplate, BackendError> {
+        let path = format!("/v1/instance/page_templates/{}", seg(page));
+        self.client
+            .request(
+                HttpMethod::Put,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/page_templates/{page}` — Drop the draft or take the live template down
+    /// (`status`).
+    ///
+    /// Query parameters: `dry_run`, `status`.
+    ///
+    /// Returns [`types_ext::PageTemplate`].
+    pub async fn discard(
+        &self,
+        page: &str,
+        query: &Query,
+    ) -> Result<types_ext::PageTemplate, BackendError> {
+        let path = format!("/v1/instance/page_templates/{}", seg(page));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/instance/page_templates/{page}/preview` — A signed link to the hosted page with
+    /// the draft template applied (valid for one hour, noindex, with a preview banner). 409 when
+    /// the page has no template.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::PageTemplatePreview`].
+    pub async fn preview(
+        &self,
+        page: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::PageTemplatePreview, BackendError> {
+        let path = format!("/v1/instance/page_templates/{}/preview", seg(page));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/instance/page_templates/{page}/promote` — Make the draft the live template.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::PageTemplate`].
+    pub async fn promote(
+        &self,
+        page: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::PageTemplate, BackendError> {
+        let path = format!("/v1/instance/page_templates/{}/promote", seg(page));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
             .await
     }
 }
@@ -3904,6 +5535,47 @@ impl IdentityVerification<'_> {
         idempotency_key: Option<&str>,
     ) -> Result<types_ext::IdentityVerificationDecideResponse, BackendError> {
         let path = format!("/v1/identity_verifications/{}/decide", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/users/{id}/identity_verifications` — A user's identity checks, newest first.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::IdentityVerificationForUserResponse`].
+    pub async fn for_user(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::IdentityVerificationForUserResponse, BackendError> {
+        let path = format!("/v1/users/{}/identity_verifications", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/users/{id}/identity_verifications` — Start an identity check for a user and get
+    /// the verification service's hosted page (`url`) to send them to. A check started in the last
+    /// 30 minutes and still pending is returned instead of a new one; at most 5 checks per user per
+    /// hour. 409 when identity verification is not turned on.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::IdentityVerificationStartBody`]. Returns [`types_ext::IdentityVerificationStartResponse`].
+    pub async fn start(
+        &self,
+        id: &str,
+        body: &types_ext::IdentityVerificationStartBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::IdentityVerificationStartResponse, BackendError> {
+        let path = format!("/v1/users/{}/identity_verifications", seg(id));
         self.client
             .request(
                 HttpMethod::Post,
@@ -4766,6 +6438,171 @@ impl ScimProvisioningPresets<'_> {
     }
 }
 
+impl OrganizationsWebhookEndpoints<'_> {
+    /// `GET /v1/organizations/{id}/webhook_endpoints` — List the organization's own webhook
+    /// endpoints. Backend API. Never returns a secret.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::OrganizationsWebhookEndpointsListResponse`].
+    pub async fn list(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OrganizationsWebhookEndpointsListResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/webhook_endpoints", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/organizations/{id}/webhook_endpoints` — Register a webhook endpoint for one
+    /// organization. It receives only that organization's events (membership, invitation, role,
+    /// domain and organization events). The signing secret is returned in this response only.
+    /// Backend API. At most 20 per organization.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OrganizationsWebhookEndpointsCreateBody`]. Returns [`types_ext::WebhookEndpointCreate`].
+    pub async fn create(
+        &self,
+        id: &str,
+        body: &types_ext::OrganizationsWebhookEndpointsCreateBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::WebhookEndpointCreate, BackendError> {
+        let path = format!("/v1/organizations/{}/webhook_endpoints", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/organizations/{id}/webhook_endpoints/{endpointId}` — Retrieve one of the
+    /// organization's webhook endpoints, with its delivery health.
+    ///
+    /// Returns [`types_ext::WebhookEndpoint`].
+    pub async fn get(
+        &self,
+        id: &str,
+        endpoint_id: &str,
+    ) -> Result<types_ext::WebhookEndpoint, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/webhook_endpoints/{}",
+            seg(id),
+            seg(endpoint_id)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/organizations/{id}/webhook_endpoints/{endpointId}` — Update the url, subscribed
+    /// events, description or active flag of one of the organization's endpoints. Never re-reveals
+    /// the secret.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OrganizationsWebhookEndpointsUpdateBody`]. Returns [`types_ext::WebhookEndpoint`].
+    pub async fn update(
+        &self,
+        id: &str,
+        endpoint_id: &str,
+        body: &types_ext::OrganizationsWebhookEndpointsUpdateBody,
+        query: &Query,
+    ) -> Result<types_ext::WebhookEndpoint, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/webhook_endpoints/{}",
+            seg(id),
+            seg(endpoint_id)
+        );
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/organizations/{id}/webhook_endpoints/{endpointId}` — Delete one of the
+    /// organization's webhook endpoints and its delivery log. An id from another organization is a
+    /// 404.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::OrganizationsWebhookEndpointsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        endpoint_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OrganizationsWebhookEndpointsDeleteResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/webhook_endpoints/{}",
+            seg(id),
+            seg(endpoint_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/organizations/{id}/webhook_endpoints/{endpointId}/rotate_secret` — Rotate the
+    /// signing secret. The previous secret keeps signing alongside the new one for 24 hours so the
+    /// receiver can switch over without dropping events.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Returns [`types_ext::OrganizationsWebhookEndpointsRotateSecretResponse`].
+    pub async fn rotate_secret(
+        &self,
+        id: &str,
+        endpoint_id: &str,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::OrganizationsWebhookEndpointsRotateSecretResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/webhook_endpoints/{}/rotate_secret",
+            seg(id),
+            seg(endpoint_id)
+        );
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/organizations/{id}/webhook_endpoints/{endpointId}/deliveries` — The endpoint's
+    /// delivery log: payload, response and retry state for each attempt, filterable by status,
+    /// event type and time.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `status`, `event_type`, `since`, `until`, `trace`.
+    ///
+    /// Returns [`types_ext::OrganizationsWebhookEndpointsDeliveriesResponse`].
+    pub async fn deliveries(
+        &self,
+        id: &str,
+        endpoint_id: &str,
+        query: &Query,
+    ) -> Result<types_ext::OrganizationsWebhookEndpointsDeliveriesResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/webhook_endpoints/{}/deliveries",
+            seg(id),
+            seg(endpoint_id)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
 impl Vault<'_> {
     /// The `vault / key_provider` operations of the Backend API.
     pub fn key_provider(&self) -> VaultKeyProvider<'_> {
@@ -5619,119 +7456,187 @@ impl ConnectionsWebhooks<'_> {
     }
 }
 
-impl Flags<'_> {
-    /// `POST /v1/feature_flags` — Create a feature flag: a typed value (`boolean`, `string`, `int`
-    /// or `json`) with a `default_value`, an `off_value` (served while `enabled` is false; defaults
-    /// to false for a boolean, else the default) and ordered targeting `rules` by org, user, plan
-    /// and percentage. 409 when the key exists.
+impl Fga<'_> {
+    /// `POST /v1/fga/stores/{id}/list-users` — List the users that have a relation on an object,
+    /// filtered to one user type (or to `type#relation` usersets via `user_filters\[0\].relation`).
+    /// Exact for wildcards (`type:*` plus `excluded_users` under `but not`), nested groups and
+    /// contextual tuples; tuple conditions are evaluated against `context`. Pages with `page_size`
+    /// / `continuation_token`; `consistency` / `consistency_token` behave as on check.
     ///
     /// Query parameters: `dry_run`.
     ///
-    /// Takes [`types_ext::FlagsCreateBody`]. Returns [`types_ext::FlagsCreateResponse`].
-    pub async fn create(
+    /// Takes [`types_ext::FgaListUsersBody`]. Returns [`types_ext::FgaListUsersResponse`].
+    pub async fn list_users(
         &self,
-        body: &types_ext::FlagsCreateBody,
+        id: &str,
+        body: &types_ext::FgaListUsersBody,
         query: &Query,
         idempotency_key: Option<&str>,
-    ) -> Result<types_ext::FlagsCreateResponse, BackendError> {
+    ) -> Result<types_ext::FgaListUsersResponse, BackendError> {
+        let path = format!("/v1/fga/stores/{}/list-users", seg(id));
         self.client
             .request(
                 HttpMethod::Post,
-                "/v1/feature_flags",
-                &query.as_pairs(),
-                body_of(body)?,
-                idempotency_key,
-            )
-            .await
-    }
-    /// `GET /v1/feature_flags` — List feature flags ordered by key. `starting_after` is the key of
-    /// the last flag of the previous page.
-    ///
-    /// Query parameters: `starting_after`, `limit`.
-    ///
-    /// Returns [`types_ext::FlagsListResponse`].
-    pub async fn list(&self, query: &Query) -> Result<types_ext::FlagsListResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/feature_flags",
-                &query.as_pairs(),
-                None,
-                None,
-            )
-            .await
-    }
-    /// `GET /v1/feature_flags/{key}` — Read one feature flag.
-    ///
-    /// Returns [`types_ext::FlagsRetrieveResponse`].
-    pub async fn retrieve(
-        &self,
-        key: &str,
-    ) -> Result<types_ext::FlagsRetrieveResponse, BackendError> {
-        let path = format!("/v1/feature_flags/{}", seg(key));
-        self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
-            .await
-    }
-    /// `PATCH /v1/feature_flags/{key}` — Change a flag's description, kill switch, default or off
-    /// value, or replace its rules. The type and key are fixed.
-    ///
-    /// Query parameters: `dry_run`.
-    ///
-    /// Takes [`types_ext::FlagsUpdateBody`]. Returns [`types_ext::FlagsUpdateResponse`].
-    pub async fn update(
-        &self,
-        key: &str,
-        body: &types_ext::FlagsUpdateBody,
-        query: &Query,
-    ) -> Result<types_ext::FlagsUpdateResponse, BackendError> {
-        let path = format!("/v1/feature_flags/{}", seg(key));
-        self.client
-            .request(
-                HttpMethod::Patch,
                 &path,
                 &query.as_pairs(),
                 body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/fga/stores/{id}/changes` — Read the store’s tuple changelog: every tuple write and
+    /// delete in commit order, resumable with `continuation_token` (returned even on the last page
+    /// — pass it later to receive only newer changes). Filter by object `type` and `start_time`.
+    ///
+    /// Query parameters: `type`, `page_size`, `continuation_token`, `start_time`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types_ext::FgaReadChangesResponse`].
+    pub async fn read_changes(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types_ext::FgaReadChangesResponse, BackendError> {
+        let path = format!("/v1/fga/stores/{}/changes", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
+impl OpenFga<'_> {
+    /// `POST /v1/openfga/stores/{store}/list-users` — List the users that have a relation on an
+    /// object (OpenFGA-wire ListUsers): concrete users, usersets (`user_filters\[0\].relation`),
+    /// and the `type:*` wildcard with `excluded_users`. Honours contextual tuples and tuple
+    /// conditions; pages with `page_size` / `continuation_token`.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::OpenFgaListUsersBody`]. Returns [`types_ext::OpenFgaListUsersResponse`].
+    pub async fn list_users(
+        &self,
+        store: &str,
+        body: &types_ext::OpenFgaListUsersBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::OpenFgaListUsersResponse, BackendError> {
+        let path = format!("/v1/openfga/stores/{}/list-users", seg(store));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/openfga/stores/{store}/changes` — Read the tuple changelog (OpenFGA-wire
+    /// ReadChanges): every tuple write and delete in order, resumable with `continuation_token`
+    /// (the token is returned even on the last page — pass it later to receive only newer changes).
+    ///
+    /// Query parameters: `type`, `page_size`, `continuation_token`, `start_time`.
+    ///
+    /// Returns [`types_ext::OpenFgaReadChangesResponse`].
+    pub async fn read_changes(
+        &self,
+        store: &str,
+        query: &Query,
+    ) -> Result<types_ext::OpenFgaReadChangesResponse, BackendError> {
+        let path = format!("/v1/openfga/stores/{}/changes", seg(store));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
+impl AttackProtection<'_> {
+    /// `PUT /v1/attack_protection/app_attestation_secret` — Store the Play Integrity
+    /// response-decryption key (base64 AES-256) for app attestation. Write-only; the public
+    /// verification key is attackProtection.appAttestation.android.verificationKey.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::AttackProtectionSetAppAttestationSecretBody`]. Returns [`types_ext::AttackProtectionSetAppAttestationSecretResponse`].
+    pub async fn set_app_attestation_secret(
+        &self,
+        body: &types_ext::AttackProtectionSetAppAttestationSecretBody,
+        query: &Query,
+    ) -> Result<types_ext::AttackProtectionSetAppAttestationSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/attack_protection/app_attestation_secret",
+                &query.as_pairs(),
+                body_of(body)?,
                 None,
             )
             .await
     }
-    /// `DELETE /v1/feature_flags/{key}` — Delete a feature flag.
+    /// `DELETE /v1/attack_protection/app_attestation_secret` — Remove a stored attestation secret:
+    /// the Play Integrity decryption key (default) or, with kind=devicecheck, the Apple DeviceCheck
+    /// key. That platform then refuses every request.
     ///
-    /// Query parameters: `dry_run`.
+    /// Query parameters: `dry_run`, `kind`.
     ///
-    /// Returns [`types_ext::FlagsDeleteResponse`].
-    pub async fn delete(
+    /// Returns [`types_ext::AttackProtectionRemoveAppAttestationSecretResponse`].
+    pub async fn remove_app_attestation_secret(
         &self,
-        key: &str,
         query: &Query,
-    ) -> Result<types_ext::FlagsDeleteResponse, BackendError> {
-        let path = format!("/v1/feature_flags/{}", seg(key));
-        self.client
-            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
-            .await
-    }
-    /// `POST /v1/feature_flags/evaluate` — Evaluate every flag (or the listed `keys`) for a subject
-    /// (`user_id`, `org_id`, `plan`). When `plan` is omitted it is the organization's (else the
-    /// user's) resolved plan. Each result carries the `value` and a `reason` (`off`, `default` or
-    /// `rule:&lt;index&gt;`).
-    ///
-    /// Query parameters: `dry_run`.
-    ///
-    /// Takes [`types_ext::FlagsEvaluateBody`]. Returns [`types_ext::FlagsEvaluateResponse`].
-    pub async fn evaluate(
-        &self,
-        body: &types_ext::FlagsEvaluateBody,
-        query: &Query,
-        idempotency_key: Option<&str>,
-    ) -> Result<types_ext::FlagsEvaluateResponse, BackendError> {
+    ) -> Result<types_ext::AttackProtectionRemoveAppAttestationSecretResponse, BackendError> {
         self.client
             .request(
-                HttpMethod::Post,
-                "/v1/feature_flags/evaluate",
+                HttpMethod::Delete,
+                "/v1/attack_protection/app_attestation_secret",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+}
+
+impl RiskBasedMfa<'_> {
+    /// `PUT /v1/risk_based_mfa/reputation_secret` — Store (write-only, encrypted) the API key of
+    /// your IP-reputation provider (ipqs, spur or minfraud; minFraud uses "&lt;account
+    /// id&gt;:&lt;license key&gt;"). Then set `reputation.provider` on PATCH /v1/risk_based_mfa.
+    /// Lookups are cached and fail open: a provider outage never blocks a sign-in.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::RiskBasedMfaSetReputationSecretBody`]. Returns [`types_ext::RiskBasedMfaSetReputationSecretResponse`].
+    pub async fn set_reputation_secret(
+        &self,
+        body: &types_ext::RiskBasedMfaSetReputationSecretBody,
+        query: &Query,
+    ) -> Result<types_ext::RiskBasedMfaSetReputationSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/risk_based_mfa/reputation_secret",
                 &query.as_pairs(),
                 body_of(body)?,
-                idempotency_key,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/risk_based_mfa/reputation_secret` — Remove a stored IP-reputation provider key
+    /// (default: the configured provider). IP lookups for that provider stop; sign-in is
+    /// unaffected.
+    ///
+    /// Query parameters: `dry_run`, `provider`.
+    ///
+    /// Returns [`types_ext::RiskBasedMfaRemoveReputationSecretResponse`].
+    pub async fn remove_reputation_secret(
+        &self,
+        query: &Query,
+    ) -> Result<types_ext::RiskBasedMfaRemoveReputationSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/risk_based_mfa/reputation_secret",
+                &query.as_pairs(),
+                None,
+                None,
             )
             .await
     }
@@ -7630,7 +9535,7 @@ impl PolicyBundles<'_> {
     pub async fn archive(&self, revision: &str) -> Result<Vec<u8>, BackendError> {
         let path = format!("/v1/policy_bundles/{}/archive", seg(revision));
         self.client
-            .request_bytes(HttpMethod::Get, &path, &[], None)
+            .request_raw_bytes(HttpMethod::Get, &path, &[], None)
             .await
     }
     /// `POST /v1/policy_bundles/verify` — Check a bundle without importing it: the detached
@@ -7987,6 +9892,43 @@ impl McpGatewaysBudgets<'_> {
     }
 }
 
+impl InstanceIntegrations<'_> {
+    /// `POST /v1/instance/integrations/{product}/events_secret/rotate` — Rotate the signing secret
+    /// of the integration's event receiver. The new secret is revealed exactly once. By default
+    /// (`overlap_seconds` 0) the old secret stops signing at once. With `overlap_seconds` (at most
+    /// 604800 = 7 days) every delivery carries two signatures in `Atlas-Signature` (`v1,&lt;new&gt;
+    /// v1,&lt;old&gt;`, the new one first), so the service verifies with either secret while it
+    /// deploys the new one; after that only the new secret signs. `previous_secret_expires_at` says
+    /// when the old secret stops signing (epoch ms), or null when it already has. Audited as
+    /// integration.&lt;id&gt;.events_secret_rotated. 404 when the integration has no event
+    /// receiver.
+    ///
+    /// Query parameters: `dry_run`.
+    ///
+    /// Takes [`types_ext::InstanceIntegrationsRotateEventsSecretBody`]. Returns [`types_ext::InstanceIntegrationsRotateEventsSecretResponse`].
+    pub async fn rotate_events_secret(
+        &self,
+        product: &str,
+        body: &types_ext::InstanceIntegrationsRotateEventsSecretBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types_ext::InstanceIntegrationsRotateEventsSecretResponse, BackendError> {
+        let path = format!(
+            "/v1/instance/integrations/{}/events_secret/rotate",
+            seg(product)
+        );
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &query.as_pairs(),
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
 impl Integrations<'_> {
     /// `POST /v1/integrations/{integration}/card/actions/{action}` — Run a card action.
     /// revoke_sessions signs the user out of every device (their sessions end, back-channel logouts
@@ -8018,36 +9960,6 @@ impl Integrations<'_> {
                 idempotency_key,
             )
             .await
-    }
-}
-
-impl MfaFactors<'_> {
-    /// The `mfa_factors / yubikeys` operations of the Backend API.
-    pub fn yubikeys(&self) -> MfaFactorsYubikeys<'_> {
-        MfaFactorsYubikeys {
-            client: self.client,
-        }
-    }
-}
-
-impl OAuthClients<'_> {
-    /// The `oauth_clients / workload_identity` operations of the Backend API.
-    pub fn workload_identity(&self) -> OAuthClientsWorkloadIdentity<'_> {
-        OAuthClientsWorkloadIdentity {
-            client: self.client,
-        }
-    }
-    /// The `oauth_clients / login_requests` operations of the Backend API.
-    pub fn login_requests(&self) -> OAuthClientsLoginRequests<'_> {
-        OAuthClientsLoginRequests {
-            client: self.client,
-        }
-    }
-    /// The `oauth_clients / consent_requests` operations of the Backend API.
-    pub fn consent_requests(&self) -> OAuthClientsConsentRequests<'_> {
-        OAuthClientsConsentRequests {
-            client: self.client,
-        }
     }
 }
 
@@ -8111,6 +10023,15 @@ impl Ssf<'_> {
     }
 }
 
+impl Instance<'_> {
+    /// The `instance / integrations` operations of the Backend API.
+    pub fn integrations(&self) -> InstanceIntegrations<'_> {
+        InstanceIntegrations {
+            client: self.client,
+        }
+    }
+}
+
 impl BackendClient {
     /// The `app_catalog` operations of the Backend API.
     pub fn app_catalog(&self) -> AppCatalog<'_> {
@@ -8143,6 +10064,10 @@ impl BackendClient {
     /// The `delivery_health` operations of the Backend API.
     pub fn delivery_health(&self) -> DeliveryHealth<'_> {
         DeliveryHealth { client: self }
+    }
+    /// The `flags` operations of the Backend API.
+    pub fn flags(&self) -> Flags<'_> {
+        Flags { client: self }
     }
     /// The `mfa_factors` operations of the Backend API.
     pub fn mfa_factors(&self) -> MfaFactors<'_> {
@@ -8200,6 +10125,10 @@ impl BackendClient {
     pub fn workflows(&self) -> Workflows<'_> {
         Workflows { client: self }
     }
+    /// The `page_templates` operations of the Backend API.
+    pub fn page_templates(&self) -> PageTemplates<'_> {
+        PageTemplates { client: self }
+    }
     /// The `service_connectors` operations of the Backend API.
     pub fn service_connectors(&self) -> ServiceConnectors<'_> {
         ServiceConnectors { client: self }
@@ -8227,10 +10156,6 @@ impl BackendClient {
     /// The `connections` operations of the Backend API.
     pub fn connections(&self) -> Connections<'_> {
         Connections { client: self }
-    }
-    /// The `flags` operations of the Backend API.
-    pub fn flags(&self) -> Flags<'_> {
-        Flags { client: self }
     }
     /// The `ssf` operations of the Backend API.
     pub fn ssf(&self) -> Ssf<'_> {
