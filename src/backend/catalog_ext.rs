@@ -806,13 +806,13 @@ impl Groups<'_> {
     ///
     /// Query parameters: `dry_run`.
     ///
-    /// Takes [`types_ext::GroupsCreateBody`]. Returns [`types::Group`].
+    /// Takes [`types_ext::GroupsCreateBody`]. Returns [`types_ext::Group`].
     pub async fn create(
         &self,
         body: &types_ext::GroupsCreateBody,
         query: &Query,
         idempotency_key: Option<&str>,
-    ) -> Result<types::Group, BackendError> {
+    ) -> Result<types_ext::Group, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -825,8 +825,8 @@ impl Groups<'_> {
     }
     /// `GET /v1/groups/{id}` — One group, by id or slug.
     ///
-    /// Returns [`types::Group`].
-    pub async fn get(&self, id: &str) -> Result<types::Group, BackendError> {
+    /// Returns [`types_ext::Group`].
+    pub async fn get(&self, id: &str) -> Result<types_ext::Group, BackendError> {
         let path = format!("/v1/groups/{}", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &[], None, None)
@@ -836,13 +836,13 @@ impl Groups<'_> {
     ///
     /// Query parameters: `dry_run`.
     ///
-    /// Takes [`types_ext::GroupsUpdateBody`]. Returns [`types::Group`].
+    /// Takes [`types_ext::GroupsUpdateBody`]. Returns [`types_ext::Group`].
     pub async fn update(
         &self,
         id: &str,
         body: &types_ext::GroupsUpdateBody,
         query: &Query,
-    ) -> Result<types::Group, BackendError> {
+    ) -> Result<types_ext::Group, BackendError> {
         let path = format!("/v1/groups/{}", seg(id));
         self.client
             .request(

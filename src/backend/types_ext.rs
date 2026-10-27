@@ -15423,6 +15423,50 @@ pub struct GroupsListResponse {
     pub extra: Map<String, Value>,
 }
 
+/// The `Group` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct Group {
+    /// Always `group`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub slug: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<String>,
+    #[serde(default)]
+    pub attributes: Map<String, Value>,
+    #[serde(default)]
+    pub app_role_keys: Vec<String>,
+    #[serde(default)]
+    pub include_in_token: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dynamic_filter: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sso_match: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub member_count: Option<i64>,
+    /// GET /v1/users/:id/groups only: how the user joined.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    /// Created (epoch ms).
+    #[serde(default)]
+    pub created_at: i64,
+    /// Updated (epoch ms).
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `DELETE /v1/groups/{id}`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
