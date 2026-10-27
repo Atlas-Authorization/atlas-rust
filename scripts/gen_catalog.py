@@ -1419,10 +1419,22 @@ where
     assert_eq!(serde_json::to_value(&typed).unwrap(), v, "{}", std::any::type_name::<T>());
 }
 ''']
+# Samples come from the live schema; a type reaching a pinned field or a pinned
+# response no longer has that shape, so it gets no sample round-trip.
+pinned_ops = {k for k in PINS['response']}
+affected = {k.split('.')[0] for k in PINS['field_types']}
+while True:
+    more = {n for n, st in tg.structs.items() if n not in affected and any(
+        i in affected for f in st['fields'] for i in re.findall(r'[A-Z][A-Za-z0-9]*', f['ty']))}
+    if not more:
+        break
+    affected |= more
 done = set()
 by_ns = {}
 for op in ops:
     rt = op.get('resp_ty')
+    if f"{op['M']} {op['p']}" in pinned_ops or rt in affected:
+        continue
     if not rt or rt == '()' or rt not in tg.structs or rt in done:
         continue
     done.add(rt)
