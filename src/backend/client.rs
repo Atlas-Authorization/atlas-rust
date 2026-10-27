@@ -495,6 +495,55 @@ impl BackendClient {
         Ok(self.send_text(method, path, query, body, None).await?.into_bytes())
     }
 
+    /// [`Self::request_raw`] returning the 2xx response body as the exact bytes
+    /// the server sent, with no text decoding (a gzip archive). Same
+    /// authentication, retry policy and typed errors as [`Self::request_raw`];
+    /// the transport must implement [`HttpTransport::send_bytes`] for a
+    /// non-UTF-8 body to arrive intact (the built-in one does).
+    pub async fn request_raw_bytes(
+        &self,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        body: Option<Value>,
+    ) -> Result<Vec<u8>, BackendError> {
+        let url = format!("{}{}{}", self.base(), path, serialize_query(query));
+        let mut attempt: u32 = 0;
+        loop {
+            let mut req = HttpRequest::new(method, url.clone())
+                .header("authorization", format!("Bearer {}", self.secret_key))
+                .header("accept", "*/*");
+            if let Some(v) = &body {
+                let text = serde_json::to_string(v).map_err(|e| BackendError::Malformed(e.to_string()))?;
+                req = req.header("content-type", "application/json").body(text);
+            }
+            if let Some(tp) = &self.traceparent {
+                req = req.header("traceparent", tp.clone());
+            }
+            match self.transport.send_bytes(req).await {
+                Err(e) => {
+                    if attempt < self.max_retries {
+                        self.backoff(attempt).await;
+                        attempt += 1;
+                        continue;
+                    }
+                    return Err(BackendError::Transport(e));
+                }
+                Ok(resp) => {
+                    if (200..300).contains(&resp.status) {
+                        return Ok(resp.body);
+                    }
+                    if (resp.status >= 500 || resp.status == 429) && attempt < self.max_retries {
+                        self.backoff(attempt).await;
+                        attempt += 1;
+                        continue;
+                    }
+                    return Err(BackendError::Api(to_api_error(resp.status, &String::from_utf8_lossy(&resp.body))));
+                }
+            }
+        }
+    }
+
     /// [`Self::request_raw`] carrying an idempotency key, so a retried write
     /// (the §9.1 5xx/429 retry, or a caller's own re-issue) lands exactly once.
     /// Additive peer of [`Self::request_raw`]: pass `Some(key)` to send an

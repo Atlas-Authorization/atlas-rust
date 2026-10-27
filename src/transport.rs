@@ -137,6 +137,44 @@ impl crate::http::HttpTransport for ReqwestTransport {
             Ok(crate::http::HttpFullResponse { status, body, headers })
         })
     }
+
+    fn send_bytes<'a>(
+        &'a self,
+        req: crate::http::HttpRequest,
+    ) -> BoxFuture<'a, Result<crate::http::HttpBytesResponse, TransportError>> {
+        use crate::http::HttpMethod;
+        Box::pin(async move {
+            let mut builder = match req.method {
+                HttpMethod::Get => self.client.get(&req.url),
+                HttpMethod::Post => self.client.post(&req.url),
+                HttpMethod::Patch => self.client.patch(&req.url),
+                HttpMethod::Put => self.client.put(&req.url),
+                HttpMethod::Delete => self.client.delete(&req.url),
+            };
+            for (name, value) in &req.headers {
+                builder = builder.header(name, value);
+            }
+            if let Some(body) = req.body {
+                builder = builder.body(body);
+            }
+            let resp = builder
+                .send()
+                .await
+                .map_err(|e| TransportError::new(e.to_string()))?;
+            let status = resp.status().as_u16();
+            let headers = resp
+                .headers()
+                .iter()
+                .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.as_str().to_string(), v.to_string())))
+                .collect();
+            let body = resp
+                .bytes()
+                .await
+                .map_err(|e| TransportError::new(e.to_string()))?
+                .to_vec();
+            Ok(crate::http::HttpBytesResponse { status, body, headers })
+        })
+    }
 }
 
 impl HttpPost for ReqwestTransport {

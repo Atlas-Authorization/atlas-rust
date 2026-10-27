@@ -148,4 +148,4 @@ pub use verify::{AtlasBackend, AtlasBackendBuilder, AtlasBackendOptions, CLOCK_S
 pub use transport::ReqwestTransport;
 
 #[cfg(any(feature = "backend", feature = "client"))]
-pub use http::{HttpFullResponse, HttpMethod, HttpRequest, HttpTransport};
+pub use http::{HttpBytesResponse, HttpFullResponse, HttpMethod, HttpRequest, HttpTransport};

@@ -152,6 +152,11 @@ pub struct Fga<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Fraud lookup. Reached via [`BackendClient::fraud`].
+pub struct Fraud<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Background jobs (imports and exports). Reached via [`BackendClient::jobs`].
 pub struct Jobs<'a> {
     pub(super) client: &'a BackendClient,
@@ -269,6 +274,11 @@ pub struct ResourceServers<'a> {
 
 /// Risk-based MFA. Reached via [`BackendClient::risk_based_mfa`].
 pub struct RiskBasedMfa<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Risk events. Reached via [`BackendClient::risk_events`].
+pub struct RiskEvents<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -2501,6 +2511,32 @@ impl Fga<'_> {
                 &[],
                 body_of(body)?,
                 idempotency_key,
+            )
+            .await
+    }
+}
+
+impl Fraud<'_> {
+    /// `POST /v1/fraud/lookup` — Fraud decision for a sign-up, sign-in or checkout. Send the client
+    /// IP, user agent, the SDK `device_id`, optional device features and email; get back signals
+    /// (country, ASN, datacenter, Tor, headless/automation, client class
+    /// human/crawler/ai_agent/automation, bot score, disposable email, hourly IP/device/email
+    /// velocity) and an allow / challenge / block verdict with reason codes from your
+    /// `fraud.rules` and `fraud.sanctioned_countries` on /v1/risk_based_mfa. Every call counts
+    /// toward the velocity signals.
+    ///
+    /// Takes [`types::FraudLookupBody`]. Returns [`types::FraudLookupResponse`].
+    pub async fn lookup(
+        &self,
+        body: &types::FraudLookupBody,
+    ) -> Result<types::FraudLookupResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/fraud/lookup",
+                &[],
+                body_of(body)?,
+                None,
             )
             .await
     }
@@ -6489,6 +6525,61 @@ impl RiskBasedMfa<'_> {
     }
 }
 
+impl RiskEvents<'_> {
+    /// `GET /v1/risk_events` — The risk-event timeline: every scored sign-in, newest first. `before`
+    /// is an ISO `created_at` cursor.
+    ///
+    /// Query parameters: `user_id`, `level`, `limit`, `before`.
+    ///
+    /// Returns [`types::RiskEventsListResponse`].
+    pub async fn list(&self, query: &Query) -> Result<types::RiskEventsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/risk_events",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/risk_events/metrics` — Counts per level, action and mode over the last `days` (1-90,
+    /// default 7): the shadow-mode view.
+    ///
+    /// Query parameters: `days`.
+    ///
+    /// Returns [`types::RiskEventsMetricsResponse`].
+    pub async fn metrics(
+        &self,
+        query: &Query,
+    ) -> Result<types::RiskEventsMetricsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/risk_events/metrics",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/risk_events/{id}/feedback` — Mark a scored sign-in `legit` or `fraud`. The weight of
+    /// every signal that fired on it moves by 5 (up for fraud, down for legit, clamped 0-100), so
+    /// the engine tunes itself from review. Flipping a verdict undoes the previous adjustment.
+    ///
+    /// Takes [`types::RiskEventsFeedbackBody`]. Returns [`types::RiskEvent`].
+    pub async fn feedback(
+        &self,
+        id: &str,
+        body: &types::RiskEventsFeedbackBody,
+    ) -> Result<types::RiskEvent, BackendError> {
+        let path = format!("/v1/risk_events/{}/feedback", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
 impl Roles<'_> {
     /// `GET /v1/roles` — List roles with their permissions and how many members hold each.
     ///
@@ -8383,6 +8474,10 @@ impl BackendClient {
     pub fn fga(&self) -> Fga<'_> {
         Fga { client: self }
     }
+    /// Fraud lookup.
+    pub fn fraud(&self) -> Fraud<'_> {
+        Fraud { client: self }
+    }
     /// Background jobs (imports and exports).
     pub fn jobs(&self) -> Jobs<'_> {
         Jobs { client: self }
@@ -8478,6 +8573,10 @@ impl BackendClient {
     /// Risk-based MFA.
     pub fn risk_based_mfa(&self) -> RiskBasedMfa<'_> {
         RiskBasedMfa { client: self }
+    }
+    /// Risk events.
+    pub fn risk_events(&self) -> RiskEvents<'_> {
+        RiskEvents { client: self }
     }
     /// Roles.
     pub fn roles(&self) -> Roles<'_> {

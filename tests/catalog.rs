@@ -1124,6 +1124,11 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.fraud()
+        .lookup(&types::FraudLookupBody::default())
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Post, "/v1/fraud/lookup".into(), B::Obj, false));
     c.instance().get().await.unwrap();
     expected.push((HttpMethod::Get, "/v1/instance".into(), B::None, false));
     c.instance()
@@ -3101,6 +3106,30 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.risk_events().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/risk_events?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.risk_events().metrics(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/risk_events/metrics?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.risk_events()
+        .feedback("p0_id", &types::RiskEventsFeedbackBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/risk_events/p0_id/feedback".into(),
+        B::Obj,
+        false,
+    ));
     c.roles().list(&q).await.unwrap();
     expected.push((HttpMethod::Get, "/v1/roles?limit=2".into(), B::None, false));
     c.roles()
@@ -4100,4 +4129,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 462 operations, 462 typed; 462 calls.
+// 466 operations, 466 typed; 466 calls.

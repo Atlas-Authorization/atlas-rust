@@ -14302,6 +14302,229 @@ impl ResourceServersUpdateBody {
     }
 }
 
+/// The request body of `POST /v1/risk_events/{id}/feedback`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsFeedbackBody {
+    /// Known values: `legit`, `fraud`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verdict: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskEventsFeedbackBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `verdict`.
+    pub fn with_verdict(mut self, v: impl Into<String>) -> Self {
+        self.verdict = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The `RiskEvent` object: one risk-scored sign-in.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEvent {
+    /// Always `risk_event`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub user_id: String,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default)]
+    pub level: String,
+    #[serde(default)]
+    pub score: f64,
+    /// Names of the signals that fired.
+    #[serde(default)]
+    pub signals: Vec<String>,
+    /// The action decided; in audit mode, what would have happened.
+    #[serde(default)]
+    pub action: String,
+    /// Known values: `enforce`, `audit`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip: Option<String>,
+    /// Known values: `legit`, `fraud`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_at: Option<String>,
+    #[serde(default)]
+    pub created_at: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/risk_events`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsListResponse {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub data: Vec<RiskEvent>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One level/action/mode count in [`RiskEventsMetricsResponse`].
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsMetricsResponseBucketsItem {
+    #[serde(default)]
+    pub level: String,
+    #[serde(default)]
+    pub action: String,
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub count: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/risk_events/metrics`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsMetricsResponse {
+    /// Always `risk_event_metrics`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub days: i64,
+    #[serde(default)]
+    pub total: i64,
+    #[serde(default)]
+    pub buckets: Vec<RiskEventsMetricsResponseBucketsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The request body of `POST /v1/fraud/lookup`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FraudLookupBody {
+    /// Client IP address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_agent: Option<String>,
+    /// The stable id from the JS SDK.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// A user of this instance, for user-based rules.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// The organization the action is for, for org_id rules.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_id: Option<String>,
+    /// Device features reported by the SDK.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl FraudLookupBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `ip`.
+    pub fn with_ip(mut self, v: impl Into<String>) -> Self {
+        self.ip = Some(v.into());
+        self
+    }
+    /// Set `user_agent`.
+    pub fn with_user_agent(mut self, v: impl Into<String>) -> Self {
+        self.user_agent = Some(v.into());
+        self
+    }
+    /// Set `device_id`.
+    pub fn with_device_id(mut self, v: impl Into<String>) -> Self {
+        self.device_id = Some(v.into());
+        self
+    }
+    /// Set `email`.
+    pub fn with_email(mut self, v: impl Into<String>) -> Self {
+        self.email = Some(v.into());
+        self
+    }
+    /// Set `user_id`.
+    pub fn with_user_id(mut self, v: impl Into<String>) -> Self {
+        self.user_id = Some(v.into());
+        self
+    }
+    /// Set `org_id`.
+    pub fn with_org_id(mut self, v: impl Into<String>) -> Self {
+        self.org_id = Some(v.into());
+        self
+    }
+    /// Set `device`.
+    pub fn with_device(mut self, v: impl Into<Value>) -> Self {
+        self.device = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The response of `POST /v1/fraud/lookup`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FraudLookupResponse {
+    /// Always `fraud_lookup`.
+    #[serde(default)]
+    pub object: String,
+    /// Known values: `allow`, `challenge`, `block`.
+    #[serde(default)]
+    pub verdict: String,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+    #[serde(default)]
+    pub matched_rules: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_id: Option<String>,
+    /// Signals: country, ASN, datacenter, Tor, automation, client class, bot score, velocity.
+    #[serde(default)]
+    pub signals: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The request body of `PATCH /v1/risk_based_mfa`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -14318,6 +14541,24 @@ pub struct RiskBasedMfaUpdateBody {
     pub weights: Option<RiskBasedMfaUpdateBodyWeights>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signals: Option<RiskBasedMfaUpdateBodySignals>,
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// What each risk level does: `medium` and `high` map to default, allow, notify, mfa or block.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<Value>,
+    /// IP-reputation and email-risk feeds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reputation: Option<Value>,
+    /// Fraud rules and sanctioned countries used by `POST /v1/fraud/lookup`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraud: Option<Value>,
+    /// Per-user baseline: `enabled` and `weight`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baseline: Option<Value>,
+    /// Re-evaluate a session on refresh: `enabled` and `action` (revoke, notify or audit).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -14352,6 +14593,36 @@ impl RiskBasedMfaUpdateBody {
     /// Set `signals`.
     pub fn with_signals(mut self, v: impl Into<RiskBasedMfaUpdateBodySignals>) -> Self {
         self.signals = Some(v.into());
+        self
+    }
+    /// Set `mode`.
+    pub fn with_mode(mut self, v: impl Into<String>) -> Self {
+        self.mode = Some(v.into());
+        self
+    }
+    /// Set `level_actions`.
+    pub fn with_level_actions(mut self, v: impl Into<Value>) -> Self {
+        self.level_actions = Some(v.into());
+        self
+    }
+    /// Set `reputation`.
+    pub fn with_reputation(mut self, v: impl Into<Value>) -> Self {
+        self.reputation = Some(v.into());
+        self
+    }
+    /// Set `fraud`.
+    pub fn with_fraud(mut self, v: impl Into<Value>) -> Self {
+        self.fraud = Some(v.into());
+        self
+    }
+    /// Set `baseline`.
+    pub fn with_baseline(mut self, v: impl Into<Value>) -> Self {
+        self.baseline = Some(v.into());
+        self
+    }
+    /// Set `mid_session`.
+    pub fn with_mid_session(mut self, v: impl Into<Value>) -> Self {
+        self.mid_session = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -35848,6 +36119,19 @@ pub struct RiskBasedMfa {
     pub weights: RiskBasedMfaWeights,
     #[serde(default)]
     pub signals: RiskBasedMfaSignals,
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reputation: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraud: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baseline: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

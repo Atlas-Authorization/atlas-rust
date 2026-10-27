@@ -507,6 +507,14 @@ fn decode_fga() {
 }
 
 #[test]
+fn decode_fraud() {
+    // POST /v1/fraud/lookup
+    round_trip::<types::FraudLookupResponse>(
+        r#"{"device_id":"x","matched_rules":["x"],"object":"fraud_lookup","reasons":["x"],"signals":{"country":"US"},"verdict":"allow"}"#,
+    );
+}
+
+#[test]
 fn decode_instance() {
     // GET /v1/instance
     round_trip::<types::InstanceGetResponse>(
@@ -1414,7 +1422,23 @@ fn decode_resource_servers() {
 fn decode_risk_based_mfa() {
     // GET /v1/risk_based_mfa
     round_trip::<types::RiskBasedMfa>(
-        r#"{"enabled":true,"object":"risk_based_mfa","on_high_risk_no_factor":"allow","signals":{"dormantAccount":true,"impossibleTravel":true,"newDevice":true,"newIp":true,"newSubnet":true,"velocity":true},"step_up_threshold":"low","weights":{"dormantAccount":7,"impossibleTravel":7,"newDevice":7,"newIp":7,"newSubnet":7,"velocity":7}}"#,
+        r#"{"enabled":true,"object":"risk_based_mfa","mid_session":{"action":"revoke","enabled":true},"mode":"audit","on_high_risk_no_factor":"allow","signals":{"dormantAccount":true,"impossibleTravel":true,"newDevice":true,"newIp":true,"newSubnet":true,"velocity":true},"step_up_threshold":"low","weights":{"dormantAccount":7,"impossibleTravel":7,"newDevice":7,"newIp":7,"newSubnet":7,"velocity":7}}"#,
+    );
+}
+
+#[test]
+fn decode_risk_events() {
+    // GET /v1/risk_events
+    round_trip::<types::RiskEventsListResponse>(
+        r#"{"data":[{"action":"x","created_at":"x","feedback":"legit","feedback_at":"x","id":"x","ip":"x","level":"low","mode":"enforce","object":"risk_event","score":7.5,"signals":["x"],"user_id":"x"}],"object":"list"}"#,
+    );
+    // GET /v1/risk_events/metrics
+    round_trip::<types::RiskEventsMetricsResponse>(
+        r#"{"buckets":[{"action":"x","count":7,"level":"x","mode":"x"}],"days":7,"object":"risk_event_metrics","total":7}"#,
+    );
+    // POST /v1/risk_events/{id}/feedback
+    round_trip::<types::RiskEvent>(
+        r#"{"action":"x","created_at":"x","feedback":"fraud","feedback_at":"x","id":"x","ip":"x","level":"low","mode":"enforce","object":"risk_event","score":7.5,"signals":["x"],"user_id":"x"}"#,
     );
 }
 

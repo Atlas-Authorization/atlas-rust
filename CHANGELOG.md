@@ -2,6 +2,17 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## Unreleased
+
+### Added
+
+- **More of the Backend API.** 452 further operations, reached through new namespaces on `BackendClient` (and sub-namespaces such as `iga().campaigns()`, `groups().rules()`, `abac().templates()`, `ssf().streams()`, `migrations().imports()`, `mcp_gateways().budgets()`, `vc().credentials()`, `vault().key_provider()`, `connections().webhooks()`, `analytics().alert_rules()`), each with typed request and response models in `backend::types_ext`: `iga`, `groups`, `connections`, `analytics`, `migrations`, `ssf`, `vault`, `vc`, `abac`, `access_policies`, `resources`, `org_role_grants`, `directory_pull_sources`, `workflows`, `journeys`, `desktop_mfa`, `mfa_factors`, `passkey_api`, `agents`, `agent_access_requests`, `agent_registration`, `app_catalog`, `audit_event_schemas`, `authz_decisions`, `delivery_health`, `devices`, `flags`, `identity_verification`, `ldap_server_clients`, `least_privilege`, `listen`, `managed_grants`, `marketing`, `mcp_gateways`, `network_zones`, `oauth_client_profiles`, `policy_bundles`, `proxy_apps`, `relay_agents`, `scim_provisioning_presets` and `service_connectors`. Existing `users()`, `oauth_clients()`, `organizations()`, `actions()`, `fga()`, `openfga()`, `attack_protection()`, `risk_based_mfa()` and `integrations()` gain their missing operations.
+- `listen().stream_session` returns the response body (text) as bytes.
+- `policy_bundles().archive` returns the archive byte for byte: new `BackendClient::request_raw_bytes` and `HttpTransport::send_bytes` (default implementation keeps existing custom transports working; the built-in transport and `FakeTransport::with_bytes_body` read the body as bytes, with no UTF-8 decoding). `request_bytes` and every existing method are unchanged.
+- **Risk-event timeline.** `risk_events()`: `list` (`GET /v1/risk_events`; query `user_id`, `level`, `limit`, `before`), `metrics` (`GET /v1/risk_events/metrics`; query `days`) and `feedback` (`POST /v1/risk_events/{id}/feedback`, verdict `legit` or `fraud`), with typed `RiskEvent`, `RiskEventsListResponse`, `RiskEventsMetricsResponse` and `RiskEventsFeedbackBody`.
+- **Fraud lookup.** `fraud().lookup` (`POST /v1/fraud/lookup`) with typed `FraudLookupBody` and `FraudLookupResponse`.
+- `RiskBasedMfa` and `RiskBasedMfaUpdateBody` gain `mode`, `level_actions`, `reputation`, `fraud`, `baseline` and `mid_session`.
+
 ## 0.26.0 — 2026-10-25
 
 ### Added
