@@ -18,6 +18,7 @@
 
 mod better_auth;
 mod catalog;
+mod catalog_ext;
 mod client;
 mod design;
 mod error;
@@ -32,6 +33,7 @@ mod settings_helpers;
 mod suite;
 mod testing;
 pub mod types;
+pub mod types_ext;
 mod webhook;
 
 pub use better_auth::{
@@ -42,6 +44,7 @@ pub use better_auth::{
     CLIENT_USER_AGENT_HEADER,
 };
 pub use catalog::*;
+pub use catalog_ext::*;
 pub use settings_helpers::{
     BILLING_PROVIDERS, CAPTCHA_PROVIDERS, EMAIL_TEMPLATE_ACCOUNT_REACTIVATED, LINKING_TRUST_LEVELS, SIGNING_KEY_PROVIDERS,
 };

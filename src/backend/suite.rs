@@ -1125,7 +1125,7 @@ impl DesignApi<'_> {
 
 /// `/v1/integrations/*`. Reached via [`BackendClient::integrations`].
 pub struct Integrations<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl Integrations<'_> {
