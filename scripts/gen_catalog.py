@@ -22,7 +22,9 @@ Published signatures are pinned so a regeneration never breaks callers:
                               idempotency_key argument (the spec added the header
                               later); response: ops whose response type is kept;
                               field_types: struct fields whose declared type is
-                              kept; generate_despite_handwritten: ops generated
+                              kept; constructors: published `new(..)` (and extra
+                              constructors) of a request type, as Rust lines;
+                              generate_despite_handwritten: ops generated
                               even though a hand-written helper shares the route.
                               A pin the spec no longer reaches fails the run.
   src/backend/legacy.rs       hand-written types/methods the API description no
@@ -935,14 +937,18 @@ class TypeGen:
         out = [f'impl {st["name"]} {{']
         req = [f for f in st['fields'] if f['required'] and not f['nullable']]
         args = ', '.join(f'{f["ident"]}: impl Into<{f["ty"]}>' for f in req)
-        out.append('    /// A value with the required fields set and every other field unset.')
-        out.append(f'    pub fn new({args}) -> Self {{')
-        if req:
-            inits = ', '.join(f'{f["ident"]}: {f["ident"]}.into()' for f in req)
-            out.append(f'        Self {{ {inits}, ..Default::default() }}')
+        if st['name'] in PINS['constructors']:  # published constructors, verbatim
+            USED_PINS.add(f'constructors:{st["name"]}')
+            out.extend(PINS['constructors'][st['name']])
         else:
-            out.append('        Self::default()')
-        out.append('    }')
+            out.append('    /// A value with the required fields set and every other field unset.')
+            out.append(f'    pub fn new({args}) -> Self {{')
+            if req:
+                inits = ', '.join(f'{f["ident"]}: {f["ident"]}.into()' for f in req)
+                out.append(f'        Self {{ {inits}, ..Default::default() }}')
+            else:
+                out.append('        Self::default()')
+            out.append('    }')
         for f in st['fields']:
             decl, _, kind = self.field_kind(st, f)
             raw = f['ident'][2:] if f['ident'].startswith('r#') else f['ident']
@@ -1443,7 +1449,7 @@ fn unknown_fields_survive_and_typed_fields_decode() {
 open(os.path.join(ROOT, 'tests/catalog_types.rs'), 'w').write('\n'.join(dt) + '\n')
 
 # A pin the spec no longer reaches is stale: fail so it gets removed on purpose.
-_all = {f'{k}:{x}' for k in ('no_idempotency', 'response') for x in PINS[k]} | \
+_all = {f'{k}:{x}' for k in ('no_idempotency', 'response', 'constructors') for x in PINS[k]} | \
        {f'field_types:{x}' for x in PINS['field_types']}
 if _all - USED_PINS:
     sys.exit('stale pins in catalog_pins.json: ' + ', '.join(sorted(_all - USED_PINS)))

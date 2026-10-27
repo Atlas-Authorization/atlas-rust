@@ -20705,8 +20705,15 @@ pub struct AtlasIdAppsSetManagedByBody {
 }
 
 impl AtlasIdAppsSetManagedByBody {
-    /// A value with the required fields set and every other field unset.
-    pub fn new() -> Self {
+    /// Hand grant management to this instance.
+    pub fn new(instance_id: impl Into<String>) -> Self {
+        Self {
+            instance_id: Some(instance_id.into()),
+            ..Default::default()
+        }
+    }
+    /// Take grant management back (sends `instance_id: null`).
+    pub fn release() -> Self {
         Self::default()
     }
     /// Set `instance_id`.
