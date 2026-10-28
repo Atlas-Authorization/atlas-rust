@@ -844,3 +844,36 @@ cargo fmt
 ## License
 
 MIT.
+
+## actix-web and Rocket
+
+Two more framework integrations, off by default, both over the same `AtlasBackend` verifier (local RS256 against the cached JWKS, issuer, expiry, `azp` allowlist). A missing or invalid credential is a 401; a verifier that was never registered fails closed with a 500.
+
+```toml
+atlasauth = { version = "0.26", features = ["actix"] }   # or "rocket"
+```
+
+```rust
+// actix-web: register the verifier as app data, take AtlasClaims in the handler
+use actix_web::{web, App};
+use atlasauth::{actix::{AtlasClaims, AtlasRejection}, AtlasBackend};
+
+async fn billing(claims: AtlasClaims) -> Result<String, AtlasRejection> {
+    claims.require("billing:read")?; // 403 when the session lacks it
+    Ok(format!("hello {}", claims.sub))
+}
+```
+
+```rust
+// Rocket: manage an Arc<AtlasBackend>, use AtlasClaims as a request guard
+use std::sync::Arc;
+use atlasauth::{rocket::AtlasClaims, AtlasBackend};
+
+#[rocket::get("/billing")]
+fn billing(claims: AtlasClaims) -> Result<String, rocket::http::Status> {
+    claims.require("billing:read")?; // 403 when the session lacks it
+    Ok(format!("hello {}", claims.sub))
+}
+```
+
+The token is `Authorization: Bearer <jwt>`, else the `__session` cookie. `Option<AtlasClaims>` serves anonymous and signed-in callers without rejecting.

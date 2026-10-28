@@ -38,6 +38,11 @@ client = ["dep:rand", "dep:url", "dep:tokio"]
 # `axum::http`) and `tower`.
 axum = ["dep:axum", "dep:tower"]
 
+# Framework-native actix-web and Rocket integrations: an `AtlasClaims` extractor /
+# request guard over the same `AtlasBackend` verifier. Off by default and additive.
+actix = ["dep:actix-web"]
+rocket = ["dep:rocket"]
+
 # Platform `SecureStore` backends, off by default. Each gates the keyring-backed
 # store on its matching target so the crate still builds on any one platform (and
 # `--all-features` on a single host only compiles the host's backend). They are
@@ -100,6 +105,9 @@ tokio = { version = "1", default-features = false, features = ["time", "sync"], 
 # build.
 axum = { version = "0.8", default-features = false, features = ["matched-path", "tokio"], optional = true }
 tower = { version = "0.5", default-features = false, optional = true }
+# actix-web 4 extractor and Rocket 0.5 request guard (`actix` / `rocket` features).
+actix-web = { version = "4", default-features = false, features = ["macros"], optional = true }
+rocket = { version = "0.5", default-features = false, optional = true }
 
 # Ed25519 keypair + detached signatures for the public machine flow (`machine`
 # feature). `pem` gives SPKI/PKCS#8 PEM import+export (the wire format the enrol

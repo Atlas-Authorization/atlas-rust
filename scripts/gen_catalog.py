@@ -4,9 +4,35 @@ crate from the public OpenAPI document.
 
 Usage (from sdks/rust):
 
-    python3 scripts/gen_catalog.py                      # fetches the live spec
-    python3 scripts/gen_catalog.py --spec openapi.json  # or a local copy
-    python3 scripts/gen_catalog.py --report             # also list typed / JSON ops
+    python3 scripts/gen_catalog.py                # from scripts/openapi.snapshot.json
+    python3 scripts/gen_catalog.py --live         # from the live spec instead
+    python3 scripts/gen_catalog.py --spec FILE    # or a local copy
+    python3 scripts/gen_catalog.py --report       # also list typed / JSON ops
+
+Reproducible: CI regenerates from the checked-in snapshot and fails on any diff.
+To pick up API changes:
+
+    python3 scripts/refresh_snapshot.py           # re-snapshot the live spec
+    python3 scripts/gen_catalog.py                # regenerate
+    git diff                                      # review: additions are fine
+
+Published signatures are pinned so a regeneration never breaks callers:
+
+  scripts/catalog_pins.json   no_idempotency: ops that shipped without the
+                              idempotency_key argument (the spec added the header
+                              later); response: ops whose response type is kept;
+                              field_types: struct fields whose declared type is
+                              kept; constructors: published `new(..)` (and extra
+                              constructors) of a request type, as Rust lines;
+                              generate_despite_handwritten: ops generated
+                              even though a hand-written helper shares the route.
+                              A pin the spec no longer reaches fails the run.
+  src/backend/legacy.rs       hand-written types/methods the API description no
+                              longer carries (re-exported from `types`).
+
+New operations and fields need no pin. If the spec changes something a pin
+does not cover (a renamed type, a new idempotency header on a shipped op),
+regenerate, see which public signature moved, and add a pin that keeps it.
 
 Writes:
 
@@ -43,8 +69,17 @@ ROOT = os.path.dirname(HERE)
 SPEC_URL = 'https://api.atlasauth.net/v1/openapi.json'
 GENERATED = {'catalog.rs', 'types.rs'}
 
+# Pins: what the published crate promised, kept stable when the spec moves on
+# (see scripts/README.md). Hand-written legacy items live in src/backend/legacy.rs.
+with open(os.path.join(HERE, 'catalog_pins.json')) as _f:
+    PINS = json.load(_f)
+USED_PINS = set()
+LEGACY_TYPES = set(re.findall(r'^pub (?:struct|enum) (\w+)', open(os.path.join(ROOT, 'src/backend/legacy.rs')).read(), re.M))
+
 def load_spec():
-    src = SPEC_URL
+    src = os.path.join(HERE, 'openapi.snapshot.json')
+    if '--live' in sys.argv:
+        src = SPEC_URL
     if '--spec' in sys.argv:
         src = sys.argv[sys.argv.index('--spec') + 1]
     if src.startswith('http'):
@@ -137,6 +172,11 @@ for f in sorted(glob.glob(os.path.join(ROOT, 'src/backend/*.rs'))):
             for p in paths:
                 handwritten.add((m.upper(), re.sub(r'\{[^}]*\}', '{}', p).split('?')[0]))
 missing = spec_ops - handwritten
+# Operations a hand-written helper shares a route with but that stay generated.
+for _k in PINS['generate_despite_handwritten']:
+    _m, _p = _k.split(' ', 1)
+    if (_m, _p) in spec_ops:
+        missing.add((_m, _p))
 
 # Existing namespaces we EXTEND (struct, has-extra-field) -> how to reach parent id.
 EXISTING = {
@@ -822,8 +862,18 @@ class TypeGen:
                         for v in psd.get(key, []):
                             if isinstance(v, dict) and 'enum' in v:
                                 enum = [x for x in v['enum'] if isinstance(x, str)]
-            st['fields'].append(dict(json=pn, ident=ident, ty=ty, nullable=nullable,
-                                     required=pn in required and (name, pn) not in KEEP_OPTIONAL, doc=doc, enum=enum, schema=ps))
+            f = dict(json=pn, ident=ident, ty=ty, nullable=nullable,
+                     required=pn in required and (name, pn) not in KEEP_OPTIONAL, doc=doc, enum=enum, schema=ps)
+            pin = PINS['field_types'].get(f'{name}.{pn}')
+            if pin:
+                USED_PINS.add(f'field_types:{name}.{pn}')  # keep the declared type the published crate had
+                if pin.startswith('Option<Option<'):
+                    f.update(ty=pin[14:-2], nullable=True, required=False)
+                elif pin.startswith('Option<'):
+                    f.update(ty=pin[7:-1], nullable=False, required=False)
+                else:
+                    f.update(ty=pin, nullable=False, required=True)
+            st['fields'].append(f)
         self.in_progress.discard(name)
         return name
 
@@ -887,14 +937,18 @@ class TypeGen:
         out = [f'impl {st["name"]} {{']
         req = [f for f in st['fields'] if f['required'] and not f['nullable']]
         args = ', '.join(f'{f["ident"]}: impl Into<{f["ty"]}>' for f in req)
-        out.append('    /// A value with the required fields set and every other field unset.')
-        out.append(f'    pub fn new({args}) -> Self {{')
-        if req:
-            inits = ', '.join(f'{f["ident"]}: {f["ident"]}.into()' for f in req)
-            out.append(f'        Self {{ {inits}, ..Default::default() }}')
+        if st['name'] in PINS['constructors']:  # published constructors, verbatim
+            USED_PINS.add(f'constructors:{st["name"]}')
+            out.extend(PINS['constructors'][st['name']])
         else:
-            out.append('        Self::default()')
-        out.append('    }')
+            out.append('    /// A value with the required fields set and every other field unset.')
+            out.append(f'    pub fn new({args}) -> Self {{')
+            if req:
+                inits = ', '.join(f'{f["ident"]}: {f["ident"]}.into()' for f in req)
+                out.append(f'        Self {{ {inits}, ..Default::default() }}')
+            else:
+                out.append('        Self::default()')
+            out.append('    }')
         for f in st['fields']:
             decl, _, kind = self.field_kind(st, f)
             raw = f['ident'][2:] if f['ident'].startswith('r#') else f['ident']
@@ -1012,10 +1066,12 @@ for p, pops in sorted(d['paths'].items()):
         q = [x.get('name') for x in o.get('parameters', []) if x.get('in') == 'query']
         if M == 'GET' and not q and (is_list_response(o) or name.startswith('list') or name in ('read_authorization_models', 'sign_in_history')):
             q = ['limit', 'starting_after', 'and any filter the route documents']
+        if f'{M} {p}' in PINS['no_idempotency']:
+            USED_PINS.add(f'no_idempotency:{M} {p}')
         hdr = [x.get('name') for x in o.get('parameters', []) if x.get('in') == 'header']
         rs = json_request_schema(o)
         ops.append(dict(M=M, p=p, st=st, acc=acc, doc=doc, name=name, params=params, q=q,
-                        idem='Idempotency-Key' in hdr, body='req' if rs is not None else None,
+                        idem='Idempotency-Key' in hdr and f'{M} {p}' not in PINS['no_idempotency'], body='req' if rs is not None else None,
                         req_schema=rs, resp=json_response(o),
                         summary=(o.get('summary') or '').strip()))
 
@@ -1059,6 +1115,10 @@ for op in ops:
         op['resp_ty'] = t if t in tg.structs else None
         if op['resp_ty'] and t.startswith(prefix) and not tg.structs[t]['doc']:
             tg.structs[t]['doc'] = f"The response of `{op['M']} {op['p']}`."
+    pin = PINS['response'].get(f"{op['M']} {op['p']}")
+    if pin:
+        USED_PINS.add(f"response:{op['M']} {op['p']}")
+        op['resp_ty'] = None if pin == 'Value' else pin
     op['typed'] = op['req_ty'] is not None or op['resp_ty'] is not None
 
 def q_ty(t):
@@ -1066,7 +1126,7 @@ def q_ty(t):
     if t is None or t in ('()', 'Value'):
         return t
     return re.sub(r'\b([A-Z][A-Za-z0-9]*)\b',
-                  lambda mm: f'types::{mm.group(1)}' if mm.group(1) in tg.structs else mm.group(1), t)
+                  lambda mm: f'types::{mm.group(1)}' if mm.group(1) in tg.structs or mm.group(1) in LEGACY_TYPES else mm.group(1), t)
 
 # ── emit types.rs ───────────────────────────────────────────────────────────
 types_rs = ['''// @generated by scripts/gen_catalog.py from the public OpenAPI document — do not edit.
@@ -1086,6 +1146,9 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
+
+// Types the published crate exposed that the API no longer describes (hand-written).
+pub use super::legacy::*;
 
 /// `Some(None)` for an explicit JSON `null`, so a decoded request keeps the
 /// difference between "absent" and "clear".
@@ -1356,10 +1419,22 @@ where
     assert_eq!(serde_json::to_value(&typed).unwrap(), v, "{}", std::any::type_name::<T>());
 }
 ''']
+# Samples come from the live schema; a type reaching a pinned field or a pinned
+# response no longer has that shape, so it gets no sample round-trip.
+pinned_ops = {k for k in PINS['response']}
+affected = {k.split('.')[0] for k in PINS['field_types']}
+while True:
+    more = {n for n, st in tg.structs.items() if n not in affected and any(
+        i in affected for f in st['fields'] for i in re.findall(r'[A-Z][A-Za-z0-9]*', f['ty']))}
+    if not more:
+        break
+    affected |= more
 done = set()
 by_ns = {}
 for op in ops:
     rt = op.get('resp_ty')
+    if f"{op['M']} {op['p']}" in pinned_ops or rt in affected:
+        continue
     if not rt or rt == '()' or rt not in tg.structs or rt in done:
         continue
     done.add(rt)
@@ -1384,6 +1459,12 @@ fn unknown_fields_survive_and_typed_fields_decode() {
 }
 ''')
 open(os.path.join(ROOT, 'tests/catalog_types.rs'), 'w').write('\n'.join(dt) + '\n')
+
+# A pin the spec no longer reaches is stale: fail so it gets removed on purpose.
+_all = {f'{k}:{x}' for k in ('no_idempotency', 'response', 'constructors') for x in PINS[k]} | \
+       {f'field_types:{x}' for x in PINS['field_types']}
+if _all - USED_PINS:
+    sys.exit('stale pins in catalog_pins.json: ' + ', '.join(sorted(_all - USED_PINS)))
 
 # Format the generated files when rustfmt is available (the output is valid
 # Rust either way).

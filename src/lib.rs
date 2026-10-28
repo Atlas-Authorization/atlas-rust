@@ -88,6 +88,18 @@ pub mod client;
 #[cfg(feature = "axum")]
 pub mod axum;
 
+/// Framework-native [actix-web](https://docs.rs/actix-web) integration — the
+/// [`AtlasClaims`](actix::AtlasClaims) extractor over the existing [`AtlasBackend`]
+/// verifier. See the `actix` feature.
+#[cfg(feature = "actix")]
+pub mod actix;
+
+/// Framework-native [Rocket](https://docs.rs/rocket) integration — the
+/// [`AtlasClaims`](rocket::AtlasClaims) request guard over the existing
+/// [`AtlasBackend`] verifier. See the `rocket` feature.
+#[cfg(feature = "rocket")]
+pub mod rocket;
+
 pub use apikey::{
     ApiKeyCap, ApiKeyCapUsage, ApiKeyVerification, ApiKeyVerifier, ApiKeyVerifierBuilder, HttpPost,
     HttpResponse,

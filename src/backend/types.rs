@@ -20,6 +20,9 @@ use std::collections::HashMap;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
+// Types the published crate exposed that the API no longer describes (hand-written).
+pub use super::legacy::*;
+
 /// `Some(None)` for an explicit JSON `null`, so a decoded request keeps the
 /// difference between "absent" and "clear".
 fn double_option<'de, T, D>(de: D) -> Result<Option<Option<T>>, D::Error>
@@ -468,6 +471,13 @@ pub struct ActionsCreateBody {
     pub enabled: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets: Option<HashMap<String, String>>,
+    /// Known values: `node`, `http`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_target: Option<ActionsCreateBodyHttpTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signing_secret: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -502,6 +512,67 @@ impl ActionsCreateBody {
     /// Set `secrets`.
     pub fn with_secrets(mut self, v: impl Into<HashMap<String, String>>) -> Self {
         self.secrets = Some(v.into());
+        self
+    }
+    /// Set `runtime`.
+    pub fn with_runtime(mut self, v: impl Into<String>) -> Self {
+        self.runtime = Some(v.into());
+        self
+    }
+    /// Set `http_target`.
+    pub fn with_http_target(mut self, v: impl Into<ActionsCreateBodyHttpTarget>) -> Self {
+        self.http_target = Some(v.into());
+        self
+    }
+    /// Set `signing_secret`.
+    pub fn with_signing_secret(mut self, v: impl Into<String>) -> Self {
+        self.signing_secret = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionsCreateBodyHttpTarget {
+    #[serde(default)]
+    pub url: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<f64>,
+    /// Known values: `open`, `closed`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_mode: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl ActionsCreateBodyHttpTarget {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(url: impl Into<String>) -> Self {
+        Self {
+            url: url.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `url`.
+    pub fn with_url(mut self, v: impl Into<String>) -> Self {
+        self.url = v.into();
+        self
+    }
+    /// Set `timeout_ms`.
+    pub fn with_timeout_ms(mut self, v: impl Into<f64>) -> Self {
+        self.timeout_ms = Some(v.into());
+        self
+    }
+    /// Set `failure_mode`.
+    pub fn with_failure_mode(mut self, v: impl Into<String>) -> Self {
+        self.failure_mode = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -552,6 +623,12 @@ pub struct ActionsUpdateBody {
     pub enabled: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets: Option<HashMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_target: Option<ActionsUpdateBodyHttpTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signing_secret: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotate_signing_secret: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -581,6 +658,64 @@ impl ActionsUpdateBody {
     /// Set `secrets`.
     pub fn with_secrets(mut self, v: impl Into<HashMap<String, String>>) -> Self {
         self.secrets = Some(v.into());
+        self
+    }
+    /// Set `http_target`.
+    pub fn with_http_target(mut self, v: impl Into<ActionsUpdateBodyHttpTarget>) -> Self {
+        self.http_target = Some(v.into());
+        self
+    }
+    /// Set `signing_secret`.
+    pub fn with_signing_secret(mut self, v: impl Into<String>) -> Self {
+        self.signing_secret = Some(v.into());
+        self
+    }
+    /// Set `rotate_signing_secret`.
+    pub fn with_rotate_signing_secret(mut self, v: impl Into<bool>) -> Self {
+        self.rotate_signing_secret = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionsUpdateBodyHttpTarget {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<f64>,
+    /// Known values: `open`, `closed`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_mode: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl ActionsUpdateBodyHttpTarget {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `url`.
+    pub fn with_url(mut self, v: impl Into<String>) -> Self {
+        self.url = Some(v.into());
+        self
+    }
+    /// Set `timeout_ms`.
+    pub fn with_timeout_ms(mut self, v: impl Into<f64>) -> Self {
+        self.timeout_ms = Some(v.into());
+        self
+    }
+    /// Set `failure_mode`.
+    pub fn with_failure_mode(mut self, v: impl Into<String>) -> Self {
+        self.failure_mode = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -657,6 +792,12 @@ pub struct ActionsTestBodyEvent {
     pub connection: Option<ActionsTestBodyEventConnection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub request: Option<ActionsTestBodyEventRequest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_up_fields: Option<HashMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub organization: Option<ActionsTestBodyEventOrganization>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -683,6 +824,21 @@ impl ActionsTestBodyEvent {
         self.request = Some(v.into());
         self
     }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
+        self
+    }
+    /// Set `sign_up_fields`.
+    pub fn with_sign_up_fields(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.sign_up_fields = Some(v.into());
+        self
+    }
+    /// Set `organization`.
+    pub fn with_organization(mut self, v: impl Into<ActionsTestBodyEventOrganization>) -> Self {
+        self.organization = Some(v.into());
+        self
+    }
     /// Set a field this version of the crate does not know about.
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
         self.extra.insert(key.into(), value.into());
@@ -695,6 +851,8 @@ impl ActionsTestBodyEvent {
 pub struct ActionsTestBodyEventConnection {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -709,6 +867,11 @@ impl ActionsTestBodyEventConnection {
     /// Set `strategy`.
     pub fn with_strategy(mut self, v: impl Into<String>) -> Self {
         self.strategy = Some(v.into());
+        self
+    }
+    /// Set `method`.
+    pub fn with_method(mut self, v: impl Into<String>) -> Self {
+        self.method = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -751,6 +914,57 @@ impl ActionsTestBodyEventRequest {
     /// Set `country`.
     pub fn with_country(mut self, v: impl Into<String>) -> Self {
         self.country = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionsTestBodyEventOrganization {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub id: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slug: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl ActionsTestBodyEventOrganization {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = Some(Some(v.into()));
+        self
+    }
+    /// Send `id: null` to clear it.
+    pub fn clear_id(mut self) -> Self {
+        self.id = Some(None);
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = Some(v.into());
+        self
+    }
+    /// Set `slug`.
+    pub fn with_slug(mut self, v: impl Into<String>) -> Self {
+        self.slug = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -1597,6 +1811,8 @@ pub struct BillingUpdatePlanBody {
         deserialize_with = "double_option"
     )]
     pub seat_feature_id: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub promotion: Option<Map<String, Value>>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -1736,6 +1952,11 @@ impl BillingUpdatePlanBody {
     /// Send `seat_feature_id: null` to clear it.
     pub fn clear_seat_feature_id(mut self) -> Self {
         self.seat_feature_id = Some(None);
+        self
+    }
+    /// Set `promotion`.
+    pub fn with_promotion(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.promotion = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -3022,6 +3243,17 @@ pub struct BrandingSettingsSignUpFieldsItem {
     pub placeholder: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub options: Option<Vec<String>>,
+    /// When the field is asked for. sign_up (default): the sign-up form. next_sign_in: held at the
+    /// next sign-in that finds it empty. before_feature: asked by the application via GET
+    /// /v1/client/me/profile_completion.
+    ///
+    /// Known values: `sign_up`, `next_sign_in`, `before_feature`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collect_on: Option<String>,
+    /// An optional next_sign_in field the user skipped is asked again after this many days (default
+    /// 30; 0 = never).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reprompt_days: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -3061,6 +3293,16 @@ impl BrandingSettingsSignUpFieldsItem {
     /// Set `options`.
     pub fn with_options(mut self, v: impl Into<Vec<String>>) -> Self {
         self.options = Some(v.into());
+        self
+    }
+    /// Set `collect_on`.
+    pub fn with_collect_on(mut self, v: impl Into<String>) -> Self {
+        self.collect_on = Some(v.into());
+        self
+    }
+    /// Set `reprompt_days`.
+    pub fn with_reprompt_days(mut self, v: impl Into<i64>) -> Self {
+        self.reprompt_days = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -5908,7 +6150,10 @@ pub struct DataSubjectRequestsCreateBody {
     /// orchestrator needn't translate email→id itself.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subject_email: Option<String>,
-    /// Known values: `export`, `erasure`.
+    /// Atlas's words (`export`, `erasure`) or the canonical data-rights vocabulary; the answer
+    /// echoes `canonical_type`. Restriction and rectification wait for an operator to fulfil them.
+    ///
+    /// Known values: `export`, `erasure`, `access`, `deletion`, `closure`, `restriction`, `rectification`, `erase`.
     #[serde(default)]
     pub r#type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -6094,6 +6339,8 @@ pub struct FgaWriteAuthorizationModelBody {
     pub schema_version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dsl: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conditions: Option<Map<String, Value>>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -6118,6 +6365,11 @@ impl FgaWriteAuthorizationModelBody {
     /// Set `dsl`.
     pub fn with_dsl(mut self, v: impl Into<String>) -> Self {
         self.dsl = Some(v.into());
+        self
+    }
+    /// Set `conditions`.
+    pub fn with_conditions(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.conditions = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -6248,6 +6500,10 @@ pub struct FgaRelationReference {
     /// Present (as `{}`) to permit the `type:*` wildcard.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wildcard: Option<Map<String, Value>>,
+    /// Tuples on this relation for this user type must carry this model condition (`\[user with
+    /// ip_allowed\]`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -6277,6 +6533,11 @@ impl FgaRelationReference {
         self.wildcard = Some(v.into());
         self
     }
+    /// Set `condition`.
+    pub fn with_condition(mut self, v: impl Into<String>) -> Self {
+        self.condition = Some(v.into());
+        self
+    }
     /// Set a field this version of the crate does not know about.
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
         self.extra.insert(key.into(), value.into());
@@ -6292,6 +6553,11 @@ pub struct FgaBatchCheckBody {
     pub checks: Option<Vec<FgaBatchCheckBodyChecksItem>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authorization_model_id: Option<String>,
+    /// Known values: `UNSPECIFIED`, `MINIMIZE_LATENCY`, `HIGHER_CONSISTENCY`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -6311,6 +6577,16 @@ impl FgaBatchCheckBody {
     /// Set `authorization_model_id`.
     pub fn with_authorization_model_id(mut self, v: impl Into<String>) -> Self {
         self.authorization_model_id = Some(v.into());
+        self
+    }
+    /// Set `consistency`.
+    pub fn with_consistency(mut self, v: impl Into<String>) -> Self {
+        self.consistency = Some(v.into());
+        self
+    }
+    /// Set `consistency_token`.
+    pub fn with_consistency_token(mut self, v: impl Into<String>) -> Self {
+        self.consistency_token = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -6333,6 +6609,8 @@ pub struct FgaBatchCheckBodyChecksItem {
     pub correlation_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contextual_tuples: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -6378,6 +6656,11 @@ impl FgaBatchCheckBodyChecksItem {
         self.contextual_tuples = Some(v.into());
         self
     }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
+        self
+    }
     /// Set a field this version of the crate does not know about.
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
         self.extra.insert(key.into(), value.into());
@@ -6399,6 +6682,13 @@ pub struct FgaCheckBody {
     pub authorization_model_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contextual_tuples: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
+    /// Known values: `UNSPECIFIED`, `MINIMIZE_LATENCY`, `HIGHER_CONSISTENCY`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -6433,6 +6723,21 @@ impl FgaCheckBody {
     /// Set `contextual_tuples`.
     pub fn with_contextual_tuples(mut self, v: impl Into<Value>) -> Self {
         self.contextual_tuples = Some(v.into());
+        self
+    }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
+        self
+    }
+    /// Set `consistency`.
+    pub fn with_consistency(mut self, v: impl Into<String>) -> Self {
+        self.consistency = Some(v.into());
+        self
+    }
+    /// Set `consistency_token`.
+    pub fn with_consistency_token(mut self, v: impl Into<String>) -> Self {
+        self.consistency_token = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -6499,6 +6804,17 @@ pub struct FgaListObjectsBody {
     pub authorization_model_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contextual_tuples: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub starting_after: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
+    /// Known values: `UNSPECIFIED`, `MINIMIZE_LATENCY`, `HIGHER_CONSISTENCY`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -6533,6 +6849,31 @@ impl FgaListObjectsBody {
     /// Set `contextual_tuples`.
     pub fn with_contextual_tuples(mut self, v: impl Into<Value>) -> Self {
         self.contextual_tuples = Some(v.into());
+        self
+    }
+    /// Set `limit`.
+    pub fn with_limit(mut self, v: impl Into<i64>) -> Self {
+        self.limit = Some(v.into());
+        self
+    }
+    /// Set `starting_after`.
+    pub fn with_starting_after(mut self, v: impl Into<String>) -> Self {
+        self.starting_after = Some(v.into());
+        self
+    }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
+        self
+    }
+    /// Set `consistency`.
+    pub fn with_consistency(mut self, v: impl Into<String>) -> Self {
+        self.consistency = Some(v.into());
+        self
+    }
+    /// Set `consistency_token`.
+    pub fn with_consistency_token(mut self, v: impl Into<String>) -> Self {
+        self.consistency_token = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -6621,6 +6962,372 @@ impl FgaWriteBody {
     }
 }
 
+/// The request body of `POST /v1/fraud/lookup`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FraudLookupBody {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_agent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub org_id: Option<String>,
+    /// Client device features reported by the browser SDK for bot detection. Every field is
+    /// optional on input (an unknown or malformed value is dropped); on a stored signal each is the
+    /// clamped value or null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl FraudLookupBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `ip`.
+    pub fn with_ip(mut self, v: impl Into<String>) -> Self {
+        self.ip = Some(v.into());
+        self
+    }
+    /// Set `user_agent`.
+    pub fn with_user_agent(mut self, v: impl Into<String>) -> Self {
+        self.user_agent = Some(v.into());
+        self
+    }
+    /// Set `device_id`.
+    pub fn with_device_id(mut self, v: impl Into<String>) -> Self {
+        self.device_id = Some(v.into());
+        self
+    }
+    /// Set `email`.
+    pub fn with_email(mut self, v: impl Into<String>) -> Self {
+        self.email = Some(v.into());
+        self
+    }
+    /// Set `user_id`.
+    pub fn with_user_id(mut self, v: impl Into<String>) -> Self {
+        self.user_id = Some(v.into());
+        self
+    }
+    /// Set `org_id`.
+    pub fn with_org_id(mut self, v: impl Into<String>) -> Self {
+        self.org_id = Some(v.into());
+        self
+    }
+    /// Set `device`.
+    pub fn with_device(mut self, v: impl Into<Value>) -> Self {
+        self.device = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Client device features reported by the browser SDK for bot detection. Every field is
+/// optional on input (an unknown or malformed value is dropped); on a stored signal each is the
+/// clamped value or null.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct BotDeviceFeatures {
+    #[serde(
+        rename = "screenWidth",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub screen_width: Option<f64>,
+    #[serde(
+        rename = "screenHeight",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub screen_height: Option<f64>,
+    #[serde(
+        rename = "colorDepth",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub color_depth: Option<f64>,
+    #[serde(
+        rename = "pixelRatio",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub pixel_ratio: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timezone: Option<String>,
+    #[serde(
+        rename = "timezoneOffset",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub timezone_offset: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    #[serde(default)]
+    pub languages: Vec<String>,
+    #[serde(
+        rename = "languageCount",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub language_count: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    #[serde(
+        rename = "hardwareConcurrency",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub hardware_concurrency: Option<f64>,
+    #[serde(
+        rename = "deviceMemory",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_memory: Option<f64>,
+    #[serde(
+        rename = "maxTouchPoints",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_touch_points: Option<f64>,
+    #[serde(
+        rename = "touchSupport",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub touch_support: Option<bool>,
+    #[serde(
+        rename = "cookieEnabled",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cookie_enabled: Option<bool>,
+    #[serde(
+        rename = "doNotTrack",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub do_not_track: Option<bool>,
+    #[serde(
+        rename = "webglVendor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub webgl_vendor: Option<String>,
+    #[serde(
+        rename = "webglRenderer",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub webgl_renderer: Option<String>,
+    #[serde(
+        rename = "pluginCount",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub plugin_count: Option<f64>,
+    #[serde(rename = "fontCount", default, skip_serializing_if = "Option::is_none")]
+    pub font_count: Option<f64>,
+    #[serde(
+        rename = "pointerType",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub pointer_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webdriver: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headless: Option<bool>,
+    #[serde(rename = "hasChrome", default, skip_serializing_if = "Option::is_none")]
+    pub has_chrome: Option<bool>,
+    #[serde(
+        rename = "languagesEmpty",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub languages_empty: Option<bool>,
+    #[serde(
+        rename = "webglSoftware",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub webgl_software: Option<bool>,
+    #[serde(
+        rename = "automationHint",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub automation_hint: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl BotDeviceFeatures {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(languages: impl Into<Vec<String>>) -> Self {
+        Self {
+            languages: languages.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `screenWidth`.
+    pub fn with_screen_width(mut self, v: impl Into<f64>) -> Self {
+        self.screen_width = Some(v.into());
+        self
+    }
+    /// Set `screenHeight`.
+    pub fn with_screen_height(mut self, v: impl Into<f64>) -> Self {
+        self.screen_height = Some(v.into());
+        self
+    }
+    /// Set `colorDepth`.
+    pub fn with_color_depth(mut self, v: impl Into<f64>) -> Self {
+        self.color_depth = Some(v.into());
+        self
+    }
+    /// Set `pixelRatio`.
+    pub fn with_pixel_ratio(mut self, v: impl Into<f64>) -> Self {
+        self.pixel_ratio = Some(v.into());
+        self
+    }
+    /// Set `timezone`.
+    pub fn with_timezone(mut self, v: impl Into<String>) -> Self {
+        self.timezone = Some(v.into());
+        self
+    }
+    /// Set `timezoneOffset`.
+    pub fn with_timezone_offset(mut self, v: impl Into<f64>) -> Self {
+        self.timezone_offset = Some(v.into());
+        self
+    }
+    /// Set `language`.
+    pub fn with_language(mut self, v: impl Into<String>) -> Self {
+        self.language = Some(v.into());
+        self
+    }
+    /// Set `languages`.
+    pub fn with_languages(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.languages = v.into();
+        self
+    }
+    /// Set `languageCount`.
+    pub fn with_language_count(mut self, v: impl Into<i64>) -> Self {
+        self.language_count = Some(v.into());
+        self
+    }
+    /// Set `platform`.
+    pub fn with_platform(mut self, v: impl Into<String>) -> Self {
+        self.platform = Some(v.into());
+        self
+    }
+    /// Set `hardwareConcurrency`.
+    pub fn with_hardware_concurrency(mut self, v: impl Into<f64>) -> Self {
+        self.hardware_concurrency = Some(v.into());
+        self
+    }
+    /// Set `deviceMemory`.
+    pub fn with_device_memory(mut self, v: impl Into<f64>) -> Self {
+        self.device_memory = Some(v.into());
+        self
+    }
+    /// Set `maxTouchPoints`.
+    pub fn with_max_touch_points(mut self, v: impl Into<f64>) -> Self {
+        self.max_touch_points = Some(v.into());
+        self
+    }
+    /// Set `touchSupport`.
+    pub fn with_touch_support(mut self, v: impl Into<bool>) -> Self {
+        self.touch_support = Some(v.into());
+        self
+    }
+    /// Set `cookieEnabled`.
+    pub fn with_cookie_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.cookie_enabled = Some(v.into());
+        self
+    }
+    /// Set `doNotTrack`.
+    pub fn with_do_not_track(mut self, v: impl Into<bool>) -> Self {
+        self.do_not_track = Some(v.into());
+        self
+    }
+    /// Set `webglVendor`.
+    pub fn with_webgl_vendor(mut self, v: impl Into<String>) -> Self {
+        self.webgl_vendor = Some(v.into());
+        self
+    }
+    /// Set `webglRenderer`.
+    pub fn with_webgl_renderer(mut self, v: impl Into<String>) -> Self {
+        self.webgl_renderer = Some(v.into());
+        self
+    }
+    /// Set `pluginCount`.
+    pub fn with_plugin_count(mut self, v: impl Into<f64>) -> Self {
+        self.plugin_count = Some(v.into());
+        self
+    }
+    /// Set `fontCount`.
+    pub fn with_font_count(mut self, v: impl Into<f64>) -> Self {
+        self.font_count = Some(v.into());
+        self
+    }
+    /// Set `pointerType`.
+    pub fn with_pointer_type(mut self, v: impl Into<String>) -> Self {
+        self.pointer_type = Some(v.into());
+        self
+    }
+    /// Set `webdriver`.
+    pub fn with_webdriver(mut self, v: impl Into<bool>) -> Self {
+        self.webdriver = Some(v.into());
+        self
+    }
+    /// Set `headless`.
+    pub fn with_headless(mut self, v: impl Into<bool>) -> Self {
+        self.headless = Some(v.into());
+        self
+    }
+    /// Set `hasChrome`.
+    pub fn with_has_chrome(mut self, v: impl Into<bool>) -> Self {
+        self.has_chrome = Some(v.into());
+        self
+    }
+    /// Set `languagesEmpty`.
+    pub fn with_languages_empty(mut self, v: impl Into<bool>) -> Self {
+        self.languages_empty = Some(v.into());
+        self
+    }
+    /// Set `webglSoftware`.
+    pub fn with_webgl_software(mut self, v: impl Into<bool>) -> Self {
+        self.webgl_software = Some(v.into());
+        self
+    }
+    /// Set `automationHint`.
+    pub fn with_automation_hint(mut self, v: impl Into<bool>) -> Self {
+        self.automation_hint = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `PATCH /v1/instance`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -6635,8 +7342,9 @@ pub struct InstanceUpdateBody {
     /// hint the origin already had. Read the hints back as allowed_origin_integrations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allowed_origins: Option<Vec<Value>>,
-    /// Instance auth configuration. Partial + additive on PATCH — omitted sections are untouched.
-    /// GET /v1/instance returns this resolved (defaults expanded) as auth_config_resolved.
+    /// A partial auth_config patch for PATCH /v1/instance: send only the sections and fields you
+    /// change; omitted siblings are kept. Validated: an unknown value returns 422 naming the field.
+    /// The full resolved shape is GET /v1/instance auth_config_resolved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auth_config: Option<InstanceUpdateBodyAuthConfig>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -6667,29 +7375,195 @@ impl InstanceUpdateBody {
     }
 }
 
-/// Instance auth configuration. Partial + additive on PATCH — omitted sections are untouched.
-/// GET /v1/instance returns this resolved (defaults expanded) as auth_config_resolved.
+/// A partial auth_config patch for PATCH /v1/instance: send only the sections and fields you
+/// change; omitted siblings are kept. Validated: an unknown value returns 422 naming the field.
+/// The full resolved shape is GET /v1/instance auth_config_resolved.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfig {
-    /// Which first-factor sign-in methods are enabled.
+pub struct AuthConfigPatch {
+    /// Known values: `auto`, `block`, `separate`.
+    #[serde(
+        rename = "accountLinking",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub account_linking: Option<String>,
+    #[serde(
+        rename = "accountLinkingTrust",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub account_linking_trust: Option<HashMap<String, String>>,
+    #[serde(rename = "accountUx", default, skip_serializing_if = "Option::is_none")]
+    pub account_ux: Option<AuthConfigPatchAccountUx>,
+    #[serde(
+        rename = "appCatalog",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub app_catalog: Option<AuthConfigPatchAppCatalog>,
+    #[serde(
+        rename = "attackProtection",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub attack_protection: Option<AuthConfigPatchAttackProtection>,
+    #[serde(
+        rename = "banBlocksIp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ban_blocks_ip: Option<bool>,
+    #[serde(
+        rename = "banBlocksReregistration",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ban_blocks_reregistration: Option<bool>,
+    #[serde(
+        rename = "banIpBlockDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ban_ip_block_days: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub strategies: Option<InstanceUpdateBodyAuthConfigStrategies>,
+    pub billing: Option<AuthConfigPatchBilling>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub captcha: Option<AuthConfigPatchCaptcha>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compliance: Option<AuthConfigPatchCompliance>,
+    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
+    /// false are reported as verified again in users, tokens, webhooks and exports (the old
+    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
+    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
+    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
+    #[serde(
+        rename = "dangerouslyReportSkippedEmailsAsVerified",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dangerously_report_skipped_emails_as_verified: Option<bool>,
+    #[serde(
+        rename = "endUserApiKeys",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub end_user_api_keys: Option<AuthConfigPatchEndUserApiKeys>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entitlements: Option<AuthConfigPatchEntitlements>,
+    /// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
+    /// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
+    #[serde(
+        rename = "externalJwt",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub external_jwt: Option<AuthConfigPatchExternalJwt>,
+    #[serde(
+        rename = "identityTraits",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub identity_traits: Option<AuthConfigPatchIdentityTraits>,
+    #[serde(
+        rename = "jwtTemplates",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub jwt_templates: Option<HashMap<String, HashMap<String, String>>>,
+    #[serde(
+        rename = "jwtTemplateSettings",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub jwt_template_settings: Option<HashMap<String, AuthConfigPatchJwtTemplateSettingsValue>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kerberos: Option<AuthConfigPatchKerberos>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ldap: Option<AuthConfigPatchLdap>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub localization: Option<AuthConfigPatchLocalization>,
+    #[serde(
+        rename = "mcpConnector",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub mcp_connector: Option<AuthConfigPatchMcpConnector>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mfa: Option<AuthConfigPatchMfa>,
+    /// Known values: `off`, `optional`, `required`.
+    #[serde(rename = "mfaPolicy", default, skip_serializing_if = "Option::is_none")]
+    pub mfa_policy: Option<String>,
+    #[serde(
+        rename = "nativeApps",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub native_apps: Option<AuthConfigPatchNativeApps>,
+    #[serde(
+        rename = "oauthProvider",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub oauth_provider: Option<AuthConfigPatchOauthProvider>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub organizations: Option<AuthConfigPatchOrganizations>,
+    #[serde(
+        rename = "passkeyPolicy",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub passkey_policy: Option<AuthConfigPatchPasskeyPolicy>,
     #[serde(
         rename = "passwordPolicy",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub password_policy: Option<InstanceUpdateBodyAuthConfigPasswordPolicy>,
-    /// Per-method code/link TTLs, lengths and resend limits.
+    pub password_policy: Option<AuthConfigPatchPasswordPolicy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verification: Option<InstanceUpdateBodyAuthConfigVerification>,
+    pub pca: Option<AuthConfigPatchPca>,
+    #[serde(
+        rename = "phoneChannels",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub phone_channels: Option<AuthConfigPatchPhoneChannels>,
+    #[serde(rename = "qrSignIn", default, skip_serializing_if = "Option::is_none")]
+    pub qr_sign_in: Option<AuthConfigPatchQrSignIn>,
+    #[serde(rename = "rateLimit", default, skip_serializing_if = "Option::is_none")]
+    pub rate_limit: Option<AuthConfigPatchRateLimit>,
+    /// Whether a password sign-up must prove the address with an emailed code before it completes.
+    /// When false the sign-up completes at once, but the address stays unverified (verified,
+    /// verification.status and email_verified report false) until the user proves it later.
+    #[serde(
+        rename = "requireEmailVerification",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_email_verification: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restrictions: Option<AuthConfigPatchRestrictions>,
+    #[serde(
+        rename = "riskBasedMfa",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub risk_based_mfa: Option<AuthConfigPatchRiskBasedMfa>,
+    /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
+    /// (direct SAML; no OIDC/atlas_byo needed).
+    #[serde(rename = "samlIdp", default, skip_serializing_if = "Option::is_none")]
+    pub saml_idp: Option<AuthConfigPatchSamlIdp>,
     /// Session lifetime + token behaviour.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub session: Option<InstanceUpdateBodyAuthConfigSession>,
-    /// Known values: `off`, `optional`, `required`.
-    #[serde(rename = "mfaPolicy", default, skip_serializing_if = "Option::is_none")]
-    pub mfa_policy: Option<String>,
+    pub session: Option<AuthConfigPatchSession>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signals: Option<AuthConfigPatchSignals>,
+    #[serde(
+        rename = "signInAfterReset",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub sign_in_after_reset: Option<bool>,
     /// public: anyone may sign up. waitlist: unknown addresses join a waitlist (403 WAITLISTED)
     /// until approved. restricted: invitation-only — only invited or waitlist-approved addresses
     /// may sign up (403 SIGN_UP_RESTRICTED otherwise).
@@ -6701,11 +7575,13 @@ pub struct InstanceUpdateBodyAuthConfig {
         skip_serializing_if = "Option::is_none"
     )]
     pub sign_up_mode: Option<String>,
-    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
-    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
-    /// written with PATCH /v1/branding.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub branding: Option<InstanceUpdateBodyAuthConfigBranding>,
+    pub srp: Option<AuthConfigPatchSrp>,
+    #[serde(rename = "stepUp", default, skip_serializing_if = "Option::is_none")]
+    pub step_up: Option<AuthConfigPatchStepUp>,
+    /// Which first-factor sign-in methods are enabled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strategies: Option<AuthConfigPatchStrategies>,
     /// Strict writes for this instance's secret keys: a Backend API write that carries a body field
     /// the endpoint does not know is refused with 422 UNKNOWN_FIELD instead of being accepted and
     /// ignored. true for every instance created from 2026-10 on; older instances stay false
@@ -6720,98 +7596,84 @@ pub struct InstanceUpdateBodyAuthConfig {
         skip_serializing_if = "Option::is_none"
     )]
     pub strict_request_bodies: Option<bool>,
-    /// Whether a password sign-up must prove the address with an emailed code before it completes.
-    /// When false the sign-up completes at once, but the address stays unverified (verified,
-    /// verification.status and email_verified report false) until the user proves it later.
+    /// Per-method code/link TTLs, lengths and resend limits.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verification: Option<AuthConfigPatchVerification>,
     #[serde(
-        rename = "requireEmailVerification",
+        rename = "walletGating",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub require_email_verification: Option<bool>,
-    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
-    /// false are reported as verified again in users, tokens, webhooks and exports (the old
-    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
-    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
-    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
-    #[serde(
-        rename = "dangerouslyReportSkippedEmailsAsVerified",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub dangerously_report_skipped_emails_as_verified: Option<bool>,
-    /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
-    /// (direct SAML; no OIDC/atlas_byo needed).
-    #[serde(rename = "samlIdp", default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp: Option<InstanceUpdateBodyAuthConfigSamlIdp>,
-    /// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
-    /// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
-    #[serde(
-        rename = "externalJwt",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub external_jwt: Option<InstanceUpdateBodyAuthConfigExternalJwt>,
+    pub wallet_gating: Option<AuthConfigPatchWalletGating>,
+    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+    /// written with PATCH /v1/branding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<AuthConfigPatchBranding>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-impl InstanceUpdateBodyAuthConfig {
+impl AuthConfigPatch {
     /// A value with the required fields set and every other field unset.
     pub fn new() -> Self {
         Self::default()
     }
-    /// Set `strategies`.
-    pub fn with_strategies(mut self, v: impl Into<InstanceUpdateBodyAuthConfigStrategies>) -> Self {
-        self.strategies = Some(v.into());
+    /// Set `accountLinking`.
+    pub fn with_account_linking(mut self, v: impl Into<String>) -> Self {
+        self.account_linking = Some(v.into());
         self
     }
-    /// Set `passwordPolicy`.
-    pub fn with_password_policy(
-        mut self,
-        v: impl Into<InstanceUpdateBodyAuthConfigPasswordPolicy>,
-    ) -> Self {
-        self.password_policy = Some(v.into());
+    /// Set `accountLinkingTrust`.
+    pub fn with_account_linking_trust(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.account_linking_trust = Some(v.into());
         self
     }
-    /// Set `verification`.
-    pub fn with_verification(
-        mut self,
-        v: impl Into<InstanceUpdateBodyAuthConfigVerification>,
-    ) -> Self {
-        self.verification = Some(v.into());
+    /// Set `accountUx`.
+    pub fn with_account_ux(mut self, v: impl Into<AuthConfigPatchAccountUx>) -> Self {
+        self.account_ux = Some(v.into());
         self
     }
-    /// Set `session`.
-    pub fn with_session(mut self, v: impl Into<InstanceUpdateBodyAuthConfigSession>) -> Self {
-        self.session = Some(v.into());
+    /// Set `appCatalog`.
+    pub fn with_app_catalog(mut self, v: impl Into<AuthConfigPatchAppCatalog>) -> Self {
+        self.app_catalog = Some(v.into());
         self
     }
-    /// Set `mfaPolicy`.
-    pub fn with_mfa_policy(mut self, v: impl Into<String>) -> Self {
-        self.mfa_policy = Some(v.into());
+    /// Set `attackProtection`.
+    pub fn with_attack_protection(mut self, v: impl Into<AuthConfigPatchAttackProtection>) -> Self {
+        self.attack_protection = Some(v.into());
         self
     }
-    /// Set `signUpMode`.
-    pub fn with_sign_up_mode(mut self, v: impl Into<String>) -> Self {
-        self.sign_up_mode = Some(v.into());
+    /// Set `banBlocksIp`.
+    pub fn with_ban_blocks_ip(mut self, v: impl Into<bool>) -> Self {
+        self.ban_blocks_ip = Some(v.into());
         self
     }
-    /// Set `branding`.
-    pub fn with_branding(mut self, v: impl Into<InstanceUpdateBodyAuthConfigBranding>) -> Self {
-        self.branding = Some(v.into());
+    /// Set `banBlocksReregistration`.
+    pub fn with_ban_blocks_reregistration(mut self, v: impl Into<bool>) -> Self {
+        self.ban_blocks_reregistration = Some(v.into());
         self
     }
-    /// Set `strictRequestBodies`.
-    pub fn with_strict_request_bodies(mut self, v: impl Into<bool>) -> Self {
-        self.strict_request_bodies = Some(v.into());
+    /// Set `banIpBlockDays`.
+    pub fn with_ban_ip_block_days(mut self, v: impl Into<f64>) -> Self {
+        self.ban_ip_block_days = Some(v.into());
         self
     }
-    /// Set `requireEmailVerification`.
-    pub fn with_require_email_verification(mut self, v: impl Into<bool>) -> Self {
-        self.require_email_verification = Some(v.into());
+    /// Set `billing`.
+    pub fn with_billing(mut self, v: impl Into<AuthConfigPatchBilling>) -> Self {
+        self.billing = Some(v.into());
+        self
+    }
+    /// Set `captcha`.
+    pub fn with_captcha(mut self, v: impl Into<AuthConfigPatchCaptcha>) -> Self {
+        self.captcha = Some(v.into());
+        self
+    }
+    /// Set `compliance`.
+    pub fn with_compliance(mut self, v: impl Into<AuthConfigPatchCompliance>) -> Self {
+        self.compliance = Some(v.into());
         self
     }
     /// Set `dangerouslyReportSkippedEmailsAsVerified`.
@@ -6822,17 +7684,190 @@ impl InstanceUpdateBodyAuthConfig {
         self.dangerously_report_skipped_emails_as_verified = Some(v.into());
         self
     }
-    /// Set `samlIdp`.
-    pub fn with_saml_idp(mut self, v: impl Into<InstanceUpdateBodyAuthConfigSamlIdp>) -> Self {
-        self.saml_idp = Some(v.into());
+    /// Set `endUserApiKeys`.
+    pub fn with_end_user_api_keys(mut self, v: impl Into<AuthConfigPatchEndUserApiKeys>) -> Self {
+        self.end_user_api_keys = Some(v.into());
+        self
+    }
+    /// Set `entitlements`.
+    pub fn with_entitlements(mut self, v: impl Into<AuthConfigPatchEntitlements>) -> Self {
+        self.entitlements = Some(v.into());
         self
     }
     /// Set `externalJwt`.
-    pub fn with_external_jwt(
-        mut self,
-        v: impl Into<InstanceUpdateBodyAuthConfigExternalJwt>,
-    ) -> Self {
+    pub fn with_external_jwt(mut self, v: impl Into<AuthConfigPatchExternalJwt>) -> Self {
         self.external_jwt = Some(v.into());
+        self
+    }
+    /// Set `identityTraits`.
+    pub fn with_identity_traits(mut self, v: impl Into<AuthConfigPatchIdentityTraits>) -> Self {
+        self.identity_traits = Some(v.into());
+        self
+    }
+    /// Set `jwtTemplates`.
+    pub fn with_jwt_templates(
+        mut self,
+        v: impl Into<HashMap<String, HashMap<String, String>>>,
+    ) -> Self {
+        self.jwt_templates = Some(v.into());
+        self
+    }
+    /// Set `jwtTemplateSettings`.
+    pub fn with_jwt_template_settings(
+        mut self,
+        v: impl Into<HashMap<String, AuthConfigPatchJwtTemplateSettingsValue>>,
+    ) -> Self {
+        self.jwt_template_settings = Some(v.into());
+        self
+    }
+    /// Set `kerberos`.
+    pub fn with_kerberos(mut self, v: impl Into<AuthConfigPatchKerberos>) -> Self {
+        self.kerberos = Some(v.into());
+        self
+    }
+    /// Set `ldap`.
+    pub fn with_ldap(mut self, v: impl Into<AuthConfigPatchLdap>) -> Self {
+        self.ldap = Some(v.into());
+        self
+    }
+    /// Set `localization`.
+    pub fn with_localization(mut self, v: impl Into<AuthConfigPatchLocalization>) -> Self {
+        self.localization = Some(v.into());
+        self
+    }
+    /// Set `mcpConnector`.
+    pub fn with_mcp_connector(mut self, v: impl Into<AuthConfigPatchMcpConnector>) -> Self {
+        self.mcp_connector = Some(v.into());
+        self
+    }
+    /// Set `mfa`.
+    pub fn with_mfa(mut self, v: impl Into<AuthConfigPatchMfa>) -> Self {
+        self.mfa = Some(v.into());
+        self
+    }
+    /// Set `mfaPolicy`.
+    pub fn with_mfa_policy(mut self, v: impl Into<String>) -> Self {
+        self.mfa_policy = Some(v.into());
+        self
+    }
+    /// Set `nativeApps`.
+    pub fn with_native_apps(mut self, v: impl Into<AuthConfigPatchNativeApps>) -> Self {
+        self.native_apps = Some(v.into());
+        self
+    }
+    /// Set `oauthProvider`.
+    pub fn with_oauth_provider(mut self, v: impl Into<AuthConfigPatchOauthProvider>) -> Self {
+        self.oauth_provider = Some(v.into());
+        self
+    }
+    /// Set `organizations`.
+    pub fn with_organizations(mut self, v: impl Into<AuthConfigPatchOrganizations>) -> Self {
+        self.organizations = Some(v.into());
+        self
+    }
+    /// Set `passkeyPolicy`.
+    pub fn with_passkey_policy(mut self, v: impl Into<AuthConfigPatchPasskeyPolicy>) -> Self {
+        self.passkey_policy = Some(v.into());
+        self
+    }
+    /// Set `passwordPolicy`.
+    pub fn with_password_policy(mut self, v: impl Into<AuthConfigPatchPasswordPolicy>) -> Self {
+        self.password_policy = Some(v.into());
+        self
+    }
+    /// Set `pca`.
+    pub fn with_pca(mut self, v: impl Into<AuthConfigPatchPca>) -> Self {
+        self.pca = Some(v.into());
+        self
+    }
+    /// Set `phoneChannels`.
+    pub fn with_phone_channels(mut self, v: impl Into<AuthConfigPatchPhoneChannels>) -> Self {
+        self.phone_channels = Some(v.into());
+        self
+    }
+    /// Set `qrSignIn`.
+    pub fn with_qr_sign_in(mut self, v: impl Into<AuthConfigPatchQrSignIn>) -> Self {
+        self.qr_sign_in = Some(v.into());
+        self
+    }
+    /// Set `rateLimit`.
+    pub fn with_rate_limit(mut self, v: impl Into<AuthConfigPatchRateLimit>) -> Self {
+        self.rate_limit = Some(v.into());
+        self
+    }
+    /// Set `requireEmailVerification`.
+    pub fn with_require_email_verification(mut self, v: impl Into<bool>) -> Self {
+        self.require_email_verification = Some(v.into());
+        self
+    }
+    /// Set `restrictions`.
+    pub fn with_restrictions(mut self, v: impl Into<AuthConfigPatchRestrictions>) -> Self {
+        self.restrictions = Some(v.into());
+        self
+    }
+    /// Set `riskBasedMfa`.
+    pub fn with_risk_based_mfa(mut self, v: impl Into<AuthConfigPatchRiskBasedMfa>) -> Self {
+        self.risk_based_mfa = Some(v.into());
+        self
+    }
+    /// Set `samlIdp`.
+    pub fn with_saml_idp(mut self, v: impl Into<AuthConfigPatchSamlIdp>) -> Self {
+        self.saml_idp = Some(v.into());
+        self
+    }
+    /// Set `session`.
+    pub fn with_session(mut self, v: impl Into<AuthConfigPatchSession>) -> Self {
+        self.session = Some(v.into());
+        self
+    }
+    /// Set `signals`.
+    pub fn with_signals(mut self, v: impl Into<AuthConfigPatchSignals>) -> Self {
+        self.signals = Some(v.into());
+        self
+    }
+    /// Set `signInAfterReset`.
+    pub fn with_sign_in_after_reset(mut self, v: impl Into<bool>) -> Self {
+        self.sign_in_after_reset = Some(v.into());
+        self
+    }
+    /// Set `signUpMode`.
+    pub fn with_sign_up_mode(mut self, v: impl Into<String>) -> Self {
+        self.sign_up_mode = Some(v.into());
+        self
+    }
+    /// Set `srp`.
+    pub fn with_srp(mut self, v: impl Into<AuthConfigPatchSrp>) -> Self {
+        self.srp = Some(v.into());
+        self
+    }
+    /// Set `stepUp`.
+    pub fn with_step_up(mut self, v: impl Into<AuthConfigPatchStepUp>) -> Self {
+        self.step_up = Some(v.into());
+        self
+    }
+    /// Set `strategies`.
+    pub fn with_strategies(mut self, v: impl Into<AuthConfigPatchStrategies>) -> Self {
+        self.strategies = Some(v.into());
+        self
+    }
+    /// Set `strictRequestBodies`.
+    pub fn with_strict_request_bodies(mut self, v: impl Into<bool>) -> Self {
+        self.strict_request_bodies = Some(v.into());
+        self
+    }
+    /// Set `verification`.
+    pub fn with_verification(mut self, v: impl Into<AuthConfigPatchVerification>) -> Self {
+        self.verification = Some(v.into());
+        self
+    }
+    /// Set `walletGating`.
+    pub fn with_wallet_gating(mut self, v: impl Into<AuthConfigPatchWalletGating>) -> Self {
+        self.wallet_gating = Some(v.into());
+        self
+    }
+    /// Set `branding`.
+    pub fn with_branding(mut self, v: impl Into<AuthConfigPatchBranding>) -> Self {
+        self.branding = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -6842,47 +7877,3307 @@ impl InstanceUpdateBodyAuthConfig {
     }
 }
 
-/// Which first-factor sign-in methods are enabled.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigStrategies {
+pub struct AuthConfigPatchAccountUx {
+    #[serde(
+        rename = "deviceKeys",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_keys: Option<AuthConfigPatchAccountUxDeviceKeys>,
+    #[serde(
+        rename = "emailChange",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_change: Option<AuthConfigPatchAccountUxEmailChange>,
+    /// Known values: `both`, `code`, `link`.
+    #[serde(
+        rename = "emailVerification",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_verification: Option<String>,
+    #[serde(
+        rename = "lastSignInMethod",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub last_sign_in_method: Option<AuthConfigPatchAccountUxLastSignInMethod>,
+    #[serde(
+        rename = "passkeyAdoption",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub passkey_adoption: Option<AuthConfigPatchAccountUxPasskeyAdoption>,
+    #[serde(
+        rename = "passkeySignUp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub passkey_sign_up: Option<AuthConfigPatchAccountUxPasskeySignUp>,
+    /// Known values: `both`, `code`, `link`.
+    #[serde(
+        rename = "passwordReset",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub password_reset: Option<String>,
+    #[serde(
+        rename = "securityNotifications",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub security_notifications: Option<AuthConfigPatchAccountUxSecurityNotifications>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub password: Option<bool>,
-    /// Email one-time code (passwordless).
-    #[serde(rename = "emailCode", default, skip_serializing_if = "Option::is_none")]
-    pub email_code: Option<bool>,
-    /// Magic link.
-    #[serde(rename = "emailLink", default, skip_serializing_if = "Option::is_none")]
-    pub email_link: Option<bool>,
-    /// WebAuthn passkeys.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub passkey: Option<bool>,
-    /// SMS OTP (off by default).
-    #[serde(rename = "phoneCode", default, skip_serializing_if = "Option::is_none")]
-    pub phone_code: Option<bool>,
-    /// Username as a login identifier.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub username: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siwe: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siws: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siwf: Option<bool>,
+    pub username: Option<AuthConfigPatchAccountUxUsername>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-impl InstanceUpdateBodyAuthConfigStrategies {
+impl AuthConfigPatchAccountUx {
     /// A value with the required fields set and every other field unset.
     pub fn new() -> Self {
         Self::default()
     }
-    /// Set `password`.
-    pub fn with_password(mut self, v: impl Into<bool>) -> Self {
-        self.password = Some(v.into());
+    /// Set `deviceKeys`.
+    pub fn with_device_keys(mut self, v: impl Into<AuthConfigPatchAccountUxDeviceKeys>) -> Self {
+        self.device_keys = Some(v.into());
+        self
+    }
+    /// Set `emailChange`.
+    pub fn with_email_change(mut self, v: impl Into<AuthConfigPatchAccountUxEmailChange>) -> Self {
+        self.email_change = Some(v.into());
+        self
+    }
+    /// Set `emailVerification`.
+    pub fn with_email_verification(mut self, v: impl Into<String>) -> Self {
+        self.email_verification = Some(v.into());
+        self
+    }
+    /// Set `lastSignInMethod`.
+    pub fn with_last_sign_in_method(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxLastSignInMethod>,
+    ) -> Self {
+        self.last_sign_in_method = Some(v.into());
+        self
+    }
+    /// Set `passkeyAdoption`.
+    pub fn with_passkey_adoption(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxPasskeyAdoption>,
+    ) -> Self {
+        self.passkey_adoption = Some(v.into());
+        self
+    }
+    /// Set `passkeySignUp`.
+    pub fn with_passkey_sign_up(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxPasskeySignUp>,
+    ) -> Self {
+        self.passkey_sign_up = Some(v.into());
+        self
+    }
+    /// Set `passwordReset`.
+    pub fn with_password_reset(mut self, v: impl Into<String>) -> Self {
+        self.password_reset = Some(v.into());
+        self
+    }
+    /// Set `securityNotifications`.
+    pub fn with_security_notifications(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxSecurityNotifications>,
+    ) -> Self {
+        self.security_notifications = Some(v.into());
+        self
+    }
+    /// Set `username`.
+    pub fn with_username(mut self, v: impl Into<AuthConfigPatchAccountUxUsername>) -> Self {
+        self.username = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxDeviceKeys {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "satisfiesMfa",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub satisfies_mfa: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxDeviceKeys {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `satisfiesMfa`.
+    pub fn with_satisfies_mfa(mut self, v: impl Into<bool>) -> Self {
+        self.satisfies_mfa = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxEmailChange {
+    #[serde(
+        rename = "requireOldAddressConfirm",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_old_address_confirm: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxEmailChange {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `requireOldAddressConfirm`.
+    pub fn with_require_old_address_confirm(mut self, v: impl Into<bool>) -> Self {
+        self.require_old_address_confirm = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxLastSignInMethod {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxLastSignInMethod {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxPasskeyAdoption {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<AuthConfigPatchAccountUxPasskeyAdoptionPrompt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery: Option<AuthConfigPatchAccountUxPasskeyAdoptionRecovery>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rollout: Option<AuthConfigPatchAccountUxPasskeyAdoptionRollout>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signals: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxPasskeyAdoption {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `prompt`.
+    pub fn with_prompt(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxPasskeyAdoptionPrompt>,
+    ) -> Self {
+        self.prompt = Some(v.into());
+        self
+    }
+    /// Set `recovery`.
+    pub fn with_recovery(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxPasskeyAdoptionRecovery>,
+    ) -> Self {
+        self.recovery = Some(v.into());
+        self
+    }
+    /// Set `rollout`.
+    pub fn with_rollout(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxPasskeyAdoptionRollout>,
+    ) -> Self {
+        self.rollout = Some(v.into());
+        self
+    }
+    /// Set `signals`.
+    pub fn with_signals(mut self, v: impl Into<bool>) -> Self {
+        self.signals = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxPasskeyAdoptionPrompt {
+    #[serde(
+        rename = "cooldownDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cooldown_days: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxPasskeyAdoptionPrompt {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `cooldownDays`.
+    pub fn with_cooldown_days(mut self, v: impl Into<f64>) -> Self {
+        self.cooldown_days = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxPasskeyAdoptionRecovery {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub methods: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxPasskeyAdoptionRecovery {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `methods`.
+    pub fn with_methods(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.methods = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxPasskeyAdoptionRollout {
+    #[serde(
+        rename = "deviceClasses",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_classes: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub orgs: Option<AuthConfigPatchAccountUxPasskeyAdoptionRolloutOrgs>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percentage: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variant: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxPasskeyAdoptionRollout {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `deviceClasses`.
+    pub fn with_device_classes(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.device_classes = Some(v.into());
+        self
+    }
+    /// Set `orgs`.
+    pub fn with_orgs(
+        mut self,
+        v: impl Into<AuthConfigPatchAccountUxPasskeyAdoptionRolloutOrgs>,
+    ) -> Self {
+        self.orgs = Some(v.into());
+        self
+    }
+    /// Set `percentage`.
+    pub fn with_percentage(mut self, v: impl Into<f64>) -> Self {
+        self.percentage = Some(v.into());
+        self
+    }
+    /// Set `variant`.
+    pub fn with_variant(mut self, v: impl Into<String>) -> Self {
+        self.variant = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxPasskeyAdoptionRolloutOrgs {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deny: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxPasskeyAdoptionRolloutOrgs {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allow`.
+    pub fn with_allow(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allow = Some(v.into());
+        self
+    }
+    /// Set `deny`.
+    pub fn with_deny(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.deny = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxPasskeySignUp {
+    /// Known values: `off`, `optional`, `required`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxPasskeySignUp {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `email`.
+    pub fn with_email(mut self, v: impl Into<String>) -> Self {
+        self.email = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `preferred`.
+    pub fn with_preferred(mut self, v: impl Into<bool>) -> Self {
+        self.preferred = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxSecurityNotifications {
+    #[serde(
+        rename = "accountChanges",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub account_changes: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxSecurityNotifications {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `accountChanges`.
+    pub fn with_account_changes(mut self, v: impl Into<bool>) -> Self {
+        self.account_changes = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAccountUxUsername {
+    /// Known values: `alphanumeric`, `alphanumeric_underscore`, `default`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub charset: Option<String>,
+    #[serde(rename = "maxLength", default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<f64>,
+    #[serde(rename = "minLength", default, skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<f64>,
+    #[serde(
+        rename = "requiredAtSignUp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub required_at_sign_up: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAccountUxUsername {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `charset`.
+    pub fn with_charset(mut self, v: impl Into<String>) -> Self {
+        self.charset = Some(v.into());
+        self
+    }
+    /// Set `maxLength`.
+    pub fn with_max_length(mut self, v: impl Into<f64>) -> Self {
+        self.max_length = Some(v.into());
+        self
+    }
+    /// Set `minLength`.
+    pub fn with_min_length(mut self, v: impl Into<f64>) -> Self {
+        self.min_length = Some(v.into());
+        self
+    }
+    /// Set `requiredAtSignUp`.
+    pub fn with_required_at_sign_up(mut self, v: impl Into<bool>) -> Self {
+        self.required_at_sign_up = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAppCatalog {
+    #[serde(rename = "oidcApps", default, skip_serializing_if = "Option::is_none")]
+    pub oidc_apps: Option<Vec<AuthConfigPatchAppCatalogOidcAppsItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAppCatalog {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `oidcApps`.
+    pub fn with_oidc_apps(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchAppCatalogOidcAppsItem>>,
+    ) -> Self {
+        self.oidc_apps = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAppCatalogOidcAppsItem {
+    #[serde(
+        rename = "allowedEmailDomains",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_email_domains: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assignment: Option<AuthConfigPatchAppCatalogOidcAppsItemAssignment>,
+    #[serde(rename = "clientId", default)]
+    pub client_id: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(rename = "launchUrl", default)]
+    pub launch_url: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(rename = "presetId", default)]
+    pub preset_id: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAppCatalogOidcAppsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        client_id: impl Into<String>,
+        id: impl Into<String>,
+        launch_url: impl Into<String>,
+        name: impl Into<String>,
+        preset_id: impl Into<String>,
+    ) -> Self {
+        Self {
+            client_id: client_id.into(),
+            id: id.into(),
+            launch_url: launch_url.into(),
+            name: name.into(),
+            preset_id: preset_id.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `allowedEmailDomains`.
+    pub fn with_allowed_email_domains(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_email_domains = Some(v.into());
+        self
+    }
+    /// Set `assignment`.
+    pub fn with_assignment(
+        mut self,
+        v: impl Into<AuthConfigPatchAppCatalogOidcAppsItemAssignment>,
+    ) -> Self {
+        self.assignment = Some(v.into());
+        self
+    }
+    /// Set `clientId`.
+    pub fn with_client_id(mut self, v: impl Into<String>) -> Self {
+        self.client_id = v.into();
+        self
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = v.into();
+        self
+    }
+    /// Set `launchUrl`.
+    pub fn with_launch_url(mut self, v: impl Into<String>) -> Self {
+        self.launch_url = v.into();
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set `presetId`.
+    pub fn with_preset_id(mut self, v: impl Into<String>) -> Self {
+        self.preset_id = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAppCatalogOidcAppsItemAssignment {
+    #[serde(default)]
+    pub groups: Vec<String>,
+    /// Known values: `assigned`, `everyone`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub organizations: Vec<String>,
+    #[serde(default)]
+    pub roles: Vec<String>,
+    #[serde(rename = "userIds", default)]
+    pub user_ids: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAppCatalogOidcAppsItemAssignment {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        groups: impl Into<Vec<String>>,
+        mode: impl Into<String>,
+        organizations: impl Into<Vec<String>>,
+        roles: impl Into<Vec<String>>,
+        user_ids: impl Into<Vec<String>>,
+    ) -> Self {
+        Self {
+            groups: groups.into(),
+            mode: mode.into(),
+            organizations: organizations.into(),
+            roles: roles.into(),
+            user_ids: user_ids.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `groups`.
+    pub fn with_groups(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.groups = v.into();
+        self
+    }
+    /// Set `mode`.
+    pub fn with_mode(mut self, v: impl Into<String>) -> Self {
+        self.mode = v.into();
+        self
+    }
+    /// Set `organizations`.
+    pub fn with_organizations(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.organizations = v.into();
+        self
+    }
+    /// Set `roles`.
+    pub fn with_roles(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.roles = v.into();
+        self
+    }
+    /// Set `userIds`.
+    pub fn with_user_ids(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.user_ids = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtection {
+    #[serde(
+        rename = "appAttestation",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub app_attestation: Option<AuthConfigPatchAttackProtectionAppAttestation>,
+    #[serde(
+        rename = "bruteForce",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub brute_force: Option<AuthConfigPatchAttackProtectionBruteForce>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub countries: Option<AuthConfigPatchAttackProtectionCountries>,
+    #[serde(
+        rename = "deviceAccounts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_accounts: Option<AuthConfigPatchAttackProtectionDeviceAccounts>,
+    #[serde(
+        rename = "disposableEmail",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub disposable_email: Option<AuthConfigPatchAttackProtectionDisposableEmail>,
+    #[serde(
+        rename = "dormantAccounts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dormant_accounts: Option<AuthConfigPatchAttackProtectionDormantAccounts>,
+    #[serde(
+        rename = "smsPumping",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub sms_pumping: Option<AuthConfigPatchAttackProtectionSmsPumping>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtection {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `appAttestation`.
+    pub fn with_app_attestation(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionAppAttestation>,
+    ) -> Self {
+        self.app_attestation = Some(v.into());
+        self
+    }
+    /// Set `bruteForce`.
+    pub fn with_brute_force(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionBruteForce>,
+    ) -> Self {
+        self.brute_force = Some(v.into());
+        self
+    }
+    /// Set `countries`.
+    pub fn with_countries(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionCountries>,
+    ) -> Self {
+        self.countries = Some(v.into());
+        self
+    }
+    /// Set `deviceAccounts`.
+    pub fn with_device_accounts(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionDeviceAccounts>,
+    ) -> Self {
+        self.device_accounts = Some(v.into());
+        self
+    }
+    /// Set `disposableEmail`.
+    pub fn with_disposable_email(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionDisposableEmail>,
+    ) -> Self {
+        self.disposable_email = Some(v.into());
+        self
+    }
+    /// Set `dormantAccounts`.
+    pub fn with_dormant_accounts(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionDormantAccounts>,
+    ) -> Self {
+        self.dormant_accounts = Some(v.into());
+        self
+    }
+    /// Set `smsPumping`.
+    pub fn with_sms_pumping(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionSmsPumping>,
+    ) -> Self {
+        self.sms_pumping = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionAppAttestation {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub android: Option<AuthConfigPatchAttackProtectionAppAttestationAndroid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flows: Option<AuthConfigPatchAttackProtectionAppAttestationFlows>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ios: Option<AuthConfigPatchAttackProtectionAppAttestationIos>,
+    #[serde(
+        rename = "maxAgeSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_age_seconds: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionAppAttestation {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `android`.
+    pub fn with_android(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionAppAttestationAndroid>,
+    ) -> Self {
+        self.android = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `flows`.
+    pub fn with_flows(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionAppAttestationFlows>,
+    ) -> Self {
+        self.flows = Some(v.into());
+        self
+    }
+    /// Set `ios`.
+    pub fn with_ios(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionAppAttestationIos>,
+    ) -> Self {
+        self.ios = Some(v.into());
+        self
+    }
+    /// Set `maxAgeSeconds`.
+    pub fn with_max_age_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.max_age_seconds = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionAppAttestationAndroid {
+    #[serde(
+        rename = "packageNames",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub package_names: Option<Vec<String>>,
+    #[serde(
+        rename = "requireDeviceIntegrity",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_device_integrity: Option<bool>,
+    #[serde(
+        rename = "requirePlayRecognized",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_play_recognized: Option<bool>,
+    #[serde(
+        rename = "verificationKey",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub verification_key: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionAppAttestationAndroid {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `packageNames`.
+    pub fn with_package_names(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.package_names = Some(v.into());
+        self
+    }
+    /// Set `requireDeviceIntegrity`.
+    pub fn with_require_device_integrity(mut self, v: impl Into<bool>) -> Self {
+        self.require_device_integrity = Some(v.into());
+        self
+    }
+    /// Set `requirePlayRecognized`.
+    pub fn with_require_play_recognized(mut self, v: impl Into<bool>) -> Self {
+        self.require_play_recognized = Some(v.into());
+        self
+    }
+    /// Set `verificationKey`.
+    pub fn with_verification_key(mut self, v: impl Into<String>) -> Self {
+        self.verification_key = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionAppAttestationFlows {
+    #[serde(rename = "signIn", default, skip_serializing_if = "Option::is_none")]
+    pub sign_in: Option<bool>,
+    #[serde(rename = "signUp", default, skip_serializing_if = "Option::is_none")]
+    pub sign_up: Option<bool>,
+    #[serde(rename = "smsSend", default, skip_serializing_if = "Option::is_none")]
+    pub sms_send: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionAppAttestationFlows {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `signIn`.
+    pub fn with_sign_in(mut self, v: impl Into<bool>) -> Self {
+        self.sign_in = Some(v.into());
+        self
+    }
+    /// Set `signUp`.
+    pub fn with_sign_up(mut self, v: impl Into<bool>) -> Self {
+        self.sign_up = Some(v.into());
+        self
+    }
+    /// Set `smsSend`.
+    pub fn with_sms_send(mut self, v: impl Into<bool>) -> Self {
+        self.sms_send = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionAppAttestationIos {
+    #[serde(
+        rename = "allowDevelopment",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allow_development: Option<bool>,
+    #[serde(rename = "appIds", default, skip_serializing_if = "Option::is_none")]
+    pub app_ids: Option<Vec<String>>,
+    #[serde(
+        rename = "deviceCheck",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_check: Option<AuthConfigPatchAttackProtectionAppAttestationIosDeviceCheck>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionAppAttestationIos {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowDevelopment`.
+    pub fn with_allow_development(mut self, v: impl Into<bool>) -> Self {
+        self.allow_development = Some(v.into());
+        self
+    }
+    /// Set `appIds`.
+    pub fn with_app_ids(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.app_ids = Some(v.into());
+        self
+    }
+    /// Set `deviceCheck`.
+    pub fn with_device_check(
+        mut self,
+        v: impl Into<AuthConfigPatchAttackProtectionAppAttestationIosDeviceCheck>,
+    ) -> Self {
+        self.device_check = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionAppAttestationIosDeviceCheck {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(rename = "keyId", default, skip_serializing_if = "Option::is_none")]
+    pub key_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sandbox: Option<bool>,
+    #[serde(rename = "teamId", default, skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionAppAttestationIosDeviceCheck {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `keyId`.
+    pub fn with_key_id(mut self, v: impl Into<String>) -> Self {
+        self.key_id = Some(v.into());
+        self
+    }
+    /// Set `sandbox`.
+    pub fn with_sandbox(mut self, v: impl Into<bool>) -> Self {
+        self.sandbox = Some(v.into());
+        self
+    }
+    /// Set `teamId`.
+    pub fn with_team_id(mut self, v: impl Into<String>) -> Self {
+        self.team_id = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionBruteForce {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionBruteForce {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionCountries {
+    #[serde(
+        rename = "blockUnknown",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub block_unknown: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list: Option<Vec<String>>,
+    /// Known values: `allow`, `deny`, `off`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(rename = "signIn", default, skip_serializing_if = "Option::is_none")]
+    pub sign_in: Option<bool>,
+    #[serde(rename = "signUp", default, skip_serializing_if = "Option::is_none")]
+    pub sign_up: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionCountries {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `blockUnknown`.
+    pub fn with_block_unknown(mut self, v: impl Into<bool>) -> Self {
+        self.block_unknown = Some(v.into());
+        self
+    }
+    /// Set `list`.
+    pub fn with_list(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.list = Some(v.into());
+        self
+    }
+    /// Set `mode`.
+    pub fn with_mode(mut self, v: impl Into<String>) -> Self {
+        self.mode = Some(v.into());
+        self
+    }
+    /// Set `signIn`.
+    pub fn with_sign_in(mut self, v: impl Into<bool>) -> Self {
+        self.sign_in = Some(v.into());
+        self
+    }
+    /// Set `signUp`.
+    pub fn with_sign_up(mut self, v: impl Into<bool>) -> Self {
+        self.sign_up = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionDeviceAccounts {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "maxAccounts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_accounts: Option<f64>,
+    #[serde(
+        rename = "windowDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub window_days: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionDeviceAccounts {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `maxAccounts`.
+    pub fn with_max_accounts(mut self, v: impl Into<f64>) -> Self {
+        self.max_accounts = Some(v.into());
+        self
+    }
+    /// Set `windowDays`.
+    pub fn with_window_days(mut self, v: impl Into<f64>) -> Self {
+        self.window_days = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionDisposableEmail {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionDisposableEmail {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `block`.
+    pub fn with_block(mut self, v: impl Into<bool>) -> Self {
+        self.block = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionDormantAccounts {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "notifyUser",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub notify_user: Option<bool>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(
+        rename = "onNoFactor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub on_no_factor: Option<String>,
+    #[serde(
+        rename = "requireMfa",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_mfa: Option<bool>,
+    #[serde(
+        rename = "thresholdDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub threshold_days: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionDormantAccounts {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `notifyUser`.
+    pub fn with_notify_user(mut self, v: impl Into<bool>) -> Self {
+        self.notify_user = Some(v.into());
+        self
+    }
+    /// Set `onNoFactor`.
+    pub fn with_on_no_factor(mut self, v: impl Into<String>) -> Self {
+        self.on_no_factor = Some(v.into());
+        self
+    }
+    /// Set `requireMfa`.
+    pub fn with_require_mfa(mut self, v: impl Into<bool>) -> Self {
+        self.require_mfa = Some(v.into());
+        self
+    }
+    /// Set `thresholdDays`.
+    pub fn with_threshold_days(mut self, v: impl Into<f64>) -> Self {
+        self.threshold_days = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchAttackProtectionSmsPumping {
+    #[serde(
+        rename = "allowedPrefixes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_prefixes: Option<Vec<String>>,
+    #[serde(
+        rename = "blockedPrefixes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub blocked_prefixes: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "maxPerHour",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_per_hour: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchAttackProtectionSmsPumping {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowedPrefixes`.
+    pub fn with_allowed_prefixes(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_prefixes = Some(v.into());
+        self
+    }
+    /// Set `blockedPrefixes`.
+    pub fn with_blocked_prefixes(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.blocked_prefixes = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `maxPerHour`.
+    pub fn with_max_per_hour(mut self, v: impl Into<f64>) -> Self {
+        self.max_per_hour = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchBilling {
+    #[serde(
+        rename = "portalConfigurationId",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub portal_configuration_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchBilling {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `portalConfigurationId`.
+    pub fn with_portal_configuration_id(mut self, v: impl Into<String>) -> Self {
+        self.portal_configuration_id = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchCaptcha {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actions: Option<HashMap<String, AuthConfigPatchCaptchaActionsValue>>,
+    #[serde(
+        rename = "attestationUrl",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub attestation_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flows: Option<HashMap<String, Value>>,
+    #[serde(
+        rename = "gateAnonymous",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub gate_anonymous: Option<bool>,
+    #[serde(rename = "minScore", default, skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<f64>,
+    #[serde(rename = "projectId", default, skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    /// Known values: `akamai`, `atlas`, `awswaf`, `captchafox`, `capy`, `friendly`, `funcaptcha`, `geetest`, `hcaptcha`, `incapsula`, `kasada`, `mcaptcha`, `none`, `perimeterx`, `recaptcha`, `recaptcha_enterprise`, `recaptcha_v3`, `seon`, `turnstile`, `vercel_botid`, `yandex`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(rename = "siteKey", default, skip_serializing_if = "Option::is_none")]
+    pub site_key: Option<String>,
+    #[serde(rename = "verifyUrl", default, skip_serializing_if = "Option::is_none")]
+    pub verify_url: Option<String>,
+    /// Known values: `invisible`, `managed`, `visible`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchCaptcha {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `actions`.
+    pub fn with_actions(
+        mut self,
+        v: impl Into<HashMap<String, AuthConfigPatchCaptchaActionsValue>>,
+    ) -> Self {
+        self.actions = Some(v.into());
+        self
+    }
+    /// Set `attestationUrl`.
+    pub fn with_attestation_url(mut self, v: impl Into<String>) -> Self {
+        self.attestation_url = Some(v.into());
+        self
+    }
+    /// Set `flows`.
+    pub fn with_flows(mut self, v: impl Into<HashMap<String, Value>>) -> Self {
+        self.flows = Some(v.into());
+        self
+    }
+    /// Set `gateAnonymous`.
+    pub fn with_gate_anonymous(mut self, v: impl Into<bool>) -> Self {
+        self.gate_anonymous = Some(v.into());
+        self
+    }
+    /// Set `minScore`.
+    pub fn with_min_score(mut self, v: impl Into<f64>) -> Self {
+        self.min_score = Some(v.into());
+        self
+    }
+    /// Set `projectId`.
+    pub fn with_project_id(mut self, v: impl Into<String>) -> Self {
+        self.project_id = Some(v.into());
+        self
+    }
+    /// Set `provider`.
+    pub fn with_provider(mut self, v: impl Into<String>) -> Self {
+        self.provider = Some(v.into());
+        self
+    }
+    /// Set `siteKey`.
+    pub fn with_site_key(mut self, v: impl Into<String>) -> Self {
+        self.site_key = Some(v.into());
+        self
+    }
+    /// Set `verifyUrl`.
+    pub fn with_verify_url(mut self, v: impl Into<String>) -> Self {
+        self.verify_url = Some(v.into());
+        self
+    }
+    /// Set `widget`.
+    pub fn with_widget(mut self, v: impl Into<String>) -> Self {
+        self.widget = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchCaptchaActionsValue {
+    #[serde(
+        rename = "attestationUrl",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub attestation_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(rename = "minScore", default, skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<f64>,
+    #[serde(rename = "projectId", default, skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    /// Known values: `akamai`, `atlas`, `awswaf`, `captchafox`, `capy`, `friendly`, `funcaptcha`, `geetest`, `hcaptcha`, `incapsula`, `kasada`, `mcaptcha`, `none`, `perimeterx`, `recaptcha`, `recaptcha_enterprise`, `recaptcha_v3`, `seon`, `turnstile`, `vercel_botid`, `yandex`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(rename = "siteKey", default, skip_serializing_if = "Option::is_none")]
+    pub site_key: Option<String>,
+    #[serde(rename = "verifyUrl", default, skip_serializing_if = "Option::is_none")]
+    pub verify_url: Option<String>,
+    /// Known values: `invisible`, `managed`, `visible`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchCaptchaActionsValue {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `attestationUrl`.
+    pub fn with_attestation_url(mut self, v: impl Into<String>) -> Self {
+        self.attestation_url = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `minScore`.
+    pub fn with_min_score(mut self, v: impl Into<f64>) -> Self {
+        self.min_score = Some(v.into());
+        self
+    }
+    /// Set `projectId`.
+    pub fn with_project_id(mut self, v: impl Into<String>) -> Self {
+        self.project_id = Some(v.into());
+        self
+    }
+    /// Set `provider`.
+    pub fn with_provider(mut self, v: impl Into<String>) -> Self {
+        self.provider = Some(v.into());
+        self
+    }
+    /// Set `siteKey`.
+    pub fn with_site_key(mut self, v: impl Into<String>) -> Self {
+        self.site_key = Some(v.into());
+        self
+    }
+    /// Set `verifyUrl`.
+    pub fn with_verify_url(mut self, v: impl Into<String>) -> Self {
+        self.verify_url = Some(v.into());
+        self
+    }
+    /// Set `widget`.
+    pub fn with_widget(mut self, v: impl Into<String>) -> Self {
+        self.widget = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchCompliance {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consents: Option<Vec<AuthConfigPatchComplianceConsentsItem>>,
+    #[serde(
+        rename = "dataRegion",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub data_region: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub minors: Option<AuthConfigPatchComplianceMinors>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retention: Option<AuthConfigPatchComplianceRetention>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchCompliance {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `consents`.
+    pub fn with_consents(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchComplianceConsentsItem>>,
+    ) -> Self {
+        self.consents = Some(v.into());
+        self
+    }
+    /// Set `dataRegion`.
+    pub fn with_data_region(mut self, v: impl Into<String>) -> Self {
+        self.data_region = Some(v.into());
+        self
+    }
+    /// Set `minors`.
+    pub fn with_minors(mut self, v: impl Into<AuthConfigPatchComplianceMinors>) -> Self {
+        self.minors = Some(v.into());
+        self
+    }
+    /// Set `retention`.
+    pub fn with_retention(mut self, v: impl Into<AuthConfigPatchComplianceRetention>) -> Self {
+        self.retention = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchComplianceConsentsItem {
+    #[serde(default)]
+    pub policy: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default)]
+    pub version: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchComplianceConsentsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        policy: impl Into<String>,
+        required: impl Into<bool>,
+        version: impl Into<String>,
+    ) -> Self {
+        Self {
+            policy: policy.into(),
+            required: required.into(),
+            version: version.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `policy`.
+    pub fn with_policy(mut self, v: impl Into<String>) -> Self {
+        self.policy = v.into();
+        self
+    }
+    /// Set `required`.
+    pub fn with_required(mut self, v: impl Into<bool>) -> Self {
+        self.required = v.into();
+        self
+    }
+    /// Set `version`.
+    pub fn with_version(mut self, v: impl Into<String>) -> Self {
+        self.version = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchComplianceMinors {
+    #[serde(
+        rename = "birthdateTrait",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub birthdate_trait: Option<String>,
+    #[serde(
+        rename = "consentAges",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub consent_ages: Option<HashMap<String, f64>>,
+    #[serde(
+        rename = "consentTtlHours",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub consent_ttl_hours: Option<f64>,
+    #[serde(
+        rename = "countryTrait",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub country_trait: Option<String>,
+    #[serde(
+        rename = "defaultConsentAge",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub default_consent_age: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "minimumAge",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub minimum_age: Option<f64>,
+    /// Known values: `flag`, `hold`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restriction: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchComplianceMinors {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `birthdateTrait`.
+    pub fn with_birthdate_trait(mut self, v: impl Into<String>) -> Self {
+        self.birthdate_trait = Some(v.into());
+        self
+    }
+    /// Set `consentAges`.
+    pub fn with_consent_ages(mut self, v: impl Into<HashMap<String, f64>>) -> Self {
+        self.consent_ages = Some(v.into());
+        self
+    }
+    /// Set `consentTtlHours`.
+    pub fn with_consent_ttl_hours(mut self, v: impl Into<f64>) -> Self {
+        self.consent_ttl_hours = Some(v.into());
+        self
+    }
+    /// Set `countryTrait`.
+    pub fn with_country_trait(mut self, v: impl Into<String>) -> Self {
+        self.country_trait = Some(v.into());
+        self
+    }
+    /// Set `defaultConsentAge`.
+    pub fn with_default_consent_age(mut self, v: impl Into<f64>) -> Self {
+        self.default_consent_age = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `minimumAge`.
+    pub fn with_minimum_age(mut self, v: impl Into<f64>) -> Self {
+        self.minimum_age = Some(v.into());
+        self
+    }
+    /// Set `restriction`.
+    pub fn with_restriction(mut self, v: impl Into<String>) -> Self {
+        self.restriction = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchComplianceRetention {
+    #[serde(
+        rename = "anonymousRetentionDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub anonymous_retention_days: Option<f64>,
+    #[serde(
+        rename = "cancelDeletionOnSignIn",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cancel_deletion_on_sign_in: Option<bool>,
+    #[serde(
+        rename = "deletedUserGraceDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub deleted_user_grace_days: Option<f64>,
+    #[serde(
+        rename = "erasureGraceDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub erasure_grace_days: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchComplianceRetention {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `anonymousRetentionDays`.
+    pub fn with_anonymous_retention_days(mut self, v: impl Into<f64>) -> Self {
+        self.anonymous_retention_days = Some(v.into());
+        self
+    }
+    /// Set `cancelDeletionOnSignIn`.
+    pub fn with_cancel_deletion_on_sign_in(mut self, v: impl Into<bool>) -> Self {
+        self.cancel_deletion_on_sign_in = Some(v.into());
+        self
+    }
+    /// Set `deletedUserGraceDays`.
+    pub fn with_deleted_user_grace_days(mut self, v: impl Into<f64>) -> Self {
+        self.deleted_user_grace_days = Some(v.into());
+        self
+    }
+    /// Set `erasureGraceDays`.
+    pub fn with_erasure_grace_days(mut self, v: impl Into<f64>) -> Self {
+        self.erasure_grace_days = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchEndUserApiKeys {
+    #[serde(
+        rename = "allowedClaimNames",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_claim_names: Option<Vec<String>>,
+    #[serde(
+        rename = "allowedScopes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_scopes: Option<Vec<String>>,
+    #[serde(
+        rename = "allowOrganizationKeys",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allow_organization_keys: Option<bool>,
+    #[serde(
+        rename = "defaultExpiresInSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub default_expires_in_seconds: Option<f64>,
+    #[serde(rename = "keyPrefix", default, skip_serializing_if = "Option::is_none")]
+    pub key_prefix: Option<String>,
+    #[serde(
+        rename = "maxActiveKeysPerSubject",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_active_keys_per_subject: Option<f64>,
+    #[serde(
+        rename = "maxExpiresInSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_expires_in_seconds: Option<f64>,
+    #[serde(
+        rename = "organizationPermission",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub organization_permission: Option<String>,
+    #[serde(
+        rename = "selfServiceEnabled",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub self_service_enabled: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchEndUserApiKeys {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowedClaimNames`.
+    pub fn with_allowed_claim_names(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_claim_names = Some(v.into());
+        self
+    }
+    /// Set `allowedScopes`.
+    pub fn with_allowed_scopes(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_scopes = Some(v.into());
+        self
+    }
+    /// Set `allowOrganizationKeys`.
+    pub fn with_allow_organization_keys(mut self, v: impl Into<bool>) -> Self {
+        self.allow_organization_keys = Some(v.into());
+        self
+    }
+    /// Set `defaultExpiresInSeconds`.
+    pub fn with_default_expires_in_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.default_expires_in_seconds = Some(v.into());
+        self
+    }
+    /// Set `keyPrefix`.
+    pub fn with_key_prefix(mut self, v: impl Into<String>) -> Self {
+        self.key_prefix = Some(v.into());
+        self
+    }
+    /// Set `maxActiveKeysPerSubject`.
+    pub fn with_max_active_keys_per_subject(mut self, v: impl Into<f64>) -> Self {
+        self.max_active_keys_per_subject = Some(v.into());
+        self
+    }
+    /// Set `maxExpiresInSeconds`.
+    pub fn with_max_expires_in_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.max_expires_in_seconds = Some(v.into());
+        self
+    }
+    /// Set `organizationPermission`.
+    pub fn with_organization_permission(mut self, v: impl Into<String>) -> Self {
+        self.organization_permission = Some(v.into());
+        self
+    }
+    /// Set `selfServiceEnabled`.
+    pub fn with_self_service_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.self_service_enabled = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchEntitlements {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub features: Option<Vec<AuthConfigPatchEntitlementsFeaturesItem>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plans: Option<Vec<AuthConfigPatchEntitlementsPlansItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchEntitlements {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `features`.
+    pub fn with_features(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchEntitlementsFeaturesItem>>,
+    ) -> Self {
+        self.features = Some(v.into());
+        self
+    }
+    /// Set `plans`.
+    pub fn with_plans(mut self, v: impl Into<Vec<AuthConfigPatchEntitlementsPlansItem>>) -> Self {
+        self.plans = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchEntitlementsFeaturesItem {
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub name: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchEntitlementsFeaturesItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(key: impl Into<String>, name: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            name: name.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `key`.
+    pub fn with_key(mut self, v: impl Into<String>) -> Self {
+        self.key = v.into();
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchEntitlementsPlansItem {
+    #[serde(default)]
+    pub features: Vec<String>,
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub name: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchEntitlementsPlansItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        features: impl Into<Vec<String>>,
+        key: impl Into<String>,
+        name: impl Into<String>,
+    ) -> Self {
+        Self {
+            features: features.into(),
+            key: key.into(),
+            name: name.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `features`.
+    pub fn with_features(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.features = v.into();
+        self
+    }
+    /// Set `key`.
+    pub fn with_key(mut self, v: impl Into<String>) -> Self {
+        self.key = v.into();
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
+/// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchExternalJwt {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub issuers: Option<Vec<AuthConfigPatchExternalJwtIssuersItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchExternalJwt {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `issuers`.
+    pub fn with_issuers(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchExternalJwtIssuersItem>>,
+    ) -> Self {
+        self.issuers = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchExternalJwtIssuersItem {
+    #[serde(default)]
+    pub audience: String,
+    #[serde(
+        rename = "emailClaim",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_claim: Option<String>,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub issuer: String,
+    #[serde(rename = "jwksUri", default)]
+    pub jwks_uri: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchExternalJwtIssuersItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        audience: impl Into<String>,
+        id: impl Into<String>,
+        issuer: impl Into<String>,
+        jwks_uri: impl Into<String>,
+    ) -> Self {
+        Self {
+            audience: audience.into(),
+            id: id.into(),
+            issuer: issuer.into(),
+            jwks_uri: jwks_uri.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
+        self.audience = v.into();
+        self
+    }
+    /// Set `emailClaim`.
+    pub fn with_email_claim(mut self, v: impl Into<String>) -> Self {
+        self.email_claim = Some(v.into());
+        self
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = v.into();
+        self
+    }
+    /// Set `issuer`.
+    pub fn with_issuer(mut self, v: impl Into<String>) -> Self {
+        self.issuer = v.into();
+        self
+    }
+    /// Set `jwksUri`.
+    pub fn with_jwks_uri(mut self, v: impl Into<String>) -> Self {
+        self.jwks_uri = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchIdentityTraits {
+    #[serde(
+        rename = "audienceKey",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub audience_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub groups: Option<Vec<AuthConfigPatchIdentityTraitsGroupsItem>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub traits: Option<Vec<AuthConfigPatchIdentityTraitsTraitsItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchIdentityTraits {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `audienceKey`.
+    pub fn with_audience_key(mut self, v: impl Into<String>) -> Self {
+        self.audience_key = Some(v.into());
+        self
+    }
+    /// Set `groups`.
+    pub fn with_groups(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchIdentityTraitsGroupsItem>>,
+    ) -> Self {
+        self.groups = Some(v.into());
+        self
+    }
+    /// Set `traits`.
+    pub fn with_traits(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchIdentityTraitsTraitsItem>>,
+    ) -> Self {
+        self.traits = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchIdentityTraitsGroupsItem {
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub labels: Option<HashMap<String, String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchIdentityTraitsGroupsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(key: impl Into<String>, label: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            label: label.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `key`.
+    pub fn with_key(mut self, v: impl Into<String>) -> Self {
+        self.key = v.into();
+        self
+    }
+    /// Set `label`.
+    pub fn with_label(mut self, v: impl Into<String>) -> Self {
+        self.label = v.into();
+        self
+    }
+    /// Set `labels`.
+    pub fn with_labels(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.labels = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchIdentityTraitsTraitsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audiences: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
+    /// Known values: `email`, `email_domain`, `first_name`, `full_name`, `last_name`.
+    #[serde(
+        rename = "defaultFrom",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub default_from: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(
+        rename = "editableBy",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub editable_by: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#enum: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub indexed: Option<bool>,
+    /// Known values: `number`, `string`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<String>,
+    #[serde(default)]
+    pub key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub labels: Option<HashMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<f64>,
+    #[serde(rename = "maxDate", default, skip_serializing_if = "Option::is_none")]
+    pub max_date: Option<String>,
+    #[serde(rename = "maxItems", default, skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<f64>,
+    #[serde(rename = "maxLength", default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min: Option<f64>,
+    #[serde(rename = "minDate", default, skip_serializing_if = "Option::is_none")]
+    pub min_date: Option<String>,
+    #[serde(rename = "minItems", default, skip_serializing_if = "Option::is_none")]
+    pub min_items: Option<f64>,
+    #[serde(rename = "minLength", default, skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub properties: Option<Vec<Map<String, Value>>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required: Option<bool>,
+    #[serde(
+        rename = "requiredWhen",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub required_when: Option<AuthConfigPatchIdentityTraitsTraitsItemRequiredWhen>,
+    /// Known values: `array`, `boolean`, `date`, `email`, `enum`, `multi_select`, `number`, `object`, `phone`, `string`, `url`.
+    #[serde(default)]
+    pub r#type: String,
+    #[serde(
+        rename = "userEditable",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub user_editable: Option<bool>,
+    #[serde(
+        rename = "viewableBy",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub viewable_by: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchIdentityTraitsTraitsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(key: impl Into<String>, r#type: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            r#type: r#type.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `audiences`.
+    pub fn with_audiences(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.audiences = Some(v.into());
+        self
+    }
+    /// Set `default`.
+    pub fn with_default(mut self, v: impl Into<Value>) -> Self {
+        self.default = Some(v.into());
+        self
+    }
+    /// Set `defaultFrom`.
+    pub fn with_default_from(mut self, v: impl Into<String>) -> Self {
+        self.default_from = Some(v.into());
+        self
+    }
+    /// Set `description`.
+    pub fn with_description(mut self, v: impl Into<String>) -> Self {
+        self.description = Some(v.into());
+        self
+    }
+    /// Set `editableBy`.
+    pub fn with_editable_by(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.editable_by = Some(v.into());
+        self
+    }
+    /// Set `enum`.
+    pub fn with_enum(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.r#enum = Some(v.into());
+        self
+    }
+    /// Set `group`.
+    pub fn with_group(mut self, v: impl Into<String>) -> Self {
+        self.group = Some(v.into());
+        self
+    }
+    /// Set `indexed`.
+    pub fn with_indexed(mut self, v: impl Into<bool>) -> Self {
+        self.indexed = Some(v.into());
+        self
+    }
+    /// Set `items`.
+    pub fn with_items(mut self, v: impl Into<String>) -> Self {
+        self.items = Some(v.into());
+        self
+    }
+    /// Set `key`.
+    pub fn with_key(mut self, v: impl Into<String>) -> Self {
+        self.key = v.into();
+        self
+    }
+    /// Set `label`.
+    pub fn with_label(mut self, v: impl Into<String>) -> Self {
+        self.label = Some(v.into());
+        self
+    }
+    /// Set `labels`.
+    pub fn with_labels(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.labels = Some(v.into());
+        self
+    }
+    /// Set `max`.
+    pub fn with_max(mut self, v: impl Into<f64>) -> Self {
+        self.max = Some(v.into());
+        self
+    }
+    /// Set `maxDate`.
+    pub fn with_max_date(mut self, v: impl Into<String>) -> Self {
+        self.max_date = Some(v.into());
+        self
+    }
+    /// Set `maxItems`.
+    pub fn with_max_items(mut self, v: impl Into<f64>) -> Self {
+        self.max_items = Some(v.into());
+        self
+    }
+    /// Set `maxLength`.
+    pub fn with_max_length(mut self, v: impl Into<f64>) -> Self {
+        self.max_length = Some(v.into());
+        self
+    }
+    /// Set `min`.
+    pub fn with_min(mut self, v: impl Into<f64>) -> Self {
+        self.min = Some(v.into());
+        self
+    }
+    /// Set `minDate`.
+    pub fn with_min_date(mut self, v: impl Into<String>) -> Self {
+        self.min_date = Some(v.into());
+        self
+    }
+    /// Set `minItems`.
+    pub fn with_min_items(mut self, v: impl Into<f64>) -> Self {
+        self.min_items = Some(v.into());
+        self
+    }
+    /// Set `minLength`.
+    pub fn with_min_length(mut self, v: impl Into<f64>) -> Self {
+        self.min_length = Some(v.into());
+        self
+    }
+    /// Set `pattern`.
+    pub fn with_pattern(mut self, v: impl Into<String>) -> Self {
+        self.pattern = Some(v.into());
+        self
+    }
+    /// Set `properties`.
+    pub fn with_properties(mut self, v: impl Into<Vec<Map<String, Value>>>) -> Self {
+        self.properties = Some(v.into());
+        self
+    }
+    /// Set `required`.
+    pub fn with_required(mut self, v: impl Into<bool>) -> Self {
+        self.required = Some(v.into());
+        self
+    }
+    /// Set `requiredWhen`.
+    pub fn with_required_when(
+        mut self,
+        v: impl Into<AuthConfigPatchIdentityTraitsTraitsItemRequiredWhen>,
+    ) -> Self {
+        self.required_when = Some(v.into());
+        self
+    }
+    /// Set `type`.
+    pub fn with_type(mut self, v: impl Into<String>) -> Self {
+        self.r#type = v.into();
+        self
+    }
+    /// Set `userEditable`.
+    pub fn with_user_editable(mut self, v: impl Into<bool>) -> Self {
+        self.user_editable = Some(v.into());
+        self
+    }
+    /// Set `viewableBy`.
+    pub fn with_viewable_by(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.viewable_by = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchIdentityTraitsTraitsItemRequiredWhen {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equals: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#in: Option<Vec<Value>>,
+    #[serde(default)]
+    pub key: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchIdentityTraitsTraitsItemRequiredWhen {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(key: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `equals`.
+    pub fn with_equals(mut self, v: impl Into<Value>) -> Self {
+        self.equals = Some(v.into());
+        self
+    }
+    /// Set `in`.
+    pub fn with_in(mut self, v: impl Into<Vec<Value>>) -> Self {
+        self.r#in = Some(v.into());
+        self
+    }
+    /// Set `key`.
+    pub fn with_key(mut self, v: impl Into<String>) -> Self {
+        self.key = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchJwtTemplateSettingsValue {
+    /// Known values: `HS256`, `RS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    #[serde(
+        rename = "lifetimeSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub lifetime_seconds: Option<f64>,
+    #[serde(
+        rename = "signingSecretEnc",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub signing_secret_enc: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchJwtTemplateSettingsValue {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `algorithm`.
+    pub fn with_algorithm(mut self, v: impl Into<String>) -> Self {
+        self.algorithm = Some(v.into());
+        self
+    }
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
+        self.audience = Some(v.into());
+        self
+    }
+    /// Set `lifetimeSeconds`.
+    pub fn with_lifetime_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.lifetime_seconds = Some(v.into());
+        self
+    }
+    /// Set `signingSecretEnc`.
+    pub fn with_signing_secret_enc(mut self, v: impl Into<String>) -> Self {
+        self.signing_secret_enc = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchKerberos {
+    #[serde(
+        rename = "allowJitProvisioning",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allow_jit_provisioning: Option<bool>,
+    #[serde(
+        rename = "emailDomain",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_domain: Option<String>,
+    #[serde(
+        rename = "principalHeader",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub principal_header: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub realm: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchKerberos {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowJitProvisioning`.
+    pub fn with_allow_jit_provisioning(mut self, v: impl Into<bool>) -> Self {
+        self.allow_jit_provisioning = Some(v.into());
+        self
+    }
+    /// Set `emailDomain`.
+    pub fn with_email_domain(mut self, v: impl Into<String>) -> Self {
+        self.email_domain = Some(v.into());
+        self
+    }
+    /// Set `principalHeader`.
+    pub fn with_principal_header(mut self, v: impl Into<String>) -> Self {
+        self.principal_header = Some(v.into());
+        self
+    }
+    /// Set `realm`.
+    pub fn with_realm(mut self, v: impl Into<String>) -> Self {
+        self.realm = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchLdap {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connections: Option<Vec<AuthConfigPatchLdapConnectionsItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchLdap {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `connections`.
+    pub fn with_connections(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchLdapConnectionsItem>>,
+    ) -> Self {
+        self.connections = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchLdapConnectionsItem {
+    #[serde(default)]
+    pub attributes: AuthConfigPatchLdapConnectionsItemAttributes,
+    #[serde(rename = "baseDN", default)]
+    pub base_dn: String,
+    #[serde(rename = "bindDN", default)]
+    pub bind_dn: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub url: String,
+    #[serde(rename = "userFilter", default)]
+    pub user_filter: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchLdapConnectionsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        attributes: impl Into<AuthConfigPatchLdapConnectionsItemAttributes>,
+        base_dn: impl Into<String>,
+        bind_dn: impl Into<String>,
+        id: impl Into<String>,
+        url: impl Into<String>,
+        user_filter: impl Into<String>,
+    ) -> Self {
+        Self {
+            attributes: attributes.into(),
+            base_dn: base_dn.into(),
+            bind_dn: bind_dn.into(),
+            id: id.into(),
+            url: url.into(),
+            user_filter: user_filter.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `attributes`.
+    pub fn with_attributes(
+        mut self,
+        v: impl Into<AuthConfigPatchLdapConnectionsItemAttributes>,
+    ) -> Self {
+        self.attributes = v.into();
+        self
+    }
+    /// Set `baseDN`.
+    pub fn with_base_dn(mut self, v: impl Into<String>) -> Self {
+        self.base_dn = v.into();
+        self
+    }
+    /// Set `bindDN`.
+    pub fn with_bind_dn(mut self, v: impl Into<String>) -> Self {
+        self.bind_dn = v.into();
+        self
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = v.into();
+        self
+    }
+    /// Set `url`.
+    pub fn with_url(mut self, v: impl Into<String>) -> Self {
+        self.url = v.into();
+        self
+    }
+    /// Set `userFilter`.
+    pub fn with_user_filter(mut self, v: impl Into<String>) -> Self {
+        self.user_filter = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchLdapConnectionsItemAttributes {
+    #[serde(default)]
+    pub email: String,
+    #[serde(rename = "firstName", default, skip_serializing_if = "Option::is_none")]
+    pub first_name: Option<String>,
+    #[serde(rename = "lastName", default, skip_serializing_if = "Option::is_none")]
+    pub last_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchLdapConnectionsItemAttributes {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(email: impl Into<String>) -> Self {
+        Self {
+            email: email.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `email`.
+    pub fn with_email(mut self, v: impl Into<String>) -> Self {
+        self.email = v.into();
+        self
+    }
+    /// Set `firstName`.
+    pub fn with_first_name(mut self, v: impl Into<String>) -> Self {
+        self.first_name = Some(v.into());
+        self
+    }
+    /// Set `lastName`.
+    pub fn with_last_name(mut self, v: impl Into<String>) -> Self {
+        self.last_name = Some(v.into());
+        self
+    }
+    /// Set `username`.
+    pub fn with_username(mut self, v: impl Into<String>) -> Self {
+        self.username = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchLocalization {
+    #[serde(
+        rename = "defaultLocale",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub default_locale: Option<String>,
+    #[serde(
+        rename = "enabledLocales",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub enabled_locales: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchLocalization {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `defaultLocale`.
+    pub fn with_default_locale(mut self, v: impl Into<String>) -> Self {
+        self.default_locale = Some(v.into());
+        self
+    }
+    /// Set `enabledLocales`.
+    pub fn with_enabled_locales(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.enabled_locales = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMcpConnector {
+    #[serde(
+        rename = "allowedRedirectHosts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_redirect_hosts: Option<Vec<String>>,
+    #[serde(
+        rename = "dynamicRegistration",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dynamic_registration: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "exposedScopes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub exposed_scopes: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMcpConnector {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowedRedirectHosts`.
+    pub fn with_allowed_redirect_hosts(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_redirect_hosts = Some(v.into());
+        self
+    }
+    /// Set `dynamicRegistration`.
+    pub fn with_dynamic_registration(mut self, v: impl Into<bool>) -> Self {
+        self.dynamic_registration = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `exposedScopes`.
+    pub fn with_exposed_scopes(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.exposed_scopes = Some(v.into());
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfa {
+    #[serde(
+        rename = "backupCodes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub backup_codes: Option<AuthConfigPatchMfaBackupCodes>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duo: Option<AuthConfigPatchMfaDuo>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub factors: Option<AuthConfigPatchMfaFactors>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hotp: Option<AuthConfigPatchMfaHotp>,
+    #[serde(
+        rename = "rememberDevice",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub remember_device: Option<AuthConfigPatchMfaRememberDevice>,
+    #[serde(
+        rename = "securityQuestions",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub security_questions: Option<AuthConfigPatchMfaSecurityQuestions>,
+    #[serde(rename = "smartCard", default, skip_serializing_if = "Option::is_none")]
+    pub smart_card: Option<AuthConfigPatchMfaSmartCard>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub totp: Option<AuthConfigPatchMfaTotp>,
+    #[serde(
+        rename = "totpEnrollmentCodes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub totp_enrollment_codes: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yubikey: Option<AuthConfigPatchMfaYubikey>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfa {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `backupCodes`.
+    pub fn with_backup_codes(mut self, v: impl Into<AuthConfigPatchMfaBackupCodes>) -> Self {
+        self.backup_codes = Some(v.into());
+        self
+    }
+    /// Set `duo`.
+    pub fn with_duo(mut self, v: impl Into<AuthConfigPatchMfaDuo>) -> Self {
+        self.duo = Some(v.into());
+        self
+    }
+    /// Set `factors`.
+    pub fn with_factors(mut self, v: impl Into<AuthConfigPatchMfaFactors>) -> Self {
+        self.factors = Some(v.into());
+        self
+    }
+    /// Set `hotp`.
+    pub fn with_hotp(mut self, v: impl Into<AuthConfigPatchMfaHotp>) -> Self {
+        self.hotp = Some(v.into());
+        self
+    }
+    /// Set `rememberDevice`.
+    pub fn with_remember_device(mut self, v: impl Into<AuthConfigPatchMfaRememberDevice>) -> Self {
+        self.remember_device = Some(v.into());
+        self
+    }
+    /// Set `securityQuestions`.
+    pub fn with_security_questions(
+        mut self,
+        v: impl Into<AuthConfigPatchMfaSecurityQuestions>,
+    ) -> Self {
+        self.security_questions = Some(v.into());
+        self
+    }
+    /// Set `smartCard`.
+    pub fn with_smart_card(mut self, v: impl Into<AuthConfigPatchMfaSmartCard>) -> Self {
+        self.smart_card = Some(v.into());
+        self
+    }
+    /// Set `totp`.
+    pub fn with_totp(mut self, v: impl Into<AuthConfigPatchMfaTotp>) -> Self {
+        self.totp = Some(v.into());
+        self
+    }
+    /// Set `totpEnrollmentCodes`.
+    pub fn with_totp_enrollment_codes(mut self, v: impl Into<f64>) -> Self {
+        self.totp_enrollment_codes = Some(v.into());
+        self
+    }
+    /// Set `yubikey`.
+    pub fn with_yubikey(mut self, v: impl Into<AuthConfigPatchMfaYubikey>) -> Self {
+        self.yubikey = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaBackupCodes {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaBackupCodes {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `count`.
+    pub fn with_count(mut self, v: impl Into<f64>) -> Self {
+        self.count = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaDuo {
+    #[serde(rename = "apiHost", default, skip_serializing_if = "Option::is_none")]
+    pub api_host: Option<String>,
+    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaDuo {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `apiHost`.
+    pub fn with_api_host(mut self, v: impl Into<String>) -> Self {
+        self.api_host = Some(v.into());
+        self
+    }
+    /// Set `clientId`.
+    pub fn with_client_id(mut self, v: impl Into<String>) -> Self {
+        self.client_id = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaFactors {
+    #[serde(
+        rename = "customChallenge",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub custom_challenge: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duo: Option<bool>,
+    #[serde(rename = "emailCode", default, skip_serializing_if = "Option::is_none")]
+    pub email_code: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hotp: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub passkey: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub push: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sms: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub totp: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub yubikey: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaFactors {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `customChallenge`.
+    pub fn with_custom_challenge(mut self, v: impl Into<bool>) -> Self {
+        self.custom_challenge = Some(v.into());
+        self
+    }
+    /// Set `duo`.
+    pub fn with_duo(mut self, v: impl Into<bool>) -> Self {
+        self.duo = Some(v.into());
         self
     }
     /// Set `emailCode`.
@@ -6890,9 +11185,9 @@ impl InstanceUpdateBodyAuthConfigStrategies {
         self.email_code = Some(v.into());
         self
     }
-    /// Set `emailLink`.
-    pub fn with_email_link(mut self, v: impl Into<bool>) -> Self {
-        self.email_link = Some(v.into());
+    /// Set `hotp`.
+    pub fn with_hotp(mut self, v: impl Into<bool>) -> Self {
+        self.hotp = Some(v.into());
         self
     }
     /// Set `passkey`.
@@ -6900,29 +11195,24 @@ impl InstanceUpdateBodyAuthConfigStrategies {
         self.passkey = Some(v.into());
         self
     }
-    /// Set `phoneCode`.
-    pub fn with_phone_code(mut self, v: impl Into<bool>) -> Self {
-        self.phone_code = Some(v.into());
+    /// Set `push`.
+    pub fn with_push(mut self, v: impl Into<bool>) -> Self {
+        self.push = Some(v.into());
         self
     }
-    /// Set `username`.
-    pub fn with_username(mut self, v: impl Into<bool>) -> Self {
-        self.username = Some(v.into());
+    /// Set `sms`.
+    pub fn with_sms(mut self, v: impl Into<bool>) -> Self {
+        self.sms = Some(v.into());
         self
     }
-    /// Set `siwe`.
-    pub fn with_siwe(mut self, v: impl Into<bool>) -> Self {
-        self.siwe = Some(v.into());
+    /// Set `totp`.
+    pub fn with_totp(mut self, v: impl Into<bool>) -> Self {
+        self.totp = Some(v.into());
         self
     }
-    /// Set `siws`.
-    pub fn with_siws(mut self, v: impl Into<bool>) -> Self {
-        self.siws = Some(v.into());
-        self
-    }
-    /// Set `siwf`.
-    pub fn with_siwf(mut self, v: impl Into<bool>) -> Self {
-        self.siwf = Some(v.into());
+    /// Set `yubikey`.
+    pub fn with_yubikey(mut self, v: impl Into<bool>) -> Self {
+        self.yubikey = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -6934,15 +11224,1206 @@ impl InstanceUpdateBodyAuthConfigStrategies {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigPasswordPolicy {
-    #[serde(rename = "minLength", default, skip_serializing_if = "Option::is_none")]
-    pub min_length: Option<i64>,
+pub struct AuthConfigPatchMfaHotp {
+    /// Known values: `SHA1`, `SHA256`, `SHA512`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub digits: Option<f64>,
+    #[serde(rename = "lookAhead", default, skip_serializing_if = "Option::is_none")]
+    pub look_ahead: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaHotp {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `algorithm`.
+    pub fn with_algorithm(mut self, v: impl Into<String>) -> Self {
+        self.algorithm = Some(v.into());
+        self
+    }
+    /// Set `digits`.
+    pub fn with_digits(mut self, v: impl Into<f64>) -> Self {
+        self.digits = Some(v.into());
+        self
+    }
+    /// Set `lookAhead`.
+    pub fn with_look_ahead(mut self, v: impl Into<f64>) -> Self {
+        self.look_ahead = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaRememberDevice {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub days: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaRememberDevice {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `days`.
+    pub fn with_days(mut self, v: impl Into<f64>) -> Self {
+        self.days = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaSecurityQuestions {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
     #[serde(
-        rename = "requireUppercase",
+        rename = "maxAttempts",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub require_uppercase: Option<bool>,
+    pub max_attempts: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub questions: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaSecurityQuestions {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `maxAttempts`.
+    pub fn with_max_attempts(mut self, v: impl Into<f64>) -> Self {
+        self.max_attempts = Some(v.into());
+        self
+    }
+    /// Set `questions`.
+    pub fn with_questions(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.questions = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaSmartCard {
+    #[serde(
+        rename = "certHeader",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cert_header: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "fingerprintHeader",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub fingerprint_header: Option<String>,
+    #[serde(
+        rename = "mappingRules",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub mapping_rules: Option<Vec<String>>,
+    #[serde(
+        rename = "satisfiesMfa",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub satisfies_mfa: Option<bool>,
+    #[serde(
+        rename = "secretHeader",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub secret_header: Option<String>,
+    #[serde(
+        rename = "subjectHeader",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub subject_header: Option<String>,
+    #[serde(
+        rename = "verifyHeader",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub verify_header: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaSmartCard {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `certHeader`.
+    pub fn with_cert_header(mut self, v: impl Into<String>) -> Self {
+        self.cert_header = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `fingerprintHeader`.
+    pub fn with_fingerprint_header(mut self, v: impl Into<String>) -> Self {
+        self.fingerprint_header = Some(v.into());
+        self
+    }
+    /// Set `mappingRules`.
+    pub fn with_mapping_rules(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.mapping_rules = Some(v.into());
+        self
+    }
+    /// Set `satisfiesMfa`.
+    pub fn with_satisfies_mfa(mut self, v: impl Into<bool>) -> Self {
+        self.satisfies_mfa = Some(v.into());
+        self
+    }
+    /// Set `secretHeader`.
+    pub fn with_secret_header(mut self, v: impl Into<String>) -> Self {
+        self.secret_header = Some(v.into());
+        self
+    }
+    /// Set `subjectHeader`.
+    pub fn with_subject_header(mut self, v: impl Into<String>) -> Self {
+        self.subject_header = Some(v.into());
+        self
+    }
+    /// Set `verifyHeader`.
+    pub fn with_verify_header(mut self, v: impl Into<String>) -> Self {
+        self.verify_header = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaTotp {
+    /// Known values: `SHA1`, `SHA256`, `SHA512`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub digits: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub period: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaTotp {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `algorithm`.
+    pub fn with_algorithm(mut self, v: impl Into<String>) -> Self {
+        self.algorithm = Some(v.into());
+        self
+    }
+    /// Set `digits`.
+    pub fn with_digits(mut self, v: impl Into<f64>) -> Self {
+        self.digits = Some(v.into());
+        self
+    }
+    /// Set `period`.
+    pub fn with_period(mut self, v: impl Into<f64>) -> Self {
+        self.period = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchMfaYubikey {
+    #[serde(rename = "apiUrls", default, skip_serializing_if = "Option::is_none")]
+    pub api_urls: Option<Vec<String>>,
+    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// Known values: `cloud`, `self_held`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchMfaYubikey {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `apiUrls`.
+    pub fn with_api_urls(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.api_urls = Some(v.into());
+        self
+    }
+    /// Set `clientId`.
+    pub fn with_client_id(mut self, v: impl Into<String>) -> Self {
+        self.client_id = Some(v.into());
+        self
+    }
+    /// Set `mode`.
+    pub fn with_mode(mut self, v: impl Into<String>) -> Self {
+        self.mode = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchNativeApps {
+    #[serde(
+        rename = "androidApps",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub android_apps: Option<Vec<AuthConfigPatchNativeAppsAndroidAppsItem>>,
+    #[serde(
+        rename = "appleAppIds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub apple_app_ids: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchNativeApps {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `androidApps`.
+    pub fn with_android_apps(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchNativeAppsAndroidAppsItem>>,
+    ) -> Self {
+        self.android_apps = Some(v.into());
+        self
+    }
+    /// Set `appleAppIds`.
+    pub fn with_apple_app_ids(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.apple_app_ids = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchNativeAppsAndroidAppsItem {
+    #[serde(rename = "packageName", default)]
+    pub package_name: String,
+    #[serde(rename = "sha256CertFingerprints", default)]
+    pub sha256_cert_fingerprints: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchNativeAppsAndroidAppsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        package_name: impl Into<String>,
+        sha256_cert_fingerprints: impl Into<Vec<String>>,
+    ) -> Self {
+        Self {
+            package_name: package_name.into(),
+            sha256_cert_fingerprints: sha256_cert_fingerprints.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `packageName`.
+    pub fn with_package_name(mut self, v: impl Into<String>) -> Self {
+        self.package_name = v.into();
+        self
+    }
+    /// Set `sha256CertFingerprints`.
+    pub fn with_sha256_cert_fingerprints(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.sha256_cert_fingerprints = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchOauthProvider {
+    /// Known values: `jwt`, `opaque`.
+    #[serde(
+        rename = "accessTokenFormat",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub access_token_format: Option<String>,
+    #[serde(
+        rename = "authorizationDetailsTypesSupported",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub authorization_details_types_supported: Option<Vec<String>>,
+    #[serde(
+        rename = "clientIdMetadataDocuments",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub client_id_metadata_documents: Option<AuthConfigPatchOauthProviderClientIdMetadataDocuments>,
+    #[serde(
+        rename = "consentUrl",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub consent_url: Option<String>,
+    #[serde(
+        rename = "customScopes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub custom_scopes: Option<Vec<AuthConfigPatchOauthProviderCustomScopesItem>>,
+    #[serde(
+        rename = "deviceApprovalRequiresStepUp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_approval_requires_step_up: Option<bool>,
+    #[serde(
+        rename = "dynamicClientSecretTtlSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dynamic_client_secret_ttl_seconds: Option<f64>,
+    #[serde(
+        rename = "dynamicRegistration",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dynamic_registration: Option<bool>,
+    #[serde(rename = "loginUrl", default, skip_serializing_if = "Option::is_none")]
+    pub login_url: Option<String>,
+    #[serde(
+        rename = "requireInitialAccessToken",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_initial_access_token: Option<bool>,
+    #[serde(
+        rename = "requirePkce",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_pkce: Option<bool>,
+    #[serde(
+        rename = "requirePushedAuthorizationRequests",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_pushed_authorization_requests: Option<bool>,
+    #[serde(
+        rename = "tokenClaims",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub token_claims: Option<Vec<AuthConfigPatchOauthProviderTokenClaimsItem>>,
+    #[serde(
+        rename = "tokenLifetimes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub token_lifetimes: Option<AuthConfigPatchOauthProviderTokenLifetimes>,
+    #[serde(
+        rename = "umaEnabled",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub uma_enabled: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchOauthProvider {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `accessTokenFormat`.
+    pub fn with_access_token_format(mut self, v: impl Into<String>) -> Self {
+        self.access_token_format = Some(v.into());
+        self
+    }
+    /// Set `authorizationDetailsTypesSupported`.
+    pub fn with_authorization_details_types_supported(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.authorization_details_types_supported = Some(v.into());
+        self
+    }
+    /// Set `clientIdMetadataDocuments`.
+    pub fn with_client_id_metadata_documents(
+        mut self,
+        v: impl Into<AuthConfigPatchOauthProviderClientIdMetadataDocuments>,
+    ) -> Self {
+        self.client_id_metadata_documents = Some(v.into());
+        self
+    }
+    /// Set `consentUrl`.
+    pub fn with_consent_url(mut self, v: impl Into<String>) -> Self {
+        self.consent_url = Some(v.into());
+        self
+    }
+    /// Set `customScopes`.
+    pub fn with_custom_scopes(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchOauthProviderCustomScopesItem>>,
+    ) -> Self {
+        self.custom_scopes = Some(v.into());
+        self
+    }
+    /// Set `deviceApprovalRequiresStepUp`.
+    pub fn with_device_approval_requires_step_up(mut self, v: impl Into<bool>) -> Self {
+        self.device_approval_requires_step_up = Some(v.into());
+        self
+    }
+    /// Set `dynamicClientSecretTtlSeconds`.
+    pub fn with_dynamic_client_secret_ttl_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.dynamic_client_secret_ttl_seconds = Some(v.into());
+        self
+    }
+    /// Set `dynamicRegistration`.
+    pub fn with_dynamic_registration(mut self, v: impl Into<bool>) -> Self {
+        self.dynamic_registration = Some(v.into());
+        self
+    }
+    /// Set `loginUrl`.
+    pub fn with_login_url(mut self, v: impl Into<String>) -> Self {
+        self.login_url = Some(v.into());
+        self
+    }
+    /// Set `requireInitialAccessToken`.
+    pub fn with_require_initial_access_token(mut self, v: impl Into<bool>) -> Self {
+        self.require_initial_access_token = Some(v.into());
+        self
+    }
+    /// Set `requirePkce`.
+    pub fn with_require_pkce(mut self, v: impl Into<bool>) -> Self {
+        self.require_pkce = Some(v.into());
+        self
+    }
+    /// Set `requirePushedAuthorizationRequests`.
+    pub fn with_require_pushed_authorization_requests(mut self, v: impl Into<bool>) -> Self {
+        self.require_pushed_authorization_requests = Some(v.into());
+        self
+    }
+    /// Set `tokenClaims`.
+    pub fn with_token_claims(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchOauthProviderTokenClaimsItem>>,
+    ) -> Self {
+        self.token_claims = Some(v.into());
+        self
+    }
+    /// Set `tokenLifetimes`.
+    pub fn with_token_lifetimes(
+        mut self,
+        v: impl Into<AuthConfigPatchOauthProviderTokenLifetimes>,
+    ) -> Self {
+        self.token_lifetimes = Some(v.into());
+        self
+    }
+    /// Set `umaEnabled`.
+    pub fn with_uma_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.uma_enabled = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchOauthProviderClientIdMetadataDocuments {
+    #[serde(
+        rename = "allowedHosts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_hosts: Option<Vec<String>>,
+    #[serde(
+        rename = "blockedHosts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub blocked_hosts: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "trustedHosts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub trusted_hosts: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchOauthProviderClientIdMetadataDocuments {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowedHosts`.
+    pub fn with_allowed_hosts(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_hosts = Some(v.into());
+        self
+    }
+    /// Set `blockedHosts`.
+    pub fn with_blocked_hosts(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.blocked_hosts = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `trustedHosts`.
+    pub fn with_trusted_hosts(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.trusted_hosts = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchOauthProviderCustomScopesItem {
+    #[serde(default)]
+    pub claims: Vec<String>,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parameters: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchOauthProviderCustomScopesItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        claims: impl Into<Vec<String>>,
+        description: impl Into<String>,
+        name: impl Into<String>,
+    ) -> Self {
+        Self {
+            claims: claims.into(),
+            description: description.into(),
+            name: name.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `claims`.
+    pub fn with_claims(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.claims = v.into();
+        self
+    }
+    /// Set `description`.
+    pub fn with_description(mut self, v: impl Into<String>) -> Self {
+        self.description = v.into();
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set `parameters`.
+    pub fn with_parameters(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.parameters = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchOauthProviderTokenClaimsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    #[serde(default)]
+    pub template: String,
+    #[serde(default)]
+    pub tokens: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchOauthProviderTokenClaimsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(template: impl Into<String>, tokens: impl Into<Vec<String>>) -> Self {
+        Self {
+            template: template.into(),
+            tokens: tokens.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `scope`.
+    pub fn with_scope(mut self, v: impl Into<String>) -> Self {
+        self.scope = Some(v.into());
+        self
+    }
+    /// Set `template`.
+    pub fn with_template(mut self, v: impl Into<String>) -> Self {
+        self.template = v.into();
+        self
+    }
+    /// Set `tokens`.
+    pub fn with_tokens(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.tokens = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchOauthProviderTokenLifetimes {
+    #[serde(
+        rename = "accessTokenSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub access_token_seconds: Option<f64>,
+    #[serde(
+        rename = "authorizationCodeSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub authorization_code_seconds: Option<f64>,
+    #[serde(
+        rename = "deviceCodeSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_code_seconds: Option<f64>,
+    #[serde(
+        rename = "idTokenSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub id_token_seconds: Option<f64>,
+    #[serde(
+        rename = "refreshTokenAbsoluteSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub refresh_token_absolute_seconds: Option<f64>,
+    #[serde(
+        rename = "refreshTokenIdleSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub refresh_token_idle_seconds: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchOauthProviderTokenLifetimes {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `accessTokenSeconds`.
+    pub fn with_access_token_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.access_token_seconds = Some(v.into());
+        self
+    }
+    /// Set `authorizationCodeSeconds`.
+    pub fn with_authorization_code_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.authorization_code_seconds = Some(v.into());
+        self
+    }
+    /// Set `deviceCodeSeconds`.
+    pub fn with_device_code_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.device_code_seconds = Some(v.into());
+        self
+    }
+    /// Set `idTokenSeconds`.
+    pub fn with_id_token_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.id_token_seconds = Some(v.into());
+        self
+    }
+    /// Set `refreshTokenAbsoluteSeconds`.
+    pub fn with_refresh_token_absolute_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.refresh_token_absolute_seconds = Some(v.into());
+        self
+    }
+    /// Set `refreshTokenIdleSeconds`.
+    pub fn with_refresh_token_idle_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.refresh_token_idle_seconds = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchOrganizations {
+    #[serde(
+        rename = "allowCustomRolesFromApp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allow_custom_roles_from_app: Option<bool>,
+    #[serde(
+        rename = "allowDeletionFromApp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allow_deletion_from_app: Option<bool>,
+    #[serde(
+        rename = "creatorRole",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub creator_role: Option<String>,
+    #[serde(
+        rename = "defaultMaxAllowedMemberships",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub default_max_allowed_memberships: Option<f64>,
+    #[serde(
+        rename = "inheritAncestorRoles",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub inherit_ancestor_roles: Option<bool>,
+    #[serde(
+        rename = "invitationTtlSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub invitation_ttl_seconds: Option<f64>,
+    #[serde(
+        rename = "maxCustomRolesPerOrganization",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_custom_roles_per_organization: Option<f64>,
+    #[serde(
+        rename = "maxMembersPerTeam",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_members_per_team: Option<f64>,
+    #[serde(
+        rename = "maxOrganizationsPerUser",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_organizations_per_user: Option<f64>,
+    #[serde(
+        rename = "maxPendingInvitationsPerOrganization",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_pending_invitations_per_organization: Option<f64>,
+    #[serde(
+        rename = "maxTeamsPerOrganization",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_teams_per_organization: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchOrganizations {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowCustomRolesFromApp`.
+    pub fn with_allow_custom_roles_from_app(mut self, v: impl Into<bool>) -> Self {
+        self.allow_custom_roles_from_app = Some(v.into());
+        self
+    }
+    /// Set `allowDeletionFromApp`.
+    pub fn with_allow_deletion_from_app(mut self, v: impl Into<bool>) -> Self {
+        self.allow_deletion_from_app = Some(v.into());
+        self
+    }
+    /// Set `creatorRole`.
+    pub fn with_creator_role(mut self, v: impl Into<String>) -> Self {
+        self.creator_role = Some(v.into());
+        self
+    }
+    /// Set `defaultMaxAllowedMemberships`.
+    pub fn with_default_max_allowed_memberships(mut self, v: impl Into<f64>) -> Self {
+        self.default_max_allowed_memberships = Some(v.into());
+        self
+    }
+    /// Set `inheritAncestorRoles`.
+    pub fn with_inherit_ancestor_roles(mut self, v: impl Into<bool>) -> Self {
+        self.inherit_ancestor_roles = Some(v.into());
+        self
+    }
+    /// Set `invitationTtlSeconds`.
+    pub fn with_invitation_ttl_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.invitation_ttl_seconds = Some(v.into());
+        self
+    }
+    /// Set `maxCustomRolesPerOrganization`.
+    pub fn with_max_custom_roles_per_organization(mut self, v: impl Into<f64>) -> Self {
+        self.max_custom_roles_per_organization = Some(v.into());
+        self
+    }
+    /// Set `maxMembersPerTeam`.
+    pub fn with_max_members_per_team(mut self, v: impl Into<f64>) -> Self {
+        self.max_members_per_team = Some(v.into());
+        self
+    }
+    /// Set `maxOrganizationsPerUser`.
+    pub fn with_max_organizations_per_user(mut self, v: impl Into<f64>) -> Self {
+        self.max_organizations_per_user = Some(v.into());
+        self
+    }
+    /// Set `maxPendingInvitationsPerOrganization`.
+    pub fn with_max_pending_invitations_per_organization(mut self, v: impl Into<f64>) -> Self {
+        self.max_pending_invitations_per_organization = Some(v.into());
+        self
+    }
+    /// Set `maxTeamsPerOrganization`.
+    pub fn with_max_teams_per_organization(mut self, v: impl Into<f64>) -> Self {
+        self.max_teams_per_organization = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchPasskeyPolicy {
+    /// Known values: `any`, `cross-platform`, `platform`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachment: Option<String>,
+    /// Known values: `direct`, `indirect`, `none`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attestation: Option<String>,
+    #[serde(
+        rename = "authenticatorAllowlist",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub authenticator_allowlist: Option<Vec<String>>,
+    #[serde(
+        rename = "authenticatorBlocklist",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub authenticator_blocklist: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mds: Option<AuthConfigPatchPasskeyPolicyMds>,
+    #[serde(
+        rename = "requireUserVerification",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_user_verification: Option<bool>,
+    #[serde(
+        rename = "requireUserVerificationForFirstFactor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_user_verification_for_first_factor: Option<bool>,
+    #[serde(
+        rename = "timeoutSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub timeout_seconds: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchPasskeyPolicy {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `attachment`.
+    pub fn with_attachment(mut self, v: impl Into<String>) -> Self {
+        self.attachment = Some(v.into());
+        self
+    }
+    /// Set `attestation`.
+    pub fn with_attestation(mut self, v: impl Into<String>) -> Self {
+        self.attestation = Some(v.into());
+        self
+    }
+    /// Set `authenticatorAllowlist`.
+    pub fn with_authenticator_allowlist(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.authenticator_allowlist = Some(v.into());
+        self
+    }
+    /// Set `authenticatorBlocklist`.
+    pub fn with_authenticator_blocklist(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.authenticator_blocklist = Some(v.into());
+        self
+    }
+    /// Set `mds`.
+    pub fn with_mds(mut self, v: impl Into<AuthConfigPatchPasskeyPolicyMds>) -> Self {
+        self.mds = Some(v.into());
+        self
+    }
+    /// Set `requireUserVerification`.
+    pub fn with_require_user_verification(mut self, v: impl Into<bool>) -> Self {
+        self.require_user_verification = Some(v.into());
+        self
+    }
+    /// Set `requireUserVerificationForFirstFactor`.
+    pub fn with_require_user_verification_for_first_factor(mut self, v: impl Into<bool>) -> Self {
+        self.require_user_verification_for_first_factor = Some(v.into());
+        self
+    }
+    /// Set `timeoutSeconds`.
+    pub fn with_timeout_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.timeout_seconds = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchPasskeyPolicyMds {
+    #[serde(
+        rename = "blockStatuses",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub block_statuses: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "enforceAtSignIn",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub enforce_at_sign_in: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchPasskeyPolicyMds {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `blockStatuses`.
+    pub fn with_block_statuses(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.block_statuses = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `enforceAtSignIn`.
+    pub fn with_enforce_at_sign_in(mut self, v: impl Into<bool>) -> Self {
+        self.enforce_at_sign_in = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchPasswordPolicy {
+    #[serde(
+        rename = "bannedPasswords",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub banned_passwords: Option<Vec<String>>,
+    /// Re-check the password against known breaches at each sign-in: flag (audit only),
+    /// force_reset, or block.
+    ///
+    /// Known values: `off`, `flag`, `force_reset`, `block`.
+    #[serde(
+        rename = "breachCheckOnSignIn",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub breach_check_on_sign_in: Option<String>,
+    /// Reject known-breached passwords (HIBP).
+    #[serde(
+        rename = "checkBreaches",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub check_breaches: Option<bool>,
+    #[serde(
+        rename = "historyCount",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub history_count: Option<f64>,
+    #[serde(
+        rename = "maxAgeDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_age_days: Option<f64>,
+    #[serde(rename = "maxLength", default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<f64>,
+    #[serde(rename = "minLength", default, skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<f64>,
+    /// Refuse any of the 10,000 most common passwords (bundled list, no network call).
+    #[serde(
+        rename = "rejectCommonPasswords",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub reject_common_passwords: Option<bool>,
+    #[serde(
+        rename = "rejectIdentifierSubstring",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub reject_identifier_substring: Option<bool>,
+    #[serde(
+        rename = "requireLowercase",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_lowercase: Option<bool>,
     #[serde(
         rename = "requireNumber",
         default,
@@ -6955,32 +12436,71 @@ pub struct InstanceUpdateBodyAuthConfigPasswordPolicy {
         skip_serializing_if = "Option::is_none"
     )]
     pub require_symbol: Option<bool>,
-    /// Reject known-breached passwords (HIBP).
     #[serde(
-        rename = "checkBreaches",
+        rename = "requireUppercase",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub check_breaches: Option<bool>,
+    pub require_uppercase: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-impl InstanceUpdateBodyAuthConfigPasswordPolicy {
+impl AuthConfigPatchPasswordPolicy {
     /// A value with the required fields set and every other field unset.
     pub fn new() -> Self {
         Self::default()
     }
+    /// Set `bannedPasswords`.
+    pub fn with_banned_passwords(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.banned_passwords = Some(v.into());
+        self
+    }
+    /// Set `breachCheckOnSignIn`.
+    pub fn with_breach_check_on_sign_in(mut self, v: impl Into<String>) -> Self {
+        self.breach_check_on_sign_in = Some(v.into());
+        self
+    }
+    /// Set `checkBreaches`.
+    pub fn with_check_breaches(mut self, v: impl Into<bool>) -> Self {
+        self.check_breaches = Some(v.into());
+        self
+    }
+    /// Set `historyCount`.
+    pub fn with_history_count(mut self, v: impl Into<f64>) -> Self {
+        self.history_count = Some(v.into());
+        self
+    }
+    /// Set `maxAgeDays`.
+    pub fn with_max_age_days(mut self, v: impl Into<f64>) -> Self {
+        self.max_age_days = Some(v.into());
+        self
+    }
+    /// Set `maxLength`.
+    pub fn with_max_length(mut self, v: impl Into<f64>) -> Self {
+        self.max_length = Some(v.into());
+        self
+    }
     /// Set `minLength`.
-    pub fn with_min_length(mut self, v: impl Into<i64>) -> Self {
+    pub fn with_min_length(mut self, v: impl Into<f64>) -> Self {
         self.min_length = Some(v.into());
         self
     }
-    /// Set `requireUppercase`.
-    pub fn with_require_uppercase(mut self, v: impl Into<bool>) -> Self {
-        self.require_uppercase = Some(v.into());
+    /// Set `rejectCommonPasswords`.
+    pub fn with_reject_common_passwords(mut self, v: impl Into<bool>) -> Self {
+        self.reject_common_passwords = Some(v.into());
+        self
+    }
+    /// Set `rejectIdentifierSubstring`.
+    pub fn with_reject_identifier_substring(mut self, v: impl Into<bool>) -> Self {
+        self.reject_identifier_substring = Some(v.into());
+        self
+    }
+    /// Set `requireLowercase`.
+    pub fn with_require_lowercase(mut self, v: impl Into<bool>) -> Self {
+        self.require_lowercase = Some(v.into());
         self
     }
     /// Set `requireNumber`.
@@ -6993,9 +12513,9 @@ impl InstanceUpdateBodyAuthConfigPasswordPolicy {
         self.require_symbol = Some(v.into());
         self
     }
-    /// Set `checkBreaches`.
-    pub fn with_check_breaches(mut self, v: impl Into<bool>) -> Self {
-        self.check_breaches = Some(v.into());
+    /// Set `requireUppercase`.
+    pub fn with_require_uppercase(mut self, v: impl Into<bool>) -> Self {
+        self.require_uppercase = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -7005,40 +12525,1223 @@ impl InstanceUpdateBodyAuthConfigPasswordPolicy {
     }
 }
 
-/// Per-method code/link TTLs, lengths and resend limits.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigVerification {
-    #[serde(rename = "emailCode", default, skip_serializing_if = "Option::is_none")]
-    pub email_code: Option<Map<String, Value>>,
-    #[serde(rename = "smsCode", default, skip_serializing_if = "Option::is_none")]
-    pub sms_code: Option<Map<String, Value>>,
-    #[serde(rename = "magicLink", default, skip_serializing_if = "Option::is_none")]
-    pub magic_link: Option<Map<String, Value>>,
+pub struct AuthConfigPatchPca {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "maxPlanNodes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_plan_nodes: Option<f64>,
+    #[serde(
+        rename = "publicRateLimitPerMin",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub public_rate_limit_per_min: Option<f64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-impl InstanceUpdateBodyAuthConfigVerification {
+impl AuthConfigPatchPca {
     /// A value with the required fields set and every other field unset.
     pub fn new() -> Self {
         Self::default()
     }
-    /// Set `emailCode`.
-    pub fn with_email_code(mut self, v: impl Into<Map<String, Value>>) -> Self {
-        self.email_code = Some(v.into());
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
         self
     }
-    /// Set `smsCode`.
-    pub fn with_sms_code(mut self, v: impl Into<Map<String, Value>>) -> Self {
-        self.sms_code = Some(v.into());
+    /// Set `maxPlanNodes`.
+    pub fn with_max_plan_nodes(mut self, v: impl Into<f64>) -> Self {
+        self.max_plan_nodes = Some(v.into());
         self
     }
-    /// Set `magicLink`.
-    pub fn with_magic_link(mut self, v: impl Into<Map<String, Value>>) -> Self {
-        self.magic_link = Some(v.into());
+    /// Set `publicRateLimitPerMin`.
+    pub fn with_public_rate_limit_per_min(mut self, v: impl Into<f64>) -> Self {
+        self.public_rate_limit_per_min = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchPhoneChannels {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sms: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub voice: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub whatsapp: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchPhoneChannels {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `sms`.
+    pub fn with_sms(mut self, v: impl Into<bool>) -> Self {
+        self.sms = Some(v.into());
+        self
+    }
+    /// Set `voice`.
+    pub fn with_voice(mut self, v: impl Into<bool>) -> Self {
+        self.voice = Some(v.into());
+        self
+    }
+    /// Set `whatsapp`.
+    pub fn with_whatsapp(mut self, v: impl Into<bool>) -> Self {
+        self.whatsapp = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchQrSignIn {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(
+        rename = "matchCodeDigits",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub match_code_digits: Option<f64>,
+    #[serde(
+        rename = "ttlMinutes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ttl_minutes: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchQrSignIn {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `matchCodeDigits`.
+    pub fn with_match_code_digits(mut self, v: impl Into<f64>) -> Self {
+        self.match_code_digits = Some(v.into());
+        self
+    }
+    /// Set `ttlMinutes`.
+    pub fn with_ttl_minutes(mut self, v: impl Into<f64>) -> Self {
+        self.ttl_minutes = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRateLimit {
+    #[serde(
+        rename = "bapiPerMin",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub bapi_per_min: Option<f64>,
+    #[serde(
+        rename = "fapiCreatePerMin",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub fapi_create_per_min: Option<f64>,
+    #[serde(
+        rename = "fapiVerifyPerMin",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub fapi_verify_per_min: Option<f64>,
+    #[serde(
+        rename = "ldapPerIpPerMin",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ldap_per_ip_per_min: Option<f64>,
+    #[serde(
+        rename = "ldapPerUserPerMin",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ldap_per_user_per_min: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rules: Option<Vec<AuthConfigPatchRateLimitRulesItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRateLimit {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `bapiPerMin`.
+    pub fn with_bapi_per_min(mut self, v: impl Into<f64>) -> Self {
+        self.bapi_per_min = Some(v.into());
+        self
+    }
+    /// Set `fapiCreatePerMin`.
+    pub fn with_fapi_create_per_min(mut self, v: impl Into<f64>) -> Self {
+        self.fapi_create_per_min = Some(v.into());
+        self
+    }
+    /// Set `fapiVerifyPerMin`.
+    pub fn with_fapi_verify_per_min(mut self, v: impl Into<f64>) -> Self {
+        self.fapi_verify_per_min = Some(v.into());
+        self
+    }
+    /// Set `ldapPerIpPerMin`.
+    pub fn with_ldap_per_ip_per_min(mut self, v: impl Into<f64>) -> Self {
+        self.ldap_per_ip_per_min = Some(v.into());
+        self
+    }
+    /// Set `ldapPerUserPerMin`.
+    pub fn with_ldap_per_user_per_min(mut self, v: impl Into<f64>) -> Self {
+        self.ldap_per_user_per_min = Some(v.into());
+        self
+    }
+    /// Set `rules`.
+    pub fn with_rules(mut self, v: impl Into<Vec<AuthConfigPatchRateLimitRulesItem>>) -> Self {
+        self.rules = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRateLimitRulesItem {
+    /// Known values: `account_changes`, `bapi`, `bapi_organizations`, `bapi_sessions`, `bapi_tokens`, `bapi_users`, `captcha`, `code_send`, `credential_verify`, `password_reset`, `session_tokens`, `sign_in`, `sign_up`, `wallet_sign_in`.
+    #[serde(default)]
+    pub group: String,
+    /// Known values: `instance`, `ip`, `user`.
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub max: f64,
+    #[serde(rename = "windowSeconds", default)]
+    pub window_seconds: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRateLimitRulesItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        group: impl Into<String>,
+        key: impl Into<String>,
+        max: impl Into<f64>,
+        window_seconds: impl Into<f64>,
+    ) -> Self {
+        Self {
+            group: group.into(),
+            key: key.into(),
+            max: max.into(),
+            window_seconds: window_seconds.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `group`.
+    pub fn with_group(mut self, v: impl Into<String>) -> Self {
+        self.group = v.into();
+        self
+    }
+    /// Set `key`.
+    pub fn with_key(mut self, v: impl Into<String>) -> Self {
+        self.key = v.into();
+        self
+    }
+    /// Set `max`.
+    pub fn with_max(mut self, v: impl Into<f64>) -> Self {
+        self.max = v.into();
+        self
+    }
+    /// Set `windowSeconds`.
+    pub fn with_window_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.window_seconds = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRestrictions {
+    #[serde(
+        rename = "allowlistOnly",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowlist_only: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRestrictions {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `allowlistOnly`.
+    pub fn with_allowlist_only(mut self, v: impl Into<bool>) -> Self {
+        self.allowlist_only = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfa {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baseline: Option<AuthConfigPatchRiskBasedMfaBaseline>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraud: Option<AuthConfigPatchRiskBasedMfaFraud>,
+    #[serde(
+        rename = "levelActions",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub level_actions: Option<AuthConfigPatchRiskBasedMfaLevelActions>,
+    #[serde(
+        rename = "midSession",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub mid_session: Option<AuthConfigPatchRiskBasedMfaMidSession>,
+    /// Known values: `audit`, `enforce`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(
+        rename = "onHighRiskNoFactor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub on_high_risk_no_factor: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reputation: Option<AuthConfigPatchRiskBasedMfaReputation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signals: Option<AuthConfigPatchRiskBasedMfaSignals>,
+    /// Known values: `high`, `low`, `medium`.
+    #[serde(
+        rename = "stepUpThreshold",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub step_up_threshold: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weights: Option<AuthConfigPatchRiskBasedMfaWeights>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfa {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `baseline`.
+    pub fn with_baseline(mut self, v: impl Into<AuthConfigPatchRiskBasedMfaBaseline>) -> Self {
+        self.baseline = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `fraud`.
+    pub fn with_fraud(mut self, v: impl Into<AuthConfigPatchRiskBasedMfaFraud>) -> Self {
+        self.fraud = Some(v.into());
+        self
+    }
+    /// Set `levelActions`.
+    pub fn with_level_actions(
+        mut self,
+        v: impl Into<AuthConfigPatchRiskBasedMfaLevelActions>,
+    ) -> Self {
+        self.level_actions = Some(v.into());
+        self
+    }
+    /// Set `midSession`.
+    pub fn with_mid_session(mut self, v: impl Into<AuthConfigPatchRiskBasedMfaMidSession>) -> Self {
+        self.mid_session = Some(v.into());
+        self
+    }
+    /// Set `mode`.
+    pub fn with_mode(mut self, v: impl Into<String>) -> Self {
+        self.mode = Some(v.into());
+        self
+    }
+    /// Set `onHighRiskNoFactor`.
+    pub fn with_on_high_risk_no_factor(mut self, v: impl Into<String>) -> Self {
+        self.on_high_risk_no_factor = Some(v.into());
+        self
+    }
+    /// Set `reputation`.
+    pub fn with_reputation(mut self, v: impl Into<AuthConfigPatchRiskBasedMfaReputation>) -> Self {
+        self.reputation = Some(v.into());
+        self
+    }
+    /// Set `signals`.
+    pub fn with_signals(mut self, v: impl Into<AuthConfigPatchRiskBasedMfaSignals>) -> Self {
+        self.signals = Some(v.into());
+        self
+    }
+    /// Set `stepUpThreshold`.
+    pub fn with_step_up_threshold(mut self, v: impl Into<String>) -> Self {
+        self.step_up_threshold = Some(v.into());
+        self
+    }
+    /// Set `weights`.
+    pub fn with_weights(mut self, v: impl Into<AuthConfigPatchRiskBasedMfaWeights>) -> Self {
+        self.weights = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaBaseline {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weight: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaBaseline {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `weight`.
+    pub fn with_weight(mut self, v: impl Into<f64>) -> Self {
+        self.weight = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaFraud {
+    #[serde(
+        rename = "deviceRateLimit",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_rate_limit: Option<AuthConfigPatchRiskBasedMfaFraudDeviceRateLimit>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rules: Option<Vec<AuthConfigPatchRiskBasedMfaFraudRulesItem>>,
+    #[serde(
+        rename = "sanctionedCountries",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub sanctioned_countries: Option<Vec<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaFraud {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `deviceRateLimit`.
+    pub fn with_device_rate_limit(
+        mut self,
+        v: impl Into<AuthConfigPatchRiskBasedMfaFraudDeviceRateLimit>,
+    ) -> Self {
+        self.device_rate_limit = Some(v.into());
+        self
+    }
+    /// Set `rules`.
+    pub fn with_rules(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchRiskBasedMfaFraudRulesItem>>,
+    ) -> Self {
+        self.rules = Some(v.into());
+        self
+    }
+    /// Set `sanctionedCountries`.
+    pub fn with_sanctioned_countries(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.sanctioned_countries = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaFraudDeviceRateLimit {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adaptive: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(rename = "perHour", default, skip_serializing_if = "Option::is_none")]
+    pub per_hour: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaFraudDeviceRateLimit {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `adaptive`.
+    pub fn with_adaptive(mut self, v: impl Into<bool>) -> Self {
+        self.adaptive = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `perHour`.
+    pub fn with_per_hour(mut self, v: impl Into<f64>) -> Self {
+        self.per_hour = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaFraudRulesItem {
+    /// Known values: `allow`, `block`, `challenge`.
+    #[serde(default)]
+    pub action: String,
+    #[serde(default)]
+    pub conditions: Vec<AuthConfigPatchRiskBasedMfaFraudRulesItemConditionsItem>,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub reason: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaFraudRulesItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        action: impl Into<String>,
+        conditions: impl Into<Vec<AuthConfigPatchRiskBasedMfaFraudRulesItemConditionsItem>>,
+        enabled: impl Into<bool>,
+        id: impl Into<String>,
+        name: impl Into<String>,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            action: action.into(),
+            conditions: conditions.into(),
+            enabled: enabled.into(),
+            id: id.into(),
+            name: name.into(),
+            reason: reason.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `action`.
+    pub fn with_action(mut self, v: impl Into<String>) -> Self {
+        self.action = v.into();
+        self
+    }
+    /// Set `conditions`.
+    pub fn with_conditions(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchRiskBasedMfaFraudRulesItemConditionsItem>>,
+    ) -> Self {
+        self.conditions = v.into();
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = v.into();
+        self
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = v.into();
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set `reason`.
+    pub fn with_reason(mut self, v: impl Into<String>) -> Self {
+        self.reason = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaFraudRulesItemConditionsItem {
+    /// Known values: `anonymizer`, `asn`, `automation`, `bot_score`, `client_class`, `country`, `datacenter`, `device_velocity`, `email_disposable`, `email_velocity`, `headless`, `ip_velocity`, `org_id`, `user_age_days`, `user_banned`, `user_mfa_enabled`.
+    #[serde(default)]
+    pub field: String,
+    /// Known values: `eq`, `gt`, `gte`, `in`, `lt`, `lte`, `neq`, `nin`.
+    #[serde(default)]
+    pub op: String,
+    #[serde(default)]
+    pub value: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaFraudRulesItemConditionsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(field: impl Into<String>, op: impl Into<String>, value: impl Into<Value>) -> Self {
+        Self {
+            field: field.into(),
+            op: op.into(),
+            value: value.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `field`.
+    pub fn with_field(mut self, v: impl Into<String>) -> Self {
+        self.field = v.into();
+        self
+    }
+    /// Set `op`.
+    pub fn with_op(mut self, v: impl Into<String>) -> Self {
+        self.op = v.into();
+        self
+    }
+    /// Set `value`.
+    pub fn with_value(mut self, v: impl Into<Value>) -> Self {
+        self.value = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaLevelActions {
+    /// Known values: `allow`, `block`, `default`, `mfa`, `notify`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<String>,
+    /// Known values: `allow`, `block`, `default`, `mfa`, `notify`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaLevelActions {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `high`.
+    pub fn with_high(mut self, v: impl Into<String>) -> Self {
+        self.high = Some(v.into());
+        self
+    }
+    /// Set `medium`.
+    pub fn with_medium(mut self, v: impl Into<String>) -> Self {
+        self.medium = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaMidSession {
+    /// Known values: `audit`, `notify`, `revoke`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaMidSession {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `action`.
+    pub fn with_action(mut self, v: impl Into<String>) -> Self {
+        self.action = Some(v.into());
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaReputation {
+    #[serde(
+        rename = "emailChecks",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_checks: Option<bool>,
+    #[serde(
+        rename = "emailWeight",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_weight: Option<f64>,
+    #[serde(
+        rename = "flagAnonymizers",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub flag_anonymizers: Option<bool>,
+    #[serde(rename = "ipWeight", default, skip_serializing_if = "Option::is_none")]
+    pub ip_weight: Option<f64>,
+    #[serde(rename = "minScore", default, skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<f64>,
+    /// Known values: `ipqs`, `minfraud`, `none`, `spur`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaReputation {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `emailChecks`.
+    pub fn with_email_checks(mut self, v: impl Into<bool>) -> Self {
+        self.email_checks = Some(v.into());
+        self
+    }
+    /// Set `emailWeight`.
+    pub fn with_email_weight(mut self, v: impl Into<f64>) -> Self {
+        self.email_weight = Some(v.into());
+        self
+    }
+    /// Set `flagAnonymizers`.
+    pub fn with_flag_anonymizers(mut self, v: impl Into<bool>) -> Self {
+        self.flag_anonymizers = Some(v.into());
+        self
+    }
+    /// Set `ipWeight`.
+    pub fn with_ip_weight(mut self, v: impl Into<f64>) -> Self {
+        self.ip_weight = Some(v.into());
+        self
+    }
+    /// Set `minScore`.
+    pub fn with_min_score(mut self, v: impl Into<f64>) -> Self {
+        self.min_score = Some(v.into());
+        self
+    }
+    /// Set `provider`.
+    pub fn with_provider(mut self, v: impl Into<String>) -> Self {
+        self.provider = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaSignals {
+    #[serde(
+        rename = "dormantAccount",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dormant_account: Option<bool>,
+    #[serde(
+        rename = "impossibleTravel",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub impossible_travel: Option<bool>,
+    #[serde(rename = "newDevice", default, skip_serializing_if = "Option::is_none")]
+    pub new_device: Option<bool>,
+    #[serde(rename = "newIp", default, skip_serializing_if = "Option::is_none")]
+    pub new_ip: Option<bool>,
+    #[serde(rename = "newSubnet", default, skip_serializing_if = "Option::is_none")]
+    pub new_subnet: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub velocity: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaSignals {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `dormantAccount`.
+    pub fn with_dormant_account(mut self, v: impl Into<bool>) -> Self {
+        self.dormant_account = Some(v.into());
+        self
+    }
+    /// Set `impossibleTravel`.
+    pub fn with_impossible_travel(mut self, v: impl Into<bool>) -> Self {
+        self.impossible_travel = Some(v.into());
+        self
+    }
+    /// Set `newDevice`.
+    pub fn with_new_device(mut self, v: impl Into<bool>) -> Self {
+        self.new_device = Some(v.into());
+        self
+    }
+    /// Set `newIp`.
+    pub fn with_new_ip(mut self, v: impl Into<bool>) -> Self {
+        self.new_ip = Some(v.into());
+        self
+    }
+    /// Set `newSubnet`.
+    pub fn with_new_subnet(mut self, v: impl Into<bool>) -> Self {
+        self.new_subnet = Some(v.into());
+        self
+    }
+    /// Set `velocity`.
+    pub fn with_velocity(mut self, v: impl Into<bool>) -> Self {
+        self.velocity = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchRiskBasedMfaWeights {
+    #[serde(
+        rename = "dormantAccount",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub dormant_account: Option<f64>,
+    #[serde(
+        rename = "impossibleTravel",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub impossible_travel: Option<f64>,
+    #[serde(rename = "newDevice", default, skip_serializing_if = "Option::is_none")]
+    pub new_device: Option<f64>,
+    #[serde(rename = "newIp", default, skip_serializing_if = "Option::is_none")]
+    pub new_ip: Option<f64>,
+    #[serde(rename = "newSubnet", default, skip_serializing_if = "Option::is_none")]
+    pub new_subnet: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub velocity: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchRiskBasedMfaWeights {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `dormantAccount`.
+    pub fn with_dormant_account(mut self, v: impl Into<f64>) -> Self {
+        self.dormant_account = Some(v.into());
+        self
+    }
+    /// Set `impossibleTravel`.
+    pub fn with_impossible_travel(mut self, v: impl Into<f64>) -> Self {
+        self.impossible_travel = Some(v.into());
+        self
+    }
+    /// Set `newDevice`.
+    pub fn with_new_device(mut self, v: impl Into<f64>) -> Self {
+        self.new_device = Some(v.into());
+        self
+    }
+    /// Set `newIp`.
+    pub fn with_new_ip(mut self, v: impl Into<f64>) -> Self {
+        self.new_ip = Some(v.into());
+        self
+    }
+    /// Set `newSubnet`.
+    pub fn with_new_subnet(mut self, v: impl Into<f64>) -> Self {
+        self.new_subnet = Some(v.into());
+        self
+    }
+    /// Set `velocity`.
+    pub fn with_velocity(mut self, v: impl Into<f64>) -> Self {
+        self.velocity = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
+/// (direct SAML; no OIDC/atlas_byo needed).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchSamlIdp {
+    /// The SPs Atlas issues signed assertions to.
+    #[serde(
+        rename = "serviceProviders",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub service_providers: Option<Vec<AuthConfigPatchSamlIdpServiceProvidersItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchSamlIdp {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `serviceProviders`.
+    pub fn with_service_providers(
+        mut self,
+        v: impl Into<Vec<AuthConfigPatchSamlIdpServiceProvidersItem>>,
+    ) -> Self {
+        self.service_providers = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchSamlIdpServiceProvidersItem {
+    #[serde(rename = "acsUrl", default)]
+    pub acs_url: String,
+    #[serde(
+        rename = "allowedEmailDomains",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub allowed_email_domains: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assignment: Option<AuthConfigPatchSamlIdpServiceProvidersItemAssignment>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attributes: Option<HashMap<String, String>>,
+    #[serde(rename = "entityId", default)]
+    pub entity_id: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Known values: `email`, `user_id`.
+    #[serde(
+        rename = "nameIdField",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub name_id_field: Option<String>,
+    #[serde(rename = "presetId", default, skip_serializing_if = "Option::is_none")]
+    pub preset_id: Option<String>,
+    /// Known values: `saml11`, `saml2`.
+    #[serde(
+        rename = "tokenFormat",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub token_format: Option<String>,
+    #[serde(rename = "wsTrust", default, skip_serializing_if = "Option::is_none")]
+    pub ws_trust: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchSamlIdpServiceProvidersItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        acs_url: impl Into<String>,
+        entity_id: impl Into<String>,
+        id: impl Into<String>,
+    ) -> Self {
+        Self {
+            acs_url: acs_url.into(),
+            entity_id: entity_id.into(),
+            id: id.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `acsUrl`.
+    pub fn with_acs_url(mut self, v: impl Into<String>) -> Self {
+        self.acs_url = v.into();
+        self
+    }
+    /// Set `allowedEmailDomains`.
+    pub fn with_allowed_email_domains(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_email_domains = Some(v.into());
+        self
+    }
+    /// Set `assignment`.
+    pub fn with_assignment(
+        mut self,
+        v: impl Into<AuthConfigPatchSamlIdpServiceProvidersItemAssignment>,
+    ) -> Self {
+        self.assignment = Some(v.into());
+        self
+    }
+    /// Set `attributes`.
+    pub fn with_attributes(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.attributes = Some(v.into());
+        self
+    }
+    /// Set `entityId`.
+    pub fn with_entity_id(mut self, v: impl Into<String>) -> Self {
+        self.entity_id = v.into();
+        self
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = v.into();
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = Some(v.into());
+        self
+    }
+    /// Set `nameIdField`.
+    pub fn with_name_id_field(mut self, v: impl Into<String>) -> Self {
+        self.name_id_field = Some(v.into());
+        self
+    }
+    /// Set `presetId`.
+    pub fn with_preset_id(mut self, v: impl Into<String>) -> Self {
+        self.preset_id = Some(v.into());
+        self
+    }
+    /// Set `tokenFormat`.
+    pub fn with_token_format(mut self, v: impl Into<String>) -> Self {
+        self.token_format = Some(v.into());
+        self
+    }
+    /// Set `wsTrust`.
+    pub fn with_ws_trust(mut self, v: impl Into<bool>) -> Self {
+        self.ws_trust = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchSamlIdpServiceProvidersItemAssignment {
+    #[serde(default)]
+    pub groups: Vec<String>,
+    /// Known values: `assigned`, `everyone`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub organizations: Vec<String>,
+    #[serde(default)]
+    pub roles: Vec<String>,
+    #[serde(rename = "userIds", default)]
+    pub user_ids: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchSamlIdpServiceProvidersItemAssignment {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        groups: impl Into<Vec<String>>,
+        mode: impl Into<String>,
+        organizations: impl Into<Vec<String>>,
+        roles: impl Into<Vec<String>>,
+        user_ids: impl Into<Vec<String>>,
+    ) -> Self {
+        Self {
+            groups: groups.into(),
+            mode: mode.into(),
+            organizations: organizations.into(),
+            roles: roles.into(),
+            user_ids: user_ids.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `groups`.
+    pub fn with_groups(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.groups = v.into();
+        self
+    }
+    /// Set `mode`.
+    pub fn with_mode(mut self, v: impl Into<String>) -> Self {
+        self.mode = v.into();
+        self
+    }
+    /// Set `organizations`.
+    pub fn with_organizations(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.organizations = v.into();
+        self
+    }
+    /// Set `roles`.
+    pub fn with_roles(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.roles = v.into();
+        self
+    }
+    /// Set `userIds`.
+    pub fn with_user_ids(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.user_ids = v.into();
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -7051,27 +13754,41 @@ impl InstanceUpdateBodyAuthConfigVerification {
 /// Session lifetime + token behaviour.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigSession {
-    #[serde(rename = "idleMs", default, skip_serializing_if = "Option::is_none")]
-    pub idle_ms: Option<i64>,
+pub struct AuthConfigPatchSession {
     #[serde(
         rename = "absoluteMs",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub absolute_ms: Option<i64>,
-    #[serde(
-        rename = "jwtTtlSeconds",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub jwt_ttl_seconds: Option<i64>,
+    pub absolute_ms: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<Value>,
     #[serde(
         rename = "crossSubdomainCookies",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub cross_subdomain_cookies: Option<bool>,
+    #[serde(
+        rename = "customData",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub custom_data: Option<AuthConfigPatchSessionCustomData>,
+    #[serde(rename = "idleMs", default, skip_serializing_if = "Option::is_none")]
+    pub idle_ms: Option<f64>,
+    #[serde(
+        rename = "idleReconcileAcrossOrgs",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub idle_reconcile_across_orgs: Option<bool>,
+    #[serde(
+        rename = "idleTimeout",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub idle_timeout: Option<bool>,
     /// Add email/name to the session JWT.
     #[serde(
         rename = "includeEmailClaim",
@@ -7086,35 +13803,105 @@ pub struct InstanceUpdateBodyAuthConfigSession {
         skip_serializing_if = "Option::is_none"
     )]
     pub include_end_user_pool_claim: Option<bool>,
+    #[serde(
+        rename = "includeOrgsClaim",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub include_orgs_claim: Option<bool>,
+    #[serde(
+        rename = "jwtTtlSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub jwt_ttl_seconds: Option<f64>,
+    #[serde(
+        rename = "maxConcurrentSessions",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_concurrent_sessions: Option<f64>,
+    #[serde(
+        rename = "multiSession",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub multi_session: Option<bool>,
+    #[serde(
+        rename = "refreshRotation",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub refresh_rotation: Option<bool>,
+    #[serde(
+        rename = "rememberMe",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub remember_me: Option<bool>,
+    #[serde(
+        rename = "revokeOnPasswordChange",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub revoke_on_password_change: Option<bool>,
+    #[serde(
+        rename = "tokenIncludedSettingsKeys",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub token_included_settings_keys: Option<Vec<String>>,
+    /// Known values: `refresh`, `sliding`.
+    #[serde(
+        rename = "tokenStrategy",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub token_strategy: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-impl InstanceUpdateBodyAuthConfigSession {
+impl AuthConfigPatchSession {
     /// A value with the required fields set and every other field unset.
     pub fn new() -> Self {
         Self::default()
     }
-    /// Set `idleMs`.
-    pub fn with_idle_ms(mut self, v: impl Into<i64>) -> Self {
-        self.idle_ms = Some(v.into());
-        self
-    }
     /// Set `absoluteMs`.
-    pub fn with_absolute_ms(mut self, v: impl Into<i64>) -> Self {
+    pub fn with_absolute_ms(mut self, v: impl Into<f64>) -> Self {
         self.absolute_ms = Some(v.into());
         self
     }
-    /// Set `jwtTtlSeconds`.
-    pub fn with_jwt_ttl_seconds(mut self, v: impl Into<i64>) -> Self {
-        self.jwt_ttl_seconds = Some(v.into());
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<Value>) -> Self {
+        self.audience = Some(v.into());
         self
     }
     /// Set `crossSubdomainCookies`.
     pub fn with_cross_subdomain_cookies(mut self, v: impl Into<bool>) -> Self {
         self.cross_subdomain_cookies = Some(v.into());
+        self
+    }
+    /// Set `customData`.
+    pub fn with_custom_data(mut self, v: impl Into<AuthConfigPatchSessionCustomData>) -> Self {
+        self.custom_data = Some(v.into());
+        self
+    }
+    /// Set `idleMs`.
+    pub fn with_idle_ms(mut self, v: impl Into<f64>) -> Self {
+        self.idle_ms = Some(v.into());
+        self
+    }
+    /// Set `idleReconcileAcrossOrgs`.
+    pub fn with_idle_reconcile_across_orgs(mut self, v: impl Into<bool>) -> Self {
+        self.idle_reconcile_across_orgs = Some(v.into());
+        self
+    }
+    /// Set `idleTimeout`.
+    pub fn with_idle_timeout(mut self, v: impl Into<bool>) -> Self {
+        self.idle_timeout = Some(v.into());
         self
     }
     /// Set `includeEmailClaim`.
@@ -7125,6 +13912,704 @@ impl InstanceUpdateBodyAuthConfigSession {
     /// Set `includeEndUserPoolClaim`.
     pub fn with_include_end_user_pool_claim(mut self, v: impl Into<bool>) -> Self {
         self.include_end_user_pool_claim = Some(v.into());
+        self
+    }
+    /// Set `includeOrgsClaim`.
+    pub fn with_include_orgs_claim(mut self, v: impl Into<bool>) -> Self {
+        self.include_orgs_claim = Some(v.into());
+        self
+    }
+    /// Set `jwtTtlSeconds`.
+    pub fn with_jwt_ttl_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.jwt_ttl_seconds = Some(v.into());
+        self
+    }
+    /// Set `maxConcurrentSessions`.
+    pub fn with_max_concurrent_sessions(mut self, v: impl Into<f64>) -> Self {
+        self.max_concurrent_sessions = Some(v.into());
+        self
+    }
+    /// Set `multiSession`.
+    pub fn with_multi_session(mut self, v: impl Into<bool>) -> Self {
+        self.multi_session = Some(v.into());
+        self
+    }
+    /// Set `refreshRotation`.
+    pub fn with_refresh_rotation(mut self, v: impl Into<bool>) -> Self {
+        self.refresh_rotation = Some(v.into());
+        self
+    }
+    /// Set `rememberMe`.
+    pub fn with_remember_me(mut self, v: impl Into<bool>) -> Self {
+        self.remember_me = Some(v.into());
+        self
+    }
+    /// Set `revokeOnPasswordChange`.
+    pub fn with_revoke_on_password_change(mut self, v: impl Into<bool>) -> Self {
+        self.revoke_on_password_change = Some(v.into());
+        self
+    }
+    /// Set `tokenIncludedSettingsKeys`.
+    pub fn with_token_included_settings_keys(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.token_included_settings_keys = Some(v.into());
+        self
+    }
+    /// Set `tokenStrategy`.
+    pub fn with_token_strategy(mut self, v: impl Into<String>) -> Self {
+        self.token_strategy = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchSessionCustomData {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim: Option<String>,
+    #[serde(rename = "inToken", default, skip_serializing_if = "Option::is_none")]
+    pub in_token: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchSessionCustomData {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `claim`.
+    pub fn with_claim(mut self, v: impl Into<String>) -> Self {
+        self.claim = Some(v.into());
+        self
+    }
+    /// Set `inToken`.
+    pub fn with_in_token(mut self, v: impl Into<bool>) -> Self {
+        self.in_token = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchSignals {
+    #[serde(
+        rename = "rawCapture",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub raw_capture: Option<bool>,
+    #[serde(
+        rename = "retentionDays",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub retention_days: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchSignals {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `rawCapture`.
+    pub fn with_raw_capture(mut self, v: impl Into<bool>) -> Self {
+        self.raw_capture = Some(v.into());
+        self
+    }
+    /// Set `retentionDays`.
+    pub fn with_retention_days(mut self, v: impl Into<f64>) -> Self {
+        self.retention_days = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchSrp {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(rename = "poolName", default, skip_serializing_if = "Option::is_none")]
+    pub pool_name: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchSrp {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `poolName`.
+    pub fn with_pool_name(mut self, v: impl Into<String>) -> Self {
+        self.pool_name = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchStepUp {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(rename = "windowMs", default, skip_serializing_if = "Option::is_none")]
+    pub window_ms: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchStepUp {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `windowMs`.
+    pub fn with_window_ms(mut self, v: impl Into<f64>) -> Self {
+        self.window_ms = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Which first-factor sign-in methods are enabled.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchStrategies {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anonymous: Option<bool>,
+    /// Email one-time code (passwordless).
+    #[serde(rename = "emailCode", default, skip_serializing_if = "Option::is_none")]
+    pub email_code: Option<bool>,
+    /// Magic link.
+    #[serde(rename = "emailLink", default, skip_serializing_if = "Option::is_none")]
+    pub email_link: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kerberos: Option<bool>,
+    #[serde(
+        rename = "oauthProviders",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub oauth_providers: Option<Vec<String>>,
+    /// WebAuthn passkeys.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub passkey: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<bool>,
+    /// SMS OTP (off by default).
+    #[serde(rename = "phoneCode", default, skip_serializing_if = "Option::is_none")]
+    pub phone_code: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub siwe: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub siwf: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub siws: Option<bool>,
+    /// Username as a login identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub username: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchStrategies {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `anonymous`.
+    pub fn with_anonymous(mut self, v: impl Into<bool>) -> Self {
+        self.anonymous = Some(v.into());
+        self
+    }
+    /// Set `emailCode`.
+    pub fn with_email_code(mut self, v: impl Into<bool>) -> Self {
+        self.email_code = Some(v.into());
+        self
+    }
+    /// Set `emailLink`.
+    pub fn with_email_link(mut self, v: impl Into<bool>) -> Self {
+        self.email_link = Some(v.into());
+        self
+    }
+    /// Set `kerberos`.
+    pub fn with_kerberos(mut self, v: impl Into<bool>) -> Self {
+        self.kerberos = Some(v.into());
+        self
+    }
+    /// Set `oauthProviders`.
+    pub fn with_oauth_providers(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.oauth_providers = Some(v.into());
+        self
+    }
+    /// Set `passkey`.
+    pub fn with_passkey(mut self, v: impl Into<bool>) -> Self {
+        self.passkey = Some(v.into());
+        self
+    }
+    /// Set `password`.
+    pub fn with_password(mut self, v: impl Into<bool>) -> Self {
+        self.password = Some(v.into());
+        self
+    }
+    /// Set `phoneCode`.
+    pub fn with_phone_code(mut self, v: impl Into<bool>) -> Self {
+        self.phone_code = Some(v.into());
+        self
+    }
+    /// Set `siwe`.
+    pub fn with_siwe(mut self, v: impl Into<bool>) -> Self {
+        self.siwe = Some(v.into());
+        self
+    }
+    /// Set `siwf`.
+    pub fn with_siwf(mut self, v: impl Into<bool>) -> Self {
+        self.siwf = Some(v.into());
+        self
+    }
+    /// Set `siws`.
+    pub fn with_siws(mut self, v: impl Into<bool>) -> Self {
+        self.siws = Some(v.into());
+        self
+    }
+    /// Set `username`.
+    pub fn with_username(mut self, v: impl Into<bool>) -> Self {
+        self.username = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Per-method code/link TTLs, lengths and resend limits.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchVerification {
+    #[serde(rename = "emailCode", default, skip_serializing_if = "Option::is_none")]
+    pub email_code: Option<AuthConfigPatchVerificationEmailCode>,
+    #[serde(rename = "magicLink", default, skip_serializing_if = "Option::is_none")]
+    pub magic_link: Option<AuthConfigPatchVerificationMagicLink>,
+    #[serde(rename = "smsCode", default, skip_serializing_if = "Option::is_none")]
+    pub sms_code: Option<AuthConfigPatchVerificationSmsCode>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchVerification {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `emailCode`.
+    pub fn with_email_code(mut self, v: impl Into<AuthConfigPatchVerificationEmailCode>) -> Self {
+        self.email_code = Some(v.into());
+        self
+    }
+    /// Set `magicLink`.
+    pub fn with_magic_link(mut self, v: impl Into<AuthConfigPatchVerificationMagicLink>) -> Self {
+        self.magic_link = Some(v.into());
+        self
+    }
+    /// Set `smsCode`.
+    pub fn with_sms_code(mut self, v: impl Into<AuthConfigPatchVerificationSmsCode>) -> Self {
+        self.sms_code = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchVerificationEmailCode {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub length: Option<f64>,
+    #[serde(
+        rename = "maxAttempts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_attempts: Option<f64>,
+    #[serde(
+        rename = "resendCooldownSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resend_cooldown_seconds: Option<f64>,
+    #[serde(
+        rename = "resendHourlyLimit",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resend_hourly_limit: Option<f64>,
+    #[serde(
+        rename = "resendSameCode",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resend_same_code: Option<bool>,
+    #[serde(
+        rename = "ttlMinutes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ttl_minutes: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchVerificationEmailCode {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `length`.
+    pub fn with_length(mut self, v: impl Into<f64>) -> Self {
+        self.length = Some(v.into());
+        self
+    }
+    /// Set `maxAttempts`.
+    pub fn with_max_attempts(mut self, v: impl Into<f64>) -> Self {
+        self.max_attempts = Some(v.into());
+        self
+    }
+    /// Set `resendCooldownSeconds`.
+    pub fn with_resend_cooldown_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.resend_cooldown_seconds = Some(v.into());
+        self
+    }
+    /// Set `resendHourlyLimit`.
+    pub fn with_resend_hourly_limit(mut self, v: impl Into<f64>) -> Self {
+        self.resend_hourly_limit = Some(v.into());
+        self
+    }
+    /// Set `resendSameCode`.
+    pub fn with_resend_same_code(mut self, v: impl Into<bool>) -> Self {
+        self.resend_same_code = Some(v.into());
+        self
+    }
+    /// Set `ttlMinutes`.
+    pub fn with_ttl_minutes(mut self, v: impl Into<f64>) -> Self {
+        self.ttl_minutes = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchVerificationMagicLink {
+    #[serde(
+        rename = "resendCooldownSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resend_cooldown_seconds: Option<f64>,
+    #[serde(
+        rename = "resendHourlyLimit",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resend_hourly_limit: Option<f64>,
+    #[serde(
+        rename = "ttlMinutes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ttl_minutes: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchVerificationMagicLink {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `resendCooldownSeconds`.
+    pub fn with_resend_cooldown_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.resend_cooldown_seconds = Some(v.into());
+        self
+    }
+    /// Set `resendHourlyLimit`.
+    pub fn with_resend_hourly_limit(mut self, v: impl Into<f64>) -> Self {
+        self.resend_hourly_limit = Some(v.into());
+        self
+    }
+    /// Set `ttlMinutes`.
+    pub fn with_ttl_minutes(mut self, v: impl Into<f64>) -> Self {
+        self.ttl_minutes = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchVerificationSmsCode {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub length: Option<f64>,
+    #[serde(
+        rename = "maxAttempts",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_attempts: Option<f64>,
+    #[serde(
+        rename = "resendCooldownSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resend_cooldown_seconds: Option<f64>,
+    #[serde(
+        rename = "resendHourlyLimit",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resend_hourly_limit: Option<f64>,
+    #[serde(
+        rename = "ttlMinutes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ttl_minutes: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchVerificationSmsCode {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `length`.
+    pub fn with_length(mut self, v: impl Into<f64>) -> Self {
+        self.length = Some(v.into());
+        self
+    }
+    /// Set `maxAttempts`.
+    pub fn with_max_attempts(mut self, v: impl Into<f64>) -> Self {
+        self.max_attempts = Some(v.into());
+        self
+    }
+    /// Set `resendCooldownSeconds`.
+    pub fn with_resend_cooldown_seconds(mut self, v: impl Into<f64>) -> Self {
+        self.resend_cooldown_seconds = Some(v.into());
+        self
+    }
+    /// Set `resendHourlyLimit`.
+    pub fn with_resend_hourly_limit(mut self, v: impl Into<f64>) -> Self {
+        self.resend_hourly_limit = Some(v.into());
+        self
+    }
+    /// Set `ttlMinutes`.
+    pub fn with_ttl_minutes(mut self, v: impl Into<f64>) -> Self {
+        self.ttl_minutes = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchWalletGating {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(rename = "rpcUrls", default, skip_serializing_if = "Option::is_none")]
+    pub rpc_urls: Option<HashMap<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rules: Option<Vec<AuthConfigPatchWalletGatingRulesItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchWalletGating {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `rpcUrls`.
+    pub fn with_rpc_urls(mut self, v: impl Into<HashMap<String, Value>>) -> Self {
+        self.rpc_urls = Some(v.into());
+        self
+    }
+    /// Set `rules`.
+    pub fn with_rules(mut self, v: impl Into<Vec<AuthConfigPatchWalletGatingRulesItem>>) -> Self {
+        self.rules = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPatchWalletGatingRulesItem {
+    /// Known values: `grant`, `require`.
+    #[serde(default)]
+    pub action: String,
+    #[serde(rename = "chainId", default)]
+    pub chain_id: f64,
+    #[serde(default)]
+    pub contract: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(
+        rename = "minBalance",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub min_balance: Option<String>,
+    /// Known values: `erc1155`, `erc20`, `erc721`.
+    #[serde(default)]
+    pub standard: String,
+    #[serde(rename = "tokenId", default, skip_serializing_if = "Option::is_none")]
+    pub token_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AuthConfigPatchWalletGatingRulesItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        action: impl Into<String>,
+        chain_id: impl Into<f64>,
+        contract: impl Into<String>,
+        id: impl Into<String>,
+        standard: impl Into<String>,
+    ) -> Self {
+        Self {
+            action: action.into(),
+            chain_id: chain_id.into(),
+            contract: contract.into(),
+            id: id.into(),
+            standard: standard.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `action`.
+    pub fn with_action(mut self, v: impl Into<String>) -> Self {
+        self.action = v.into();
+        self
+    }
+    /// Set `chainId`.
+    pub fn with_chain_id(mut self, v: impl Into<f64>) -> Self {
+        self.chain_id = v.into();
+        self
+    }
+    /// Set `contract`.
+    pub fn with_contract(mut self, v: impl Into<String>) -> Self {
+        self.contract = v.into();
+        self
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = v.into();
+        self
+    }
+    /// Set `label`.
+    pub fn with_label(mut self, v: impl Into<String>) -> Self {
+        self.label = Some(v.into());
+        self
+    }
+    /// Set `minBalance`.
+    pub fn with_min_balance(mut self, v: impl Into<String>) -> Self {
+        self.min_balance = Some(v.into());
+        self
+    }
+    /// Set `standard`.
+    pub fn with_standard(mut self, v: impl Into<String>) -> Self {
+        self.standard = v.into();
+        self
+    }
+    /// Set `tokenId`.
+    pub fn with_token_id(mut self, v: impl Into<String>) -> Self {
+        self.token_id = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -7139,18 +14624,18 @@ impl InstanceUpdateBodyAuthConfigSession {
 /// written with PATCH /v1/branding.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigBranding {
+pub struct AuthConfigPatchBranding {
     /// Audience hint (\[a-z0-9_-\]{1,32}) → { heading, subheading, logoUrl, primaryColor }, or null
     /// to delete that audience.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audiences: Option<HashMap<String, InstanceUpdateBodyAuthConfigBrandingAudiencesValue>>,
+    pub audiences: Option<HashMap<String, AuthConfigPatchBrandingAudiencesValue>>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-impl InstanceUpdateBodyAuthConfigBranding {
+impl AuthConfigPatchBranding {
     /// A value with the required fields set and every other field unset.
     pub fn new() -> Self {
         Self::default()
@@ -7158,7 +14643,7 @@ impl InstanceUpdateBodyAuthConfigBranding {
     /// Set `audiences`.
     pub fn with_audiences(
         mut self,
-        v: impl Into<HashMap<String, InstanceUpdateBodyAuthConfigBrandingAudiencesValue>>,
+        v: impl Into<HashMap<String, AuthConfigPatchBrandingAudiencesValue>>,
     ) -> Self {
         self.audiences = Some(v.into());
         self
@@ -7172,7 +14657,7 @@ impl InstanceUpdateBodyAuthConfigBranding {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigBrandingAudiencesValue {
+pub struct AuthConfigPatchBrandingAudiencesValue {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub heading: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -7191,7 +14676,7 @@ pub struct InstanceUpdateBodyAuthConfigBrandingAudiencesValue {
     pub extra: Map<String, Value>,
 }
 
-impl InstanceUpdateBodyAuthConfigBrandingAudiencesValue {
+impl AuthConfigPatchBrandingAudiencesValue {
     /// A value with the required fields set and every other field unset.
     pub fn new() -> Self {
         Self::default()
@@ -7214,229 +14699,6 @@ impl InstanceUpdateBodyAuthConfigBrandingAudiencesValue {
     /// Set `primaryColor`.
     pub fn with_primary_color(mut self, v: impl Into<String>) -> Self {
         self.primary_color = Some(v.into());
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-/// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
-/// (direct SAML; no OIDC/atlas_byo needed).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigSamlIdp {
-    /// The SPs Atlas issues signed assertions to.
-    #[serde(
-        rename = "serviceProviders",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub service_providers: Option<Vec<InstanceUpdateBodyAuthConfigSamlIdpServiceProvidersItem>>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl InstanceUpdateBodyAuthConfigSamlIdp {
-    /// A value with the required fields set and every other field unset.
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// Set `serviceProviders`.
-    pub fn with_service_providers(
-        mut self,
-        v: impl Into<Vec<InstanceUpdateBodyAuthConfigSamlIdpServiceProvidersItem>>,
-    ) -> Self {
-        self.service_providers = Some(v.into());
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigSamlIdpServiceProvidersItem {
-    /// Stable key used in the SSO URL + audit.
-    #[serde(default)]
-    pub id: String,
-    /// The SP's SAML entityId (assertion audience).
-    #[serde(rename = "entityId", default)]
-    pub entity_id: String,
-    /// The SP's Assertion Consumer Service URL (https) the Response is POSTed to.
-    #[serde(rename = "acsUrl", default)]
-    pub acs_url: String,
-    /// User field for the NameID. Default email.
-    ///
-    /// Known values: `email`, `user_id`.
-    #[serde(
-        rename = "nameIdField",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub name_id_field: Option<String>,
-    /// Extra attribute statements: SAML attribute name → user field / metadata key.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<HashMap<String, String>>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl InstanceUpdateBodyAuthConfigSamlIdpServiceProvidersItem {
-    /// A value with the required fields set and every other field unset.
-    pub fn new(
-        id: impl Into<String>,
-        entity_id: impl Into<String>,
-        acs_url: impl Into<String>,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            entity_id: entity_id.into(),
-            acs_url: acs_url.into(),
-            ..Default::default()
-        }
-    }
-    /// Set `id`.
-    pub fn with_id(mut self, v: impl Into<String>) -> Self {
-        self.id = v.into();
-        self
-    }
-    /// Set `entityId`.
-    pub fn with_entity_id(mut self, v: impl Into<String>) -> Self {
-        self.entity_id = v.into();
-        self
-    }
-    /// Set `acsUrl`.
-    pub fn with_acs_url(mut self, v: impl Into<String>) -> Self {
-        self.acs_url = v.into();
-        self
-    }
-    /// Set `nameIdField`.
-    pub fn with_name_id_field(mut self, v: impl Into<String>) -> Self {
-        self.name_id_field = Some(v.into());
-        self
-    }
-    /// Set `attributes`.
-    pub fn with_attributes(mut self, v: impl Into<HashMap<String, String>>) -> Self {
-        self.attributes = Some(v.into());
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-/// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
-/// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigExternalJwt {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuers: Option<Vec<InstanceUpdateBodyAuthConfigExternalJwtIssuersItem>>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl InstanceUpdateBodyAuthConfigExternalJwt {
-    /// A value with the required fields set and every other field unset.
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// Set `issuers`.
-    pub fn with_issuers(
-        mut self,
-        v: impl Into<Vec<InstanceUpdateBodyAuthConfigExternalJwtIssuersItem>>,
-    ) -> Self {
-        self.issuers = Some(v.into());
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateBodyAuthConfigExternalJwtIssuersItem {
-    /// Stable key; the linked identity is stored under provider ext_jwt:&lt;id&gt;.
-    #[serde(default)]
-    pub id: String,
-    /// The expected iss claim.
-    #[serde(default)]
-    pub issuer: String,
-    /// The issuer's JWKS URL, used to verify the token signature.
-    #[serde(rename = "jwksUri", default)]
-    pub jwks_uri: String,
-    /// The expected aud claim.
-    #[serde(default)]
-    pub audience: String,
-    /// Claim to read the email from. Default email.
-    #[serde(
-        rename = "emailClaim",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub email_claim: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl InstanceUpdateBodyAuthConfigExternalJwtIssuersItem {
-    /// A value with the required fields set and every other field unset.
-    pub fn new(
-        id: impl Into<String>,
-        issuer: impl Into<String>,
-        jwks_uri: impl Into<String>,
-        audience: impl Into<String>,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            issuer: issuer.into(),
-            jwks_uri: jwks_uri.into(),
-            audience: audience.into(),
-            ..Default::default()
-        }
-    }
-    /// Set `id`.
-    pub fn with_id(mut self, v: impl Into<String>) -> Self {
-        self.id = v.into();
-        self
-    }
-    /// Set `issuer`.
-    pub fn with_issuer(mut self, v: impl Into<String>) -> Self {
-        self.issuer = v.into();
-        self
-    }
-    /// Set `jwksUri`.
-    pub fn with_jwks_uri(mut self, v: impl Into<String>) -> Self {
-        self.jwks_uri = v.into();
-        self
-    }
-    /// Set `audience`.
-    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
-        self.audience = v.into();
-        self
-    }
-    /// Set `emailClaim`.
-    pub fn with_email_claim(mut self, v: impl Into<String>) -> Self {
-        self.email_claim = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -7553,100 +14815,6 @@ impl InstanceUpdateBeforeUserCreateHookBody {
     }
 }
 
-/// The request body of `PUT /v1/instance/integrations/chatly`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetChatlyIntegrationBody {
-    /// The chat channel public id (letters, digits, _ and -).
-    #[serde(default)]
-    pub channel: String,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl InstanceSetChatlyIntegrationBody {
-    /// A value with the required fields set and every other field unset.
-    pub fn new(channel: impl Into<String>) -> Self {
-        Self {
-            channel: channel.into(),
-            ..Default::default()
-        }
-    }
-    /// Set `channel`.
-    pub fn with_channel(mut self, v: impl Into<String>) -> Self {
-        self.channel = v.into();
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-/// The request body of `PUT /v1/instance/integrations/forumulate`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetForumulateIntegrationBody {
-    /// Your Forumulate organization id.
-    #[serde(default)]
-    pub org_id: String,
-    /// The spaces readers sign in to: space ids, or { id, redeem_url } where redeem_url is the
-    /// space's jwtRedeemUrl on the host your readers read (its readerEndpoints in Forumulate).
-    /// Without redeem_url the platform address is used, whose cookies only work on forumulate.com.
-    #[serde(default)]
-    pub spaces: Vec<Value>,
-    /// The token aud (Forumulate clientId). Default forumulate:&lt;org_id&gt;.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "double_option"
-    )]
-    pub audience: Option<Option<String>>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl InstanceSetForumulateIntegrationBody {
-    /// A value with the required fields set and every other field unset.
-    pub fn new(org_id: impl Into<String>, spaces: impl Into<Vec<Value>>) -> Self {
-        Self {
-            org_id: org_id.into(),
-            spaces: spaces.into(),
-            ..Default::default()
-        }
-    }
-    /// Set `org_id`.
-    pub fn with_org_id(mut self, v: impl Into<String>) -> Self {
-        self.org_id = v.into();
-        self
-    }
-    /// Set `spaces`.
-    pub fn with_spaces(mut self, v: impl Into<Vec<Value>>) -> Self {
-        self.spaces = v.into();
-        self
-    }
-    /// Set `audience`.
-    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
-        self.audience = Some(Some(v.into()));
-        self
-    }
-    /// Send `audience: null` to clear it.
-    pub fn clear_audience(mut self) -> Self {
-        self.audience = Some(None);
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
 /// The request body of `PUT /v1/instance/kerberos_secret`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -7719,6 +14887,10 @@ pub struct OriginMoveRequest {
     /// true: report the diff and any problems, write nothing.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dry_run: Option<bool>,
+    /// On a real run: send each moved webhook endpoint a webhook.test now (up to 10 s each) and
+    /// return the results as webhook_tests.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_webhooks: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -7747,6 +14919,11 @@ impl OriginMoveRequest {
     /// Set `dry_run`.
     pub fn with_dry_run(mut self, v: impl Into<bool>) -> Self {
         self.dry_run = Some(v.into());
+        self
+    }
+    /// Set `test_webhooks`.
+    pub fn with_test_webhooks(mut self, v: impl Into<bool>) -> Self {
+        self.test_webhooks = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -7963,12 +15140,21 @@ pub struct InstanceUpdateReferralsBody {
     /// 1-10 names of \[A-Za-z0-9_.-\]{1,40}.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url_params: Option<Vec<String>>,
+    /// A cookie name, or a list of up to 5 names tried in order; null clears. Names are
+    /// \[A-Za-z0-9_.-\]{1,64}.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "double_option"
     )]
     pub context_cookie: Option<Option<String>>,
+    /// The same as `context_cookie` with a list; wins when both are sent.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub context_cookies: Option<Option<Vec<String>>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consent_category: Option<String>,
     #[serde(
@@ -8005,14 +15191,15 @@ pub struct InstanceUpdateReferralsBody {
     pub code_lookup_url: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signup_code_field: Option<bool>,
-    /// The programs to read, in order; null goes back to the provider's default.
+    /// The programs to read, in order; null goes back to the provider's default. `referally` is the
+    /// retired spelling of `referalli` (accepted, stored as `referalli`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "double_option"
     )]
     pub browser_sources: Option<Option<Vec<String>>>,
-    /// Known values: `auto`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `app`.
+    /// Known values: `auto`, `atlasconsent`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `gpc`, `app`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consent_provider: Option<String>,
     /// Partial update of the security settings (see ReferralSecuritySettings); only the fields sent
@@ -8129,6 +15316,16 @@ impl InstanceUpdateReferralsBody {
     /// Send `context_cookie: null` to clear it.
     pub fn clear_context_cookie(mut self) -> Self {
         self.context_cookie = Some(None);
+        self
+    }
+    /// Set `context_cookies`.
+    pub fn with_context_cookies(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.context_cookies = Some(Some(v.into()));
+        self
+    }
+    /// Send `context_cookies: null` to clear it.
+    pub fn clear_context_cookies(mut self) -> Self {
+        self.context_cookies = Some(None);
         self
     }
     /// Set `consent_category`.
@@ -8832,6 +16029,9 @@ pub struct JwtTemplatesCreateBody {
     /// Claim name → value. Reserved claims (iss, sub, exp, …) are refused.
     #[serde(default)]
     pub claims: HashMap<String, String>,
+    /// Optional per-template mint settings. Omit to keep the stored settings.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<JwtTemplatesCreateBodySettings>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -8857,6 +16057,86 @@ impl JwtTemplatesCreateBody {
         self.claims = v.into();
         self
     }
+    /// Set `settings`.
+    pub fn with_settings(mut self, v: impl Into<JwtTemplatesCreateBodySettings>) -> Self {
+        self.settings = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Optional per-template mint settings. Omit to keep the stored settings.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct JwtTemplatesCreateBodySettings {
+    /// Token lifetime in seconds (10–86400). Defaults to the instance session-token lifetime (60
+    /// s); null clears it.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub lifetime_seconds: Option<Option<i64>>,
+    /// A fixed `aud` to pin on the token; null clears it.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub audience: Option<Option<String>>,
+    /// RS256 (instance JWKS, default) or HS256.
+    ///
+    /// Known values: `RS256`, `HS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    /// HS256 shared secret (write-only, stored encrypted). Required when algorithm is HS256.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signing_secret: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl JwtTemplatesCreateBodySettings {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `lifetime_seconds`.
+    pub fn with_lifetime_seconds(mut self, v: impl Into<i64>) -> Self {
+        self.lifetime_seconds = Some(Some(v.into()));
+        self
+    }
+    /// Send `lifetime_seconds: null` to clear it.
+    pub fn clear_lifetime_seconds(mut self) -> Self {
+        self.lifetime_seconds = Some(None);
+        self
+    }
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
+        self.audience = Some(Some(v.into()));
+        self
+    }
+    /// Send `audience: null` to clear it.
+    pub fn clear_audience(mut self) -> Self {
+        self.audience = Some(None);
+        self
+    }
+    /// Set `algorithm`.
+    pub fn with_algorithm(mut self, v: impl Into<String>) -> Self {
+        self.algorithm = Some(v.into());
+        self
+    }
+    /// Set `signing_secret`.
+    pub fn with_signing_secret(mut self, v: impl Into<String>) -> Self {
+        self.signing_secret = Some(v.into());
+        self
+    }
     /// Set a field this version of the crate does not know about.
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
         self.extra.insert(key.into(), value.into());
@@ -8871,6 +16151,9 @@ pub struct JwtTemplatesUpdateBody {
     /// Claim name → value. Reserved claims (iss, sub, exp, …) are refused.
     #[serde(default)]
     pub claims: HashMap<String, String>,
+    /// Optional per-template mint settings. Omit to keep the stored settings.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<JwtTemplatesUpdateBodySettings>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -8888,6 +16171,86 @@ impl JwtTemplatesUpdateBody {
     /// Set `claims`.
     pub fn with_claims(mut self, v: impl Into<HashMap<String, String>>) -> Self {
         self.claims = v.into();
+        self
+    }
+    /// Set `settings`.
+    pub fn with_settings(mut self, v: impl Into<JwtTemplatesUpdateBodySettings>) -> Self {
+        self.settings = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// Optional per-template mint settings. Omit to keep the stored settings.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct JwtTemplatesUpdateBodySettings {
+    /// Token lifetime in seconds (10–86400). Defaults to the instance session-token lifetime (60
+    /// s); null clears it.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub lifetime_seconds: Option<Option<i64>>,
+    /// A fixed `aud` to pin on the token; null clears it.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub audience: Option<Option<String>>,
+    /// RS256 (instance JWKS, default) or HS256.
+    ///
+    /// Known values: `RS256`, `HS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    /// HS256 shared secret (write-only, stored encrypted). Required when algorithm is HS256.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signing_secret: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl JwtTemplatesUpdateBodySettings {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `lifetime_seconds`.
+    pub fn with_lifetime_seconds(mut self, v: impl Into<i64>) -> Self {
+        self.lifetime_seconds = Some(Some(v.into()));
+        self
+    }
+    /// Send `lifetime_seconds: null` to clear it.
+    pub fn clear_lifetime_seconds(mut self) -> Self {
+        self.lifetime_seconds = Some(None);
+        self
+    }
+    /// Set `audience`.
+    pub fn with_audience(mut self, v: impl Into<String>) -> Self {
+        self.audience = Some(Some(v.into()));
+        self
+    }
+    /// Send `audience: null` to clear it.
+    pub fn clear_audience(mut self) -> Self {
+        self.audience = Some(None);
+        self
+    }
+    /// Set `algorithm`.
+    pub fn with_algorithm(mut self, v: impl Into<String>) -> Self {
+        self.algorithm = Some(v.into());
+        self
+    }
+    /// Set `signing_secret`.
+    pub fn with_signing_secret(mut self, v: impl Into<String>) -> Self {
+        self.signing_secret = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -8919,11 +16282,26 @@ pub struct LegacyAuthConnectionSetBody {
     /// Fail-closed call budget, 1–30000. Default 5000.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i64>,
-    /// Only "password" today.
+    /// "password" (default): your verify webhook (verify_url + signing_secret). "preset": Atlas
+    /// checks the password against your previous provider's own API (preset + preset_config +
+    /// secret); verify_url is derived.
     ///
-    /// Always `password`.
+    /// Known values: `password`, `preset`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<String>,
+    /// Strategy "preset": the lazy-migration preset (cognito, auth0, firebase, supabase, okta,
+    /// keycloak, fusionauth, workos, stytch, clerk, …; GET /v1/migrations/sources lists each with
+    /// its settings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// Strategy "preset": the preset's non-secret settings, e.g. {"region": "us-east-1",
+    /// "client_id": "…"} for Cognito.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset_config: Option<HashMap<String, String>>,
+    /// Strategy "preset": the vendor credential the preset needs (an API key or client secret).
+    /// Write-only, stored encrypted; omit on edit to keep.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -8966,6 +16344,21 @@ impl LegacyAuthConnectionSetBody {
     /// Set `strategy`.
     pub fn with_strategy(mut self, v: impl Into<String>) -> Self {
         self.strategy = Some(v.into());
+        self
+    }
+    /// Set `preset`.
+    pub fn with_preset(mut self, v: impl Into<String>) -> Self {
+        self.preset = Some(v.into());
+        self
+    }
+    /// Set `preset_config`.
+    pub fn with_preset_config(mut self, v: impl Into<HashMap<String, String>>) -> Self {
+        self.preset_config = Some(v.into());
+        self
+    }
+    /// Set `secret`.
+    pub fn with_secret(mut self, v: impl Into<String>) -> Self {
+        self.secret = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -9074,7 +16467,7 @@ impl LocalizationsUpdateBody {
 pub struct LogStreamsCreateBody {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Known values: `http`, `datadog`, `splunk`.
+    /// Known values: `http`, `datadog`, `splunk`, `s3`, `gcs`, `azure_blob`, `aws_eventbridge`, `kinesis_firehose`, `cloudwatch_logs`, `elastic`, `sumo_logic`, `new_relic`, `azure_event_hubs`, `sentinel`, `gcp_pubsub`, `bigquery`, `loki`, `otlp`, `kafka`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -10146,6 +17539,12 @@ pub struct NetworkAclsCreateBody {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "double_option"
     )]
+    pub zone_id: Option<Option<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
     pub description: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub priority: Option<i64>,
@@ -10170,6 +17569,16 @@ impl NetworkAclsCreateBody {
     /// Set `cidr`.
     pub fn with_cidr(mut self, v: impl Into<String>) -> Self {
         self.cidr = Some(v.into());
+        self
+    }
+    /// Set `zone_id`.
+    pub fn with_zone_id(mut self, v: impl Into<String>) -> Self {
+        self.zone_id = Some(Some(v.into()));
+        self
+    }
+    /// Send `zone_id: null` to clear it.
+    pub fn clear_zone_id(mut self) -> Self {
+        self.zone_id = Some(None);
         self
     }
     /// Set `description`.
@@ -10213,6 +17622,12 @@ pub struct NetworkAclsUpdateBody {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "double_option"
     )]
+    pub zone_id: Option<Option<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
     pub description: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub priority: Option<i64>,
@@ -10237,6 +17652,16 @@ impl NetworkAclsUpdateBody {
     /// Set `cidr`.
     pub fn with_cidr(mut self, v: impl Into<String>) -> Self {
         self.cidr = Some(v.into());
+        self
+    }
+    /// Set `zone_id`.
+    pub fn with_zone_id(mut self, v: impl Into<String>) -> Self {
+        self.zone_id = Some(Some(v.into()));
+        self
+    }
+    /// Send `zone_id: null` to clear it.
+    pub fn clear_zone_id(mut self) -> Self {
+        self.zone_id = Some(None);
         self
     }
     /// Set `description`.
@@ -10280,7 +17705,7 @@ pub struct OAuthClientsCreateBody {
     pub grant_types: Option<Vec<String>>,
     /// `none` makes it a public (PKCE) client.
     ///
-    /// Known values: `client_secret_basic`, `client_secret_post`, `none`, `private_key_jwt`.
+    /// Known values: `client_secret_basic`, `client_secret_post`, `none`, `private_key_jwt`, `workload_jwt`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -10312,6 +17737,21 @@ pub struct OAuthClientsCreateBody {
     /// without the "Sign out?" page. Default false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// https URL of your own sign-in page; /oauth2/authorize then redirects there with a
+    /// login_challenge. null clears (update).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub login_url: Option<Option<String>>,
+    /// https URL of your own consent page (consent_challenge). null clears (update).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub consent_url: Option<Option<String>>,
     /// How long the issued client secret authenticates, in seconds (reported as
     /// client_secret_expires_at). Omit for a secret that does not expire. Ignored for a public
     /// client.
@@ -10442,6 +17882,26 @@ impl OAuthClientsCreateBody {
     /// Set `skip_logout_confirmation`.
     pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
         self.skip_logout_confirmation = Some(v.into());
+        self
+    }
+    /// Set `login_url`.
+    pub fn with_login_url(mut self, v: impl Into<String>) -> Self {
+        self.login_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `login_url: null` to clear it.
+    pub fn clear_login_url(mut self) -> Self {
+        self.login_url = Some(None);
+        self
+    }
+    /// Set `consent_url`.
+    pub fn with_consent_url(mut self, v: impl Into<String>) -> Self {
+        self.consent_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `consent_url: null` to clear it.
+    pub fn clear_consent_url(mut self) -> Self {
+        self.consent_url = Some(None);
         self
     }
     /// Set `secret_expires_in_seconds`.
@@ -10817,7 +18277,7 @@ pub struct OAuthClientsUpdateBody {
     pub grant_types: Option<Vec<String>>,
     /// `none` makes it a public (PKCE) client.
     ///
-    /// Known values: `client_secret_basic`, `client_secret_post`, `none`, `private_key_jwt`.
+    /// Known values: `client_secret_basic`, `client_secret_post`, `none`, `private_key_jwt`, `workload_jwt`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -10849,6 +18309,21 @@ pub struct OAuthClientsUpdateBody {
     /// without the "Sign out?" page. Default false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// https URL of your own sign-in page; /oauth2/authorize then redirects there with a
+    /// login_challenge. null clears (update).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub login_url: Option<Option<String>>,
+    /// https URL of your own consent page (consent_challenge). null clears (update).
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub consent_url: Option<Option<String>>,
     /// How long the issued client secret authenticates, in seconds (reported as
     /// client_secret_expires_at). Omit for a secret that does not expire. Ignored for a public
     /// client.
@@ -10981,6 +18456,26 @@ impl OAuthClientsUpdateBody {
     /// Set `skip_logout_confirmation`.
     pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
         self.skip_logout_confirmation = Some(v.into());
+        self
+    }
+    /// Set `login_url`.
+    pub fn with_login_url(mut self, v: impl Into<String>) -> Self {
+        self.login_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `login_url: null` to clear it.
+    pub fn clear_login_url(mut self) -> Self {
+        self.login_url = Some(None);
+        self
+    }
+    /// Set `consent_url`.
+    pub fn with_consent_url(mut self, v: impl Into<String>) -> Self {
+        self.consent_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `consent_url: null` to clear it.
+    pub fn clear_consent_url(mut self) -> Self {
+        self.consent_url = Some(None);
         self
     }
     /// Set `secret_expires_in_seconds`.
@@ -11215,6 +18710,14 @@ pub struct OAuthInitialAccessTokensCreateBody {
     /// A note for your own records (who it is for).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    /// A client policy profile every client registered with this token must conform to and is
+    /// assigned.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub profile: Option<Option<String>>,
     /// Lifetime in seconds; omit for no expiry.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_in_seconds: Option<i64>,
@@ -11235,6 +18738,16 @@ impl OAuthInitialAccessTokensCreateBody {
     /// Set `description`.
     pub fn with_description(mut self, v: impl Into<String>) -> Self {
         self.description = Some(v.into());
+        self
+    }
+    /// Set `profile`.
+    pub fn with_profile(mut self, v: impl Into<String>) -> Self {
+        self.profile = Some(Some(v.into()));
+        self
+    }
+    /// Send `profile: null` to clear it.
+    pub fn clear_profile(mut self) -> Self {
+        self.profile = Some(None);
         self
     }
     /// Set `expires_in_seconds`.
@@ -11339,6 +18852,17 @@ pub struct OpenFgaBatchCheckBody {
     pub checks: Vec<OpenFgaBatchCheckBodyChecksItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authorization_model_id: Option<String>,
+    /// MINIMIZE_LATENCY (and UNSPECIFIED) may be answered from a short-lived result cache;
+    /// HIGHER_CONSISTENCY bypasses it and reads the primary.
+    ///
+    /// Known values: `UNSPECIFIED`, `MINIMIZE_LATENCY`, `HIGHER_CONSISTENCY`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency: Option<String>,
+    /// A token returned by a write (or any read): evaluate at least that fresh, so a check can
+    /// never be answered from before that write. Also accepted as the `Atlas-Consistency-Token`
+    /// request header.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -11363,6 +18887,16 @@ impl OpenFgaBatchCheckBody {
         self.authorization_model_id = Some(v.into());
         self
     }
+    /// Set `consistency`.
+    pub fn with_consistency(mut self, v: impl Into<String>) -> Self {
+        self.consistency = Some(v.into());
+        self
+    }
+    /// Set `consistency_token`.
+    pub fn with_consistency_token(mut self, v: impl Into<String>) -> Self {
+        self.consistency_token = Some(v.into());
+        self
+    }
     /// Set a field this version of the crate does not know about.
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
         self.extra.insert(key.into(), value.into());
@@ -11380,6 +18914,9 @@ pub struct OpenFgaBatchCheckBodyChecksItem {
     /// The OpenFGA tuple-list wrapper.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contextual_tuples: Option<FgaTupleKeys>,
+    /// Request-time values for tuple-condition parameters. A tuple's own context wins on a clash.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -11404,6 +18941,11 @@ impl OpenFgaBatchCheckBodyChecksItem {
     /// Set `contextual_tuples`.
     pub fn with_contextual_tuples(mut self, v: impl Into<FgaTupleKeys>) -> Self {
         self.contextual_tuples = Some(v.into());
+        self
+    }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -11500,6 +19042,9 @@ pub struct FgaTupleKey {
     /// The object, e.g. `document:roadmap`.
     #[serde(default)]
     pub object: String,
+    /// A model condition bound to a tuple: the tuple grants only while the CEL expression holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<FgaTupleCondition>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -11535,6 +19080,52 @@ impl FgaTupleKey {
         self.object = v.into();
         self
     }
+    /// Set `condition`.
+    pub fn with_condition(mut self, v: impl Into<FgaTupleCondition>) -> Self {
+        self.condition = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// A model condition bound to a tuple: the tuple grants only while the CEL expression holds.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FgaTupleCondition {
+    /// A condition defined in the authorization model.
+    #[serde(default)]
+    pub name: String,
+    /// Values for the condition parameters fixed on this tuple.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl FgaTupleCondition {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
+        self
+    }
     /// Set a field this version of the crate does not know about.
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
         self.extra.insert(key.into(), value.into());
@@ -11553,6 +19144,20 @@ pub struct OpenFgaCheckBody {
     /// The OpenFGA tuple-list wrapper.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contextual_tuples: Option<FgaTupleKeys>,
+    /// Request-time values for tuple-condition parameters. A tuple's own context wins on a clash.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
+    /// MINIMIZE_LATENCY (and UNSPECIFIED) may be answered from a short-lived result cache;
+    /// HIGHER_CONSISTENCY bypasses it and reads the primary.
+    ///
+    /// Known values: `UNSPECIFIED`, `MINIMIZE_LATENCY`, `HIGHER_CONSISTENCY`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency: Option<String>,
+    /// A token returned by a write (or any read): evaluate at least that fresh, so a check can
+    /// never be answered from before that write. Also accepted as the `Atlas-Consistency-Token`
+    /// request header.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -11580,6 +19185,21 @@ impl OpenFgaCheckBody {
     /// Set `contextual_tuples`.
     pub fn with_contextual_tuples(mut self, v: impl Into<FgaTupleKeys>) -> Self {
         self.contextual_tuples = Some(v.into());
+        self
+    }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
+        self
+    }
+    /// Set `consistency`.
+    pub fn with_consistency(mut self, v: impl Into<String>) -> Self {
+        self.consistency = Some(v.into());
+        self
+    }
+    /// Set `consistency_token`.
+    pub fn with_consistency_token(mut self, v: impl Into<String>) -> Self {
+        self.consistency_token = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -11739,6 +19359,20 @@ pub struct OpenFgaListObjectsBody {
     /// The OpenFGA tuple-list wrapper.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contextual_tuples: Option<FgaTupleKeys>,
+    /// Request-time values for tuple-condition parameters. A tuple's own context wins on a clash.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<Map<String, Value>>,
+    /// MINIMIZE_LATENCY (and UNSPECIFIED) may be answered from a short-lived result cache;
+    /// HIGHER_CONSISTENCY bypasses it and reads the primary.
+    ///
+    /// Known values: `UNSPECIFIED`, `MINIMIZE_LATENCY`, `HIGHER_CONSISTENCY`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency: Option<String>,
+    /// A token returned by a write (or any read): evaluate at least that fresh, so a check can
+    /// never be answered from before that write. Also accepted as the `Atlas-Consistency-Token`
+    /// request header.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -11782,6 +19416,21 @@ impl OpenFgaListObjectsBody {
     /// Set `contextual_tuples`.
     pub fn with_contextual_tuples(mut self, v: impl Into<FgaTupleKeys>) -> Self {
         self.contextual_tuples = Some(v.into());
+        self
+    }
+    /// Set `context`.
+    pub fn with_context(mut self, v: impl Into<Map<String, Value>>) -> Self {
+        self.context = Some(v.into());
+        self
+    }
+    /// Set `consistency`.
+    pub fn with_consistency(mut self, v: impl Into<String>) -> Self {
+        self.consistency = Some(v.into());
+        self
+    }
+    /// Set `consistency_token`.
+    pub fn with_consistency_token(mut self, v: impl Into<String>) -> Self {
+        self.consistency_token = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -13033,6 +20682,43 @@ impl PermissionsUpdateBody {
     /// Set `key`.
     pub fn with_key(mut self, v: impl Into<String>) -> Self {
         self.key = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `PUT /v1/platform/atlas_id_apps/{id}/managed_by`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsSetManagedByBody {
+    /// An instance of the account that owns the app, or null to take grant management back.
+    #[serde(default)]
+    pub instance_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl AtlasIdAppsSetManagedByBody {
+    /// Hand grant management to this instance.
+    pub fn new(instance_id: impl Into<String>) -> Self {
+        Self {
+            instance_id: Some(instance_id.into()),
+            ..Default::default()
+        }
+    }
+    /// Take grant management back (sends `instance_id: null`).
+    pub fn release() -> Self {
+        Self::default()
+    }
+    /// Set `instance_id`.
+    pub fn with_instance_id(mut self, v: impl Into<String>) -> Self {
+        self.instance_id = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -14302,229 +21988,6 @@ impl ResourceServersUpdateBody {
     }
 }
 
-/// The request body of `POST /v1/risk_events/{id}/feedback`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct RiskEventsFeedbackBody {
-    /// Known values: `legit`, `fraud`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verdict: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl RiskEventsFeedbackBody {
-    /// A value with the required fields set and every other field unset.
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// Set `verdict`.
-    pub fn with_verdict(mut self, v: impl Into<String>) -> Self {
-        self.verdict = Some(v.into());
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-/// The `RiskEvent` object: one risk-scored sign-in.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct RiskEvent {
-    /// Always `risk_event`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub id: String,
-    #[serde(default)]
-    pub user_id: String,
-    /// Known values: `low`, `medium`, `high`.
-    #[serde(default)]
-    pub level: String,
-    #[serde(default)]
-    pub score: f64,
-    /// Names of the signals that fired.
-    #[serde(default)]
-    pub signals: Vec<String>,
-    /// The action decided; in audit mode, what would have happened.
-    #[serde(default)]
-    pub action: String,
-    /// Known values: `enforce`, `audit`.
-    #[serde(default)]
-    pub mode: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ip: Option<String>,
-    /// Known values: `legit`, `fraud`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub feedback: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub feedback_at: Option<String>,
-    #[serde(default)]
-    pub created_at: String,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The response of `GET /v1/risk_events`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct RiskEventsListResponse {
-    /// Always `list`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub data: Vec<RiskEvent>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// One level/action/mode count in [`RiskEventsMetricsResponse`].
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct RiskEventsMetricsResponseBucketsItem {
-    #[serde(default)]
-    pub level: String,
-    #[serde(default)]
-    pub action: String,
-    #[serde(default)]
-    pub mode: String,
-    #[serde(default)]
-    pub count: i64,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The response of `GET /v1/risk_events/metrics`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct RiskEventsMetricsResponse {
-    /// Always `risk_event_metrics`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub days: i64,
-    #[serde(default)]
-    pub total: i64,
-    #[serde(default)]
-    pub buckets: Vec<RiskEventsMetricsResponseBucketsItem>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The request body of `POST /v1/fraud/lookup`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct FraudLookupBody {
-    /// Client IP address.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ip: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user_agent: Option<String>,
-    /// The stable id from the JS SDK.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub device_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    /// A user of this instance, for user-based rules.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<String>,
-    /// The organization the action is for, for org_id rules.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub org_id: Option<String>,
-    /// Device features reported by the SDK.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub device: Option<Value>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl FraudLookupBody {
-    /// A value with the required fields set and every other field unset.
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// Set `ip`.
-    pub fn with_ip(mut self, v: impl Into<String>) -> Self {
-        self.ip = Some(v.into());
-        self
-    }
-    /// Set `user_agent`.
-    pub fn with_user_agent(mut self, v: impl Into<String>) -> Self {
-        self.user_agent = Some(v.into());
-        self
-    }
-    /// Set `device_id`.
-    pub fn with_device_id(mut self, v: impl Into<String>) -> Self {
-        self.device_id = Some(v.into());
-        self
-    }
-    /// Set `email`.
-    pub fn with_email(mut self, v: impl Into<String>) -> Self {
-        self.email = Some(v.into());
-        self
-    }
-    /// Set `user_id`.
-    pub fn with_user_id(mut self, v: impl Into<String>) -> Self {
-        self.user_id = Some(v.into());
-        self
-    }
-    /// Set `org_id`.
-    pub fn with_org_id(mut self, v: impl Into<String>) -> Self {
-        self.org_id = Some(v.into());
-        self
-    }
-    /// Set `device`.
-    pub fn with_device(mut self, v: impl Into<Value>) -> Self {
-        self.device = Some(v.into());
-        self
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-/// The response of `POST /v1/fraud/lookup`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct FraudLookupResponse {
-    /// Always `fraud_lookup`.
-    #[serde(default)]
-    pub object: String,
-    /// Known values: `allow`, `challenge`, `block`.
-    #[serde(default)]
-    pub verdict: String,
-    #[serde(default)]
-    pub reasons: Vec<String>,
-    #[serde(default)]
-    pub matched_rules: Vec<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub device_id: Option<String>,
-    /// Signals: country, ASN, datacenter, Tor, automation, client class, bot score, velocity.
-    #[serde(default)]
-    pub signals: Value,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
 /// The request body of `PATCH /v1/risk_based_mfa`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -14544,19 +22007,14 @@ pub struct RiskBasedMfaUpdateBody {
     /// Known values: `enforce`, `audit`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
-    /// What each risk level does: `medium` and `high` map to default, allow, notify, mfa or block.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub level_actions: Option<Value>,
-    /// IP-reputation and email-risk feeds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reputation: Option<Value>,
-    /// Fraud rules and sanctioned countries used by `POST /v1/fraud/lookup`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fraud: Option<Value>,
-    /// Per-user baseline: `enabled` and `weight`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline: Option<Value>,
-    /// Re-evaluate a session on refresh: `enabled` and `action` (revoke, notify or audit).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mid_session: Option<Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -14774,6 +22232,424 @@ impl RiskBasedMfaUpdateBodySignals {
     }
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<String>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyLevelActions {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `medium`.
+    pub fn with_medium(mut self, v: impl Into<String>) -> Self {
+        self.medium = Some(v.into());
+        self
+    }
+    /// Set `high`.
+    pub fn with_high(mut self, v: impl Into<String>) -> Self {
+        self.high = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyReputation {
+    /// Known values: `none`, `ipqs`, `spur`, `minfraud`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip_weight: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flag_anonymizers: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email_checks: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email_weight: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyReputation {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `provider`.
+    pub fn with_provider(mut self, v: impl Into<String>) -> Self {
+        self.provider = Some(v.into());
+        self
+    }
+    /// Set `ip_weight`.
+    pub fn with_ip_weight(mut self, v: impl Into<i64>) -> Self {
+        self.ip_weight = Some(v.into());
+        self
+    }
+    /// Set `min_score`.
+    pub fn with_min_score(mut self, v: impl Into<i64>) -> Self {
+        self.min_score = Some(v.into());
+        self
+    }
+    /// Set `flag_anonymizers`.
+    pub fn with_flag_anonymizers(mut self, v: impl Into<bool>) -> Self {
+        self.flag_anonymizers = Some(v.into());
+        self
+    }
+    /// Set `email_checks`.
+    pub fn with_email_checks(mut self, v: impl Into<bool>) -> Self {
+        self.email_checks = Some(v.into());
+        self
+    }
+    /// Set `email_weight`.
+    pub fn with_email_weight(mut self, v: impl Into<i64>) -> Self {
+        self.email_weight = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyFraud {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sanctioned_countries: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_rate_limit: Option<RiskBasedMfaUpdateBodyFraudDeviceRateLimit>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rules: Option<Vec<RiskBasedMfaUpdateBodyFraudRulesItem>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyFraud {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `sanctioned_countries`.
+    pub fn with_sanctioned_countries(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.sanctioned_countries = Some(v.into());
+        self
+    }
+    /// Set `device_rate_limit`.
+    pub fn with_device_rate_limit(
+        mut self,
+        v: impl Into<RiskBasedMfaUpdateBodyFraudDeviceRateLimit>,
+    ) -> Self {
+        self.device_rate_limit = Some(v.into());
+        self
+    }
+    /// Set `rules`.
+    pub fn with_rules(mut self, v: impl Into<Vec<RiskBasedMfaUpdateBodyFraudRulesItem>>) -> Self {
+        self.rules = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyFraudDeviceRateLimit {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub per_hour: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adaptive: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyFraudDeviceRateLimit {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `per_hour`.
+    pub fn with_per_hour(mut self, v: impl Into<i64>) -> Self {
+        self.per_hour = Some(v.into());
+        self
+    }
+    /// Set `adaptive`.
+    pub fn with_adaptive(mut self, v: impl Into<bool>) -> Self {
+        self.adaptive = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyFraudRulesItem {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub enabled: bool,
+    /// Known values: `allow`, `challenge`, `block`.
+    #[serde(default)]
+    pub action: String,
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub conditions: Vec<RiskBasedMfaUpdateBodyFraudRulesItemConditionsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyFraudRulesItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        enabled: impl Into<bool>,
+        action: impl Into<String>,
+        reason: impl Into<String>,
+        conditions: impl Into<Vec<RiskBasedMfaUpdateBodyFraudRulesItemConditionsItem>>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            name: name.into(),
+            enabled: enabled.into(),
+            action: action.into(),
+            reason: reason.into(),
+            conditions: conditions.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `id`.
+    pub fn with_id(mut self, v: impl Into<String>) -> Self {
+        self.id = v.into();
+        self
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = v.into();
+        self
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = v.into();
+        self
+    }
+    /// Set `action`.
+    pub fn with_action(mut self, v: impl Into<String>) -> Self {
+        self.action = v.into();
+        self
+    }
+    /// Set `reason`.
+    pub fn with_reason(mut self, v: impl Into<String>) -> Self {
+        self.reason = v.into();
+        self
+    }
+    /// Set `conditions`.
+    pub fn with_conditions(
+        mut self,
+        v: impl Into<Vec<RiskBasedMfaUpdateBodyFraudRulesItemConditionsItem>>,
+    ) -> Self {
+        self.conditions = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyFraudRulesItemConditionsItem {
+    #[serde(default)]
+    pub field: String,
+    #[serde(default)]
+    pub op: String,
+    #[serde(default)]
+    pub value: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyFraudRulesItemConditionsItem {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(field: impl Into<String>, op: impl Into<String>, value: impl Into<Value>) -> Self {
+        Self {
+            field: field.into(),
+            op: op.into(),
+            value: value.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `field`.
+    pub fn with_field(mut self, v: impl Into<String>) -> Self {
+        self.field = v.into();
+        self
+    }
+    /// Set `op`.
+    pub fn with_op(mut self, v: impl Into<String>) -> Self {
+        self.op = v.into();
+        self
+    }
+    /// Set `value`.
+    pub fn with_value(mut self, v: impl Into<Value>) -> Self {
+        self.value = v.into();
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyBaseline {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weight: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyBaseline {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `weight`.
+    pub fn with_weight(mut self, v: impl Into<i64>) -> Self {
+        self.weight = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaUpdateBodyMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskBasedMfaUpdateBodyMidSession {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `enabled`.
+    pub fn with_enabled(mut self, v: impl Into<bool>) -> Self {
+        self.enabled = Some(v.into());
+        self
+    }
+    /// Set `action`.
+    pub fn with_action(mut self, v: impl Into<String>) -> Self {
+        self.action = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/risk_events/{id}/feedback`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsFeedbackBody {
+    /// Known values: `legit`, `fraud`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verdict: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl RiskEventsFeedbackBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `verdict`.
+    pub fn with_verdict(mut self, v: impl Into<String>) -> Self {
+        self.verdict = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `POST /v1/roles`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -14784,6 +22660,8 @@ pub struct RolesCreateBody {
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visibility: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub permissions: Option<Vec<String>>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -14812,6 +22690,11 @@ impl RolesCreateBody {
         self.description = Some(v.into());
         self
     }
+    /// Set `visibility`.
+    pub fn with_visibility(mut self, v: impl Into<String>) -> Self {
+        self.visibility = Some(v.into());
+        self
+    }
     /// Set `permissions`.
     pub fn with_permissions(mut self, v: impl Into<Vec<String>>) -> Self {
         self.permissions = Some(v.into());
@@ -14834,6 +22717,8 @@ pub struct RolesUpdateBody {
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visibility: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -14858,6 +22743,11 @@ impl RolesUpdateBody {
     /// Set `key`.
     pub fn with_key(mut self, v: impl Into<String>) -> Self {
         self.key = Some(v.into());
+        self
+    }
+    /// Set `visibility`.
+    pub fn with_visibility(mut self, v: impl Into<String>) -> Self {
+        self.visibility = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -17801,6 +25691,8 @@ pub struct SsoOnboardingCreateProfileBody {
     pub company_name: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allow_scim: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intents: Option<Vec<String>>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -17845,6 +25737,11 @@ impl SsoOnboardingCreateProfileBody {
     /// Set `allow_scim`.
     pub fn with_allow_scim(mut self, v: impl Into<bool>) -> Self {
         self.allow_scim = Some(v.into());
+        self
+    }
+    /// Set `intents`.
+    pub fn with_intents(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.intents = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -19159,10 +27056,21 @@ pub struct Action {
     pub trigger: String,
     #[serde(default)]
     pub code: String,
+    /// `node` runs `code` in the sandbox; `http` calls `http_target.url`.
+    ///
+    /// Known values: `node`, `http`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub runtime: Option<String>,
+    /// An `http` Action's endpoint; null for a `node` Action. Its signing secret is write-only (a
+    /// generated one is returned once, as `signing_secret` on the create response).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_target: Option<ActionHttpTarget>,
     #[serde(default)]
     pub enabled: bool,
+    /// An `http` Action only, on the create (or rotate) response: the signing secret Atlas
+    /// generated. Shown once, never returned again.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signing_secret: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub secret_names: Vec<String>,
     /// Created (epoch ms).
@@ -19171,6 +27079,27 @@ pub struct Action {
     /// Last updated (epoch ms).
     #[serde(default)]
     pub updated_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// An `http` Action's endpoint; null for a `node` Action. Its signing secret is write-only (a
+/// generated one is returned once, as `signing_secret` on the create response).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionHttpTarget {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// 500 to 5000.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<i64>,
+    /// What a failed call does: `closed` refuses a gate, `open` carries on.
+    ///
+    /// Known values: `open`, `closed`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_mode: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -19518,12 +27447,100 @@ pub struct ActionTestResult {
     pub id_token_claims: Map<String, Value>,
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub app_metadata: Map<String, Value>,
+    /// custom_challenge_create: what api.challenge.set asked ({ prompt, hint, state }).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub challenge: Option<Map<String, Value>>,
+    /// custom_challenge_verify: set ({ amr }) when the code called api.challenge.accept().
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub challenge_accepted: Option<Map<String, Value>>,
+    /// Set when the code called api.access.lock(). A real run locks the account for 15 minutes and
+    /// answers 429 LOCKED.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lock_reason: Option<String>,
+    /// pre_token: claims the code asked to remove from the access token.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub suppressed_access_claims: Vec<String>,
+    /// pre_token: claims the code asked to remove from the ID token.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub suppressed_id_claims: Vec<String>,
+    /// Edits the code asked for with api.user.setBanned / setEmailVerified / setName / setImage. A
+    /// dry run applies none of them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_edits: Option<ActionTestResultUserEdits>,
+    /// Registration triggers: api.signUp.prefill values (fill a field the person left empty).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub sign_up_prefill: HashMap<String, String>,
+    /// Registration triggers: api.signUp.modify values (replace what the person typed).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub sign_up_modify: HashMap<String, String>,
+    /// An `http` Action only: how the endpoint call went. The test really calls the endpoint,
+    /// flagged `test: true`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_call: Option<ActionTestResultHttpCall>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub logs: Vec<String>,
     /// Outbound requests the code queued with api.http (a dry run sends nothing). Query values are
     /// masked and only header names are shown.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub http_requests: Vec<ActionTestResultHttpRequestsItem>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Edits the code asked for with api.user.setBanned / setEmailVerified / setName / setImage. A
+/// dry run applies none of them.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionTestResultUserEdits {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub banned: Option<ActionTestResultUserEditsBanned>,
+    #[serde(
+        rename = "emailVerified",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_verified: Option<bool>,
+    #[serde(rename = "firstName", default, skip_serializing_if = "Option::is_none")]
+    pub first_name: Option<String>,
+    #[serde(rename = "lastName", default, skip_serializing_if = "Option::is_none")]
+    pub last_name: Option<String>,
+    #[serde(rename = "imageUrl", default, skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionTestResultUserEditsBanned {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// An `http` Action only: how the endpoint call went. The test really calls the endpoint,
+/// flagged `test: true`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ActionTestResultHttpCall {
+    /// Known values: `ok`, `denied`, `timeout`, `error`, `invalid_response`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -20879,6 +28896,11 @@ pub struct BillingPlan {
     pub pricing_model: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trial_days: Option<i64>,
+    /// A display-only promotion shown on the plan card: { label, percent_off | amount_off (minor
+    /// units), ends_at (epoch ms), code }. It never changes what the provider charges; on the
+    /// public list an expired promotion is null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub promotion: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stripe_meter_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -20940,44 +28962,8 @@ pub struct BillingListProvidersResponseDataItem {
     /// Always `billing_provider`.
     #[serde(default)]
     pub object: String,
-    /// Known values: `stripe`, `polar`, `dodo`, `creem`.
-    #[serde(default)]
-    pub provider: String,
-    /// Known values: `live`, `test`.
-    #[serde(default)]
-    pub environment: String,
-    #[serde(default)]
-    pub status: String,
-    /// Public settings only (e.g. publishable_key).
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub config: HashMap<String, String>,
-    /// Which secrets are stored (e.g. {"secret_key": true}); values are never returned.
-    #[serde(default)]
-    pub secrets_set: HashMap<String, bool>,
-    /// Register this URL in the provider's dashboard.
-    #[serde(default)]
-    pub webhook_url: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub capabilities: Option<Map<String, Value>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_verified_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_webhook_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The response of `GET /v1/billing/providers/{provider}`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct BillingGetProviderResponse {
-    /// Always `billing_provider`.
-    #[serde(default)]
-    pub object: String,
+    pub configured: Option<Value>,
     /// Known values: `stripe`, `polar`, `dodo`, `creem`.
     #[serde(default)]
     pub provider: String,
@@ -21016,6 +29002,8 @@ pub struct BillingSetProviderResponse {
     /// Always `billing_provider`.
     #[serde(default)]
     pub object: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Value>,
     /// Known values: `stripe`, `polar`, `dodo`, `creem`.
     #[serde(default)]
     pub provider: String,
@@ -21401,148 +29389,6 @@ pub struct BotSignal {
     /// Observed (epoch ms).
     #[serde(default)]
     pub created_at: i64,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Client device features reported by the browser SDK for bot detection. Every field is
-/// optional on input (an unknown or malformed value is dropped); on a stored signal each is the
-/// clamped value or null.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct BotDeviceFeatures {
-    #[serde(
-        rename = "screenWidth",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub screen_width: Option<f64>,
-    #[serde(
-        rename = "screenHeight",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub screen_height: Option<f64>,
-    #[serde(
-        rename = "colorDepth",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub color_depth: Option<f64>,
-    #[serde(
-        rename = "pixelRatio",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub pixel_ratio: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub timezone: Option<String>,
-    #[serde(
-        rename = "timezoneOffset",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub timezone_offset: Option<f64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub language: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub languages: Vec<String>,
-    #[serde(
-        rename = "languageCount",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub language_count: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub platform: Option<String>,
-    #[serde(
-        rename = "hardwareConcurrency",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub hardware_concurrency: Option<f64>,
-    #[serde(
-        rename = "deviceMemory",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub device_memory: Option<f64>,
-    #[serde(
-        rename = "maxTouchPoints",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub max_touch_points: Option<f64>,
-    #[serde(
-        rename = "touchSupport",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub touch_support: Option<bool>,
-    #[serde(
-        rename = "cookieEnabled",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub cookie_enabled: Option<bool>,
-    #[serde(
-        rename = "doNotTrack",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub do_not_track: Option<bool>,
-    #[serde(
-        rename = "webglVendor",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub webgl_vendor: Option<String>,
-    #[serde(
-        rename = "webglRenderer",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub webgl_renderer: Option<String>,
-    #[serde(
-        rename = "pluginCount",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub plugin_count: Option<f64>,
-    #[serde(rename = "fontCount", default, skip_serializing_if = "Option::is_none")]
-    pub font_count: Option<f64>,
-    #[serde(
-        rename = "pointerType",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub pointer_type: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub webdriver: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub headless: Option<bool>,
-    #[serde(rename = "hasChrome", default, skip_serializing_if = "Option::is_none")]
-    pub has_chrome: Option<bool>,
-    #[serde(
-        rename = "languagesEmpty",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub languages_empty: Option<bool>,
-    #[serde(
-        rename = "webglSoftware",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub webgl_software: Option<bool>,
-    #[serde(
-        rename = "automationHint",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub automation_hint: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -22099,6 +29945,17 @@ pub struct BrandingSignUpFieldsItem {
     pub placeholder: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub options: Vec<String>,
+    /// When the field is asked for. sign_up (default): the sign-up form. next_sign_in: held at the
+    /// next sign-in that finds it empty. before_feature: asked by the application via GET
+    /// /v1/client/me/profile_completion.
+    ///
+    /// Known values: `sign_up`, `next_sign_in`, `before_feature`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collect_on: Option<String>,
+    /// An optional next_sign_in field the user skipped is asked again after this many days (default
+    /// 30; 0 = never).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reprompt_days: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -22449,11 +30306,22 @@ pub struct ConfigChangelogEntry {
     /// dom_…, instance).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target: Option<ConfigChangelogEntryTarget>,
-    /// The fields that changed, each with its value before and after. On a create `before` is null;
-    /// on a delete `after` is null. A secret field reads "set", "cleared" or "rotated", never its
-    /// value.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Always present. The fields that changed, each with its value before and after. On a create
+    /// `before` is null; on a delete `after` is null. A secret field reads "set", "cleared" or
+    /// "rotated", never its value. On an older entry that recorded only field names, each change
+    /// has `values_recorded: false` and null values. Empty on a no-op write.
+    #[serde(default)]
     pub changes: Vec<ConfigChangelogEntryChangesItem>,
+    /// True when the write changed nothing (the recorded before and after are identical).
+    #[serde(default)]
+    pub no_op: bool,
+    /// `diff`: before/after values were recorded. `fields`: only the changed field names (older
+    /// entries). `none`: nothing was recorded.
+    ///
+    /// Known values: `diff`, `fields`, `none`.
+    #[serde(default)]
+    pub recorded: String,
+    /// Deprecated: the same names as `changes\[\].section`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -22495,6 +30363,9 @@ pub struct ConfigChangelogEntryTarget {
 pub struct ConfigChangelogEntryChangesItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub section: Option<String>,
+    /// False when only the field name was recorded (older entries).
+    #[serde(default)]
+    pub values_recorded: bool,
     /// The section value before the change (any JSON value; absent when newly set).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub before: Option<Value>,
@@ -24217,9 +32088,46 @@ pub struct DataSubjectRequest {
     pub object: String,
     #[serde(default)]
     pub id: String,
-    /// Known values: `export`, `erasure`.
+    /// Atlas's own kind (picks the worker path). A closure is an `erasure`; see `canonical_type`.
+    ///
+    /// Known values: `export`, `erasure`, `restriction`, `rectification`.
     #[serde(default)]
     pub r#type: String,
+    /// The shared data-rights word for this request.
+    ///
+    /// Known values: `access`, `deletion`, `closure`, `restriction`, `rectification`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canonical_type: Option<String>,
+    /// Alias of `canonical_type` in the executor protocol spelling.
+    #[serde(
+        rename = "canonicalType",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub canonical_type_2: Option<String>,
+    /// What opened it: self-service, a secret key, the dashboard, an orchestrator through
+    /// /v1/privacy, or a Sign in with Atlas account erasure.
+    ///
+    /// Known values: `user`, `api`, `admin`, `orchestrator`, `atlas_id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+    /// The orchestrator's case id when it drives this request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub case_id: Option<String>,
+    /// The case Atlas opened at the instance's data-rights orchestrator for this request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_case: Option<DataSubjectRequestExternalCase>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub steps: Vec<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub retention: Vec<Map<String, Value>>,
+    /// Erasures: epoch ms when the account is erased — the date every executor aligns on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deletion_effective_at: Option<i64>,
     /// A deferred erasure is `scheduled` (held in its grace window with a `scheduled_for`/`eta`),
     /// distinguishing it from a `pending` request that runs on the next worker pass. The worker
     /// promotes it to `processing` once due, then `completed`. `cancelled` = aborted in the grace
@@ -24263,10 +32171,39 @@ pub struct DataSubjectRequest {
     pub extra: Map<String, Value>,
 }
 
+/// The case Atlas opened at the instance's data-rights orchestrator for this request.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct DataSubjectRequestExternalCase {
+    /// The orchestrator provider id (a preset or your own).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub product: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Known values: `open`, `pending`, `failed`, `cancelled`, `cancel_pending`, `abandoned`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attempts: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opened_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub atlas_id_app_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `GET /v1/data_subject_requests`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct DataSubjectRequestsListResponse {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
     #[serde(default)]
     pub data: Vec<DataSubjectRequest>,
     #[serde(default)]
@@ -24827,6 +32764,40 @@ pub struct FgaAuthorizationModelModel {
     pub schema_version: Option<String>,
     #[serde(default)]
     pub type_definitions: Vec<FgaTypeDefinition>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub conditions: HashMap<String, FgaCondition>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// A named condition: a CEL expression over typed parameters. Tuples (and requests) supply the
+/// parameter values.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FgaCondition {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// CEL, e.g. `ip.in_cidr(cidr)`. Up to 2048 characters; every identifier must be a declared
+    /// parameter. Regex `matches` is not supported.
+    #[serde(default)]
+    pub expression: String,
+    /// Parameter name to type.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub parameters: HashMap<String, FgaConditionParametersValue>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FgaConditionParametersValue {
+    /// Known values: `TYPE_NAME_ANY`, `TYPE_NAME_BOOL`, `TYPE_NAME_STRING`, `TYPE_NAME_INT`, `TYPE_NAME_UINT`, `TYPE_NAME_DOUBLE`, `TYPE_NAME_DURATION`, `TYPE_NAME_TIMESTAMP`, `TYPE_NAME_MAP`, `TYPE_NAME_LIST`, `TYPE_NAME_IPADDRESS`.
+    #[serde(default)]
+    pub type_name: String,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -24837,6 +32808,10 @@ pub struct FgaAuthorizationModelModel {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct FgaBatchCheckResponse {
+    /// Opaque consistency token (zookie). Pass it back as `consistency_token` on a later read to
+    /// require it be evaluated at least this fresh.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Always `fga.batch_check`.
     #[serde(default)]
     pub object: String,
@@ -24867,6 +32842,10 @@ pub struct FgaBatchCheckResponseResultItem {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct FgaCheckResponse {
+    /// Opaque consistency token (zookie). Pass it back as `consistency_token` on a later read to
+    /// require it be evaluated at least this fresh.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Always `fga.check`.
     #[serde(default)]
     pub object: String,
@@ -24902,11 +32881,20 @@ pub struct FgaExpandResponse {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct FgaListObjectsResponse {
+    /// Opaque consistency token (zookie). Pass it back as `consistency_token` on a later read to
+    /// require it be evaluated at least this fresh.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Always `fga.list_objects`.
     #[serde(default)]
     pub object: String,
     #[serde(default)]
     pub objects: Vec<String>,
+    #[serde(default)]
+    pub has_more: bool,
+    /// Pass as `starting_after` for the next page.
+    #[serde(default)]
+    pub next_cursor: Option<String>,
     #[serde(default)]
     pub authorization_model_id: String,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -24945,6 +32933,9 @@ pub struct FgaTuple {
     pub relation: String,
     #[serde(default)]
     pub target: String,
+    /// A model condition bound to a tuple: the tuple grants only while the CEL expression holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<FgaTupleCondition>,
     /// Created (epoch ms).
     #[serde(default)]
     pub created_at: i64,
@@ -24958,6 +32949,10 @@ pub struct FgaTuple {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct FgaWriteResponse {
+    /// Opaque consistency token (zookie). Pass it back as `consistency_token` on a later read to
+    /// require it be evaluated at least this fresh.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consistency_token: Option<String>,
     /// Always `fga.write_result`.
     #[serde(default)]
     pub object: String,
@@ -24965,6 +32960,30 @@ pub struct FgaWriteResponse {
     pub writes: i64,
     #[serde(default)]
     pub deletes: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `FraudLookup` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FraudLookup {
+    /// Always `fraud_lookup`.
+    #[serde(default)]
+    pub object: String,
+    /// Known values: `allow`, `challenge`, `block`.
+    #[serde(default)]
+    pub verdict: String,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+    #[serde(default)]
+    pub matched_rules: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_id: Option<String>,
+    #[serde(default)]
+    pub signals: Map<String, Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25007,10 +33026,23 @@ pub struct InstanceGetResponse {
     /// The raw stored patch (often {} = defaults).
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub auth_config: Map<String, Value>,
-    /// Instance auth configuration. Partial + additive on PATCH — omitted sections are untouched.
-    /// GET /v1/instance returns this resolved (defaults expanded) as auth_config_resolved.
+    /// The resolved instance auth configuration (every section, defaults expanded), as GET
+    /// /v1/instance returns it in auth_config_resolved. PATCH /v1/instance takes the same shape as
+    /// a partial patch (AuthConfigPatch).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auth_config_resolved: Option<InstanceGetResponseAuthConfigResolved>,
+    /// Sign-in methods that are switched on but not offered to users (not on the hosted pages, the
+    /// embedded components or the Frontend API environment), because they need an email provider
+    /// and the instance has none. Email is bring-your-own. They become active on their own once a
+    /// provider is configured. Password is listed only when sign-up must verify the address by
+    /// email and no user holds a password yet.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inactive_methods: Vec<InstanceGetResponseInactiveMethodsItem>,
+    /// Sign-in methods that still work without an email provider, minus the parts that need email:
+    /// password sign-in for users who already hold a password, without password reset (and without
+    /// password sign-up while sign-up must verify the address by email).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub limited_methods: Vec<InstanceGetResponseLimitedMethodsItem>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -25020,45 +33052,129 @@ pub struct InstanceGetResponse {
     pub extra: Map<String, Value>,
 }
 
-/// Instance auth configuration. Partial + additive on PATCH — omitted sections are untouched.
-/// GET /v1/instance returns this resolved (defaults expanded) as auth_config_resolved.
+/// The resolved instance auth configuration (every section, defaults expanded), as GET
+/// /v1/instance returns it in auth_config_resolved. PATCH /v1/instance takes the same shape as
+/// a partial patch (AuthConfigPatch).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolved {
-    /// Which first-factor sign-in methods are enabled.
+pub struct AuthConfig {
+    /// Known values: `auto`, `block`, `separate`.
+    #[serde(rename = "accountLinking", default)]
+    pub account_linking: String,
+    #[serde(rename = "accountLinkingTrust", default)]
+    pub account_linking_trust: HashMap<String, String>,
+    #[serde(rename = "accountUx", default)]
+    pub account_ux: AuthConfigAccountUx,
+    #[serde(rename = "appCatalog", default)]
+    pub app_catalog: AuthConfigAppCatalog,
+    #[serde(rename = "attackProtection", default)]
+    pub attack_protection: AuthConfigAttackProtection,
+    #[serde(rename = "banBlocksIp", default)]
+    pub ban_blocks_ip: bool,
+    #[serde(rename = "banBlocksReregistration", default)]
+    pub ban_blocks_reregistration: bool,
+    #[serde(rename = "banIpBlockDays", default)]
+    pub ban_ip_block_days: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub strategies: Option<InstanceGetResponseAuthConfigResolvedStrategies>,
+    pub billing: Option<AuthConfigBilling>,
+    #[serde(default)]
+    pub captcha: AuthConfigCaptcha,
+    #[serde(default)]
+    pub compliance: AuthConfigCompliance,
+    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
+    /// false are reported as verified again in users, tokens, webhooks and exports (the old
+    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
+    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
+    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
+    #[serde(rename = "dangerouslyReportSkippedEmailsAsVerified", default)]
+    pub dangerously_report_skipped_emails_as_verified: bool,
     #[serde(
-        rename = "passwordPolicy",
+        rename = "endUserApiKeys",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub password_policy: Option<InstanceGetResponseAuthConfigResolvedPasswordPolicy>,
-    /// Per-method code/link TTLs, lengths and resend limits.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verification: Option<InstanceGetResponseAuthConfigResolvedVerification>,
-    /// Session lifetime + token behaviour.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub session: Option<InstanceGetResponseAuthConfigResolvedSession>,
+    pub end_user_api_keys: Option<AuthConfigEndUserApiKeys>,
+    #[serde(default)]
+    pub entitlements: AuthConfigEntitlements,
+    /// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
+    /// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
+    #[serde(rename = "externalJwt", default)]
+    pub external_jwt: AuthConfigExternalJwt,
+    #[serde(rename = "identityTraits", default)]
+    pub identity_traits: AuthConfigIdentityTraits,
+    #[serde(rename = "jwtTemplates", default)]
+    pub jwt_templates: HashMap<String, HashMap<String, String>>,
+    #[serde(rename = "jwtTemplateSettings", default)]
+    pub jwt_template_settings: HashMap<String, AuthConfigJwtTemplateSettingsValue>,
+    #[serde(default)]
+    pub kerberos: AuthConfigKerberos,
+    #[serde(default)]
+    pub ldap: AuthConfigLdap,
+    #[serde(default)]
+    pub localization: AuthConfigLocalization,
+    #[serde(
+        rename = "mcpConnector",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub mcp_connector: Option<AuthConfigMcpConnector>,
+    #[serde(default)]
+    pub mfa: AuthConfigMfa,
     /// Known values: `off`, `optional`, `required`.
-    #[serde(rename = "mfaPolicy", default, skip_serializing_if = "Option::is_none")]
-    pub mfa_policy: Option<String>,
+    #[serde(rename = "mfaPolicy", default)]
+    pub mfa_policy: String,
+    #[serde(rename = "nativeApps", default)]
+    pub native_apps: AuthConfigNativeApps,
+    #[serde(rename = "oauthProvider", default)]
+    pub oauth_provider: AuthConfigOauthProvider,
+    #[serde(default)]
+    pub organizations: AuthConfigOrganizations,
+    #[serde(rename = "passkeyPolicy", default)]
+    pub passkey_policy: AuthConfigPasskeyPolicy,
+    #[serde(rename = "passwordPolicy", default)]
+    pub password_policy: AuthConfigPasswordPolicy,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pca: Option<AuthConfigPca>,
+    #[serde(rename = "phoneChannels", default)]
+    pub phone_channels: AuthConfigPhoneChannels,
+    #[serde(rename = "qrSignIn", default)]
+    pub qr_sign_in: AuthConfigQrSignIn,
+    #[serde(rename = "rateLimit", default)]
+    pub rate_limit: AuthConfigRateLimit,
+    /// Whether a password sign-up must prove the address with an emailed code before it completes.
+    /// When false the sign-up completes at once, but the address stays unverified (verified,
+    /// verification.status and email_verified report false) until the user proves it later.
+    #[serde(rename = "requireEmailVerification", default)]
+    pub require_email_verification: bool,
+    #[serde(default)]
+    pub restrictions: AuthConfigRestrictions,
+    #[serde(rename = "riskBasedMfa", default)]
+    pub risk_based_mfa: AuthConfigRiskBasedMfa,
+    /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
+    /// (direct SAML; no OIDC/atlas_byo needed).
+    #[serde(rename = "samlIdp", default)]
+    pub saml_idp: AuthConfigSamlIdp,
+    /// Session lifetime + token behaviour.
+    #[serde(default)]
+    pub session: AuthConfigSession,
+    #[serde(default)]
+    pub signals: AuthConfigSignals,
+    #[serde(rename = "signInAfterReset", default)]
+    pub sign_in_after_reset: bool,
     /// public: anyone may sign up. waitlist: unknown addresses join a waitlist (403 WAITLISTED)
     /// until approved. restricted: invitation-only — only invited or waitlist-approved addresses
     /// may sign up (403 SIGN_UP_RESTRICTED otherwise).
     ///
     /// Known values: `public`, `waitlist`, `restricted`.
-    #[serde(
-        rename = "signUpMode",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub sign_up_mode: Option<String>,
-    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
-    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
-    /// written with PATCH /v1/branding.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub branding: Option<InstanceGetResponseAuthConfigResolvedBranding>,
+    #[serde(rename = "signUpMode", default)]
+    pub sign_up_mode: String,
+    #[serde(default)]
+    pub srp: AuthConfigSrp,
+    #[serde(rename = "stepUp", default)]
+    pub step_up: AuthConfigStepUp,
+    /// Which first-factor sign-in methods are enabled.
+    #[serde(default)]
+    pub strategies: AuthConfigStrategies,
     /// Strict writes for this instance's secret keys: a Backend API write that carries a body field
     /// the endpoint does not know is refused with 422 UNKNOWN_FIELD instead of being accepted and
     /// ignored. true for every instance created from 2026-10 on; older instances stay false
@@ -25073,71 +33189,16 @@ pub struct InstanceGetResponseAuthConfigResolved {
         skip_serializing_if = "Option::is_none"
     )]
     pub strict_request_bodies: Option<bool>,
-    /// Whether a password sign-up must prove the address with an emailed code before it completes.
-    /// When false the sign-up completes at once, but the address stays unverified (verified,
-    /// verification.status and email_verified report false) until the user proves it later.
-    #[serde(
-        rename = "requireEmailVerification",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub require_email_verification: Option<bool>,
-    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
-    /// false are reported as verified again in users, tokens, webhooks and exports (the old
-    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
-    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
-    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
-    #[serde(
-        rename = "dangerouslyReportSkippedEmailsAsVerified",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub dangerously_report_skipped_emails_as_verified: Option<bool>,
-    /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
-    /// (direct SAML; no OIDC/atlas_byo needed).
-    #[serde(rename = "samlIdp", default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp: Option<InstanceGetResponseAuthConfigResolvedSamlIdp>,
-    /// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
-    /// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
-    #[serde(
-        rename = "externalJwt",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub external_jwt: Option<InstanceGetResponseAuthConfigResolvedExternalJwt>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Which first-factor sign-in methods are enabled.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedStrategies {
+    /// Per-method code/link TTLs, lengths and resend limits.
+    #[serde(default)]
+    pub verification: AuthConfigVerification,
+    #[serde(rename = "walletGating", default)]
+    pub wallet_gating: AuthConfigWalletGating,
+    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
+    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
+    /// written with PATCH /v1/branding.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub password: Option<bool>,
-    /// Email one-time code (passwordless).
-    #[serde(rename = "emailCode", default, skip_serializing_if = "Option::is_none")]
-    pub email_code: Option<bool>,
-    /// Magic link.
-    #[serde(rename = "emailLink", default, skip_serializing_if = "Option::is_none")]
-    pub email_link: Option<bool>,
-    /// WebAuthn passkeys.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub passkey: Option<bool>,
-    /// SMS OTP (off by default).
-    #[serde(rename = "phoneCode", default, skip_serializing_if = "Option::is_none")]
-    pub phone_code: Option<bool>,
-    /// Username as a login identifier.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub username: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siwe: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siws: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siwf: Option<bool>,
+    pub branding: Option<AuthConfigBranding>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25146,50 +33207,1806 @@ pub struct InstanceGetResponseAuthConfigResolvedStrategies {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedPasswordPolicy {
+pub struct AuthConfigAccountUx {
+    #[serde(rename = "deviceKeys", default)]
+    pub device_keys: AuthConfigAccountUxDeviceKeys,
+    #[serde(rename = "emailChange", default)]
+    pub email_change: AuthConfigAccountUxEmailChange,
+    /// Known values: `both`, `code`, `link`.
+    #[serde(rename = "emailVerification", default)]
+    pub email_verification: String,
+    #[serde(rename = "lastSignInMethod", default)]
+    pub last_sign_in_method: AuthConfigAccountUxLastSignInMethod,
+    #[serde(rename = "passkeyAdoption", default)]
+    pub passkey_adoption: AuthConfigAccountUxPasskeyAdoption,
+    #[serde(rename = "passkeySignUp", default)]
+    pub passkey_sign_up: AuthConfigAccountUxPasskeySignUp,
+    /// Known values: `both`, `code`, `link`.
+    #[serde(rename = "passwordReset", default)]
+    pub password_reset: String,
+    #[serde(rename = "securityNotifications", default)]
+    pub security_notifications: AuthConfigAccountUxSecurityNotifications,
+    #[serde(default)]
+    pub username: AuthConfigAccountUxUsername,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxDeviceKeys {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "satisfiesMfa", default)]
+    pub satisfies_mfa: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxEmailChange {
+    #[serde(rename = "requireOldAddressConfirm", default)]
+    pub require_old_address_confirm: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxLastSignInMethod {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxPasskeyAdoption {
+    #[serde(default)]
+    pub prompt: AuthConfigAccountUxPasskeyAdoptionPrompt,
+    #[serde(default)]
+    pub recovery: AuthConfigAccountUxPasskeyAdoptionRecovery,
+    #[serde(default)]
+    pub rollout: AuthConfigAccountUxPasskeyAdoptionRollout,
+    #[serde(default)]
+    pub signals: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxPasskeyAdoptionPrompt {
+    #[serde(rename = "cooldownDays", default)]
+    pub cooldown_days: f64,
+    #[serde(default)]
+    pub enabled: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxPasskeyAdoptionRecovery {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub methods: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxPasskeyAdoptionRollout {
+    #[serde(rename = "deviceClasses", default)]
+    pub device_classes: Vec<String>,
+    #[serde(default)]
+    pub orgs: AuthConfigAccountUxPasskeyAdoptionRolloutOrgs,
+    #[serde(default)]
+    pub percentage: f64,
+    #[serde(default)]
+    pub variant: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxPasskeyAdoptionRolloutOrgs {
+    #[serde(default)]
+    pub allow: Vec<String>,
+    #[serde(default)]
+    pub deny: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxPasskeySignUp {
+    /// Known values: `off`, `optional`, `required`.
+    #[serde(default)]
+    pub email: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub preferred: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxSecurityNotifications {
+    #[serde(rename = "accountChanges", default)]
+    pub account_changes: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAccountUxUsername {
+    /// Known values: `alphanumeric`, `alphanumeric_underscore`, `default`.
+    #[serde(default)]
+    pub charset: String,
+    #[serde(rename = "maxLength", default)]
+    pub max_length: f64,
+    #[serde(rename = "minLength", default)]
+    pub min_length: f64,
+    #[serde(rename = "requiredAtSignUp", default)]
+    pub required_at_sign_up: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAppCatalog {
+    #[serde(rename = "oidcApps", default)]
+    pub oidc_apps: Vec<AuthConfigAppCatalogOidcAppsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAppCatalogOidcAppsItem {
+    #[serde(
+        rename = "allowedEmailDomains",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub allowed_email_domains: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assignment: Option<AuthConfigAppCatalogOidcAppsItemAssignment>,
+    #[serde(rename = "clientId", default)]
+    pub client_id: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(rename = "launchUrl", default)]
+    pub launch_url: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(rename = "presetId", default)]
+    pub preset_id: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAppCatalogOidcAppsItemAssignment {
+    #[serde(default)]
+    pub groups: Vec<String>,
+    /// Known values: `assigned`, `everyone`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub organizations: Vec<String>,
+    #[serde(default)]
+    pub roles: Vec<String>,
+    #[serde(rename = "userIds", default)]
+    pub user_ids: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtection {
+    #[serde(rename = "appAttestation", default)]
+    pub app_attestation: AuthConfigAttackProtectionAppAttestation,
+    #[serde(rename = "bruteForce", default)]
+    pub brute_force: AuthConfigAttackProtectionBruteForce,
+    #[serde(default)]
+    pub countries: AuthConfigAttackProtectionCountries,
+    #[serde(rename = "deviceAccounts", default)]
+    pub device_accounts: AuthConfigAttackProtectionDeviceAccounts,
+    #[serde(rename = "disposableEmail", default)]
+    pub disposable_email: AuthConfigAttackProtectionDisposableEmail,
+    #[serde(rename = "dormantAccounts", default)]
+    pub dormant_accounts: AuthConfigAttackProtectionDormantAccounts,
+    #[serde(rename = "smsPumping", default)]
+    pub sms_pumping: AuthConfigAttackProtectionSmsPumping,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionAppAttestation {
+    #[serde(default)]
+    pub android: AuthConfigAttackProtectionAppAttestationAndroid,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub flows: AuthConfigAttackProtectionAppAttestationFlows,
+    #[serde(default)]
+    pub ios: AuthConfigAttackProtectionAppAttestationIos,
+    #[serde(rename = "maxAgeSeconds", default)]
+    pub max_age_seconds: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionAppAttestationAndroid {
+    #[serde(rename = "packageNames", default)]
+    pub package_names: Vec<String>,
+    #[serde(rename = "requireDeviceIntegrity", default)]
+    pub require_device_integrity: bool,
+    #[serde(rename = "requirePlayRecognized", default)]
+    pub require_play_recognized: bool,
+    #[serde(rename = "verificationKey", default)]
+    pub verification_key: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionAppAttestationFlows {
+    #[serde(rename = "signIn", default)]
+    pub sign_in: bool,
+    #[serde(rename = "signUp", default)]
+    pub sign_up: bool,
+    #[serde(rename = "smsSend", default)]
+    pub sms_send: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionAppAttestationIos {
+    #[serde(rename = "allowDevelopment", default)]
+    pub allow_development: bool,
+    #[serde(rename = "appIds", default)]
+    pub app_ids: Vec<String>,
+    #[serde(rename = "deviceCheck", default)]
+    pub device_check: AuthConfigAttackProtectionAppAttestationIosDeviceCheck,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionAppAttestationIosDeviceCheck {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "keyId", default)]
+    pub key_id: String,
+    #[serde(default)]
+    pub sandbox: bool,
+    #[serde(rename = "teamId", default)]
+    pub team_id: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionBruteForce {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionCountries {
+    #[serde(rename = "blockUnknown", default)]
+    pub block_unknown: bool,
+    #[serde(default)]
+    pub list: Vec<String>,
+    /// Known values: `allow`, `deny`, `off`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(rename = "signIn", default)]
+    pub sign_in: bool,
+    #[serde(rename = "signUp", default)]
+    pub sign_up: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionDeviceAccounts {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "maxAccounts", default)]
+    pub max_accounts: f64,
+    #[serde(rename = "windowDays", default)]
+    pub window_days: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionDisposableEmail {
+    #[serde(default)]
+    pub block: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionDormantAccounts {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "notifyUser", default)]
+    pub notify_user: bool,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(rename = "onNoFactor", default)]
+    pub on_no_factor: String,
+    #[serde(rename = "requireMfa", default)]
+    pub require_mfa: bool,
+    #[serde(rename = "thresholdDays", default)]
+    pub threshold_days: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigAttackProtectionSmsPumping {
+    #[serde(rename = "allowedPrefixes", default)]
+    pub allowed_prefixes: Vec<String>,
+    #[serde(rename = "blockedPrefixes", default)]
+    pub blocked_prefixes: Vec<String>,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "maxPerHour", default)]
+    pub max_per_hour: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigBilling {
+    #[serde(
+        rename = "portalConfigurationId",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub portal_configuration_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigCaptcha {
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub actions: HashMap<String, AuthConfigCaptchaActionsValue>,
+    #[serde(
+        rename = "attestationUrl",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub attestation_url: Option<String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub flows: HashMap<String, Value>,
+    #[serde(
+        rename = "gateAnonymous",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub gate_anonymous: Option<bool>,
+    #[serde(rename = "minScore", default, skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<f64>,
+    #[serde(rename = "projectId", default, skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    /// Known values: `akamai`, `atlas`, `awswaf`, `captchafox`, `capy`, `friendly`, `funcaptcha`, `geetest`, `hcaptcha`, `incapsula`, `kasada`, `mcaptcha`, `none`, `perimeterx`, `recaptcha`, `recaptcha_enterprise`, `recaptcha_v3`, `seon`, `turnstile`, `vercel_botid`, `yandex`.
+    #[serde(default)]
+    pub provider: String,
+    #[serde(rename = "siteKey", default, skip_serializing_if = "Option::is_none")]
+    pub site_key: Option<String>,
+    #[serde(rename = "verifyUrl", default, skip_serializing_if = "Option::is_none")]
+    pub verify_url: Option<String>,
+    /// Known values: `invisible`, `managed`, `visible`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigCaptchaActionsValue {
+    #[serde(
+        rename = "attestationUrl",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub attestation_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(rename = "minScore", default, skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<f64>,
+    #[serde(rename = "projectId", default, skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    /// Known values: `akamai`, `atlas`, `awswaf`, `captchafox`, `capy`, `friendly`, `funcaptcha`, `geetest`, `hcaptcha`, `incapsula`, `kasada`, `mcaptcha`, `none`, `perimeterx`, `recaptcha`, `recaptcha_enterprise`, `recaptcha_v3`, `seon`, `turnstile`, `vercel_botid`, `yandex`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(rename = "siteKey", default, skip_serializing_if = "Option::is_none")]
+    pub site_key: Option<String>,
+    #[serde(rename = "verifyUrl", default, skip_serializing_if = "Option::is_none")]
+    pub verify_url: Option<String>,
+    /// Known values: `invisible`, `managed`, `visible`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigCompliance {
+    #[serde(default)]
+    pub consents: Vec<AuthConfigComplianceConsentsItem>,
+    #[serde(rename = "dataRegion", default)]
+    pub data_region: Option<String>,
+    #[serde(default)]
+    pub minors: AuthConfigComplianceMinors,
+    #[serde(default)]
+    pub retention: AuthConfigComplianceRetention,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigComplianceConsentsItem {
+    #[serde(default)]
+    pub policy: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default)]
+    pub version: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigComplianceMinors {
+    #[serde(rename = "birthdateTrait", default)]
+    pub birthdate_trait: String,
+    #[serde(rename = "consentAges", default)]
+    pub consent_ages: HashMap<String, f64>,
+    #[serde(rename = "consentTtlHours", default)]
+    pub consent_ttl_hours: f64,
+    #[serde(rename = "countryTrait", default)]
+    pub country_trait: Option<String>,
+    #[serde(rename = "defaultConsentAge", default)]
+    pub default_consent_age: f64,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "minimumAge", default)]
+    pub minimum_age: Option<f64>,
+    /// Known values: `flag`, `hold`.
+    #[serde(default)]
+    pub restriction: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigComplianceRetention {
+    #[serde(rename = "anonymousRetentionDays", default)]
+    pub anonymous_retention_days: Option<f64>,
+    #[serde(rename = "cancelDeletionOnSignIn", default)]
+    pub cancel_deletion_on_sign_in: bool,
+    #[serde(rename = "deletedUserGraceDays", default)]
+    pub deleted_user_grace_days: f64,
+    #[serde(rename = "erasureGraceDays", default)]
+    pub erasure_grace_days: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigEndUserApiKeys {
+    #[serde(rename = "allowedClaimNames", default)]
+    pub allowed_claim_names: Vec<String>,
+    #[serde(rename = "allowedScopes", default)]
+    pub allowed_scopes: Vec<String>,
+    #[serde(rename = "allowOrganizationKeys", default)]
+    pub allow_organization_keys: bool,
+    #[serde(rename = "defaultExpiresInSeconds", default)]
+    pub default_expires_in_seconds: Option<f64>,
+    #[serde(rename = "keyPrefix", default)]
+    pub key_prefix: Option<String>,
+    #[serde(rename = "maxActiveKeysPerSubject", default)]
+    pub max_active_keys_per_subject: f64,
+    #[serde(rename = "maxExpiresInSeconds", default)]
+    pub max_expires_in_seconds: Option<f64>,
+    #[serde(rename = "organizationPermission", default)]
+    pub organization_permission: String,
+    #[serde(rename = "selfServiceEnabled", default)]
+    pub self_service_enabled: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigEntitlements {
+    #[serde(default)]
+    pub features: Vec<AuthConfigEntitlementsFeaturesItem>,
+    #[serde(default)]
+    pub plans: Vec<AuthConfigEntitlementsPlansItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigEntitlementsFeaturesItem {
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub name: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigEntitlementsPlansItem {
+    #[serde(default)]
+    pub features: Vec<String>,
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub name: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
+/// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigExternalJwt {
+    #[serde(default)]
+    pub issuers: Vec<AuthConfigExternalJwtIssuersItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigExternalJwtIssuersItem {
+    #[serde(default)]
+    pub audience: String,
+    #[serde(
+        rename = "emailClaim",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_claim: Option<String>,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub issuer: String,
+    #[serde(rename = "jwksUri", default)]
+    pub jwks_uri: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigIdentityTraits {
+    #[serde(
+        rename = "audienceKey",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub audience_key: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<AuthConfigIdentityTraitsGroupsItem>,
+    #[serde(default)]
+    pub traits: Vec<AuthConfigIdentityTraitsTraitsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigIdentityTraitsGroupsItem {
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub label: String,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub labels: HashMap<String, String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigIdentityTraitsTraitsItem {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub audiences: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<Value>,
+    /// Known values: `email`, `email_domain`, `first_name`, `full_name`, `last_name`.
+    #[serde(
+        rename = "defaultFrom",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub default_from: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(rename = "editableBy", default, skip_serializing_if = "Vec::is_empty")]
+    pub editable_by: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub r#enum: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub indexed: Option<bool>,
+    /// Known values: `number`, `string`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub items: Option<String>,
+    #[serde(default)]
+    pub key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub labels: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max: Option<f64>,
+    #[serde(rename = "maxDate", default, skip_serializing_if = "Option::is_none")]
+    pub max_date: Option<String>,
+    #[serde(rename = "maxItems", default, skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<f64>,
+    #[serde(rename = "maxLength", default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min: Option<f64>,
+    #[serde(rename = "minDate", default, skip_serializing_if = "Option::is_none")]
+    pub min_date: Option<String>,
+    #[serde(rename = "minItems", default, skip_serializing_if = "Option::is_none")]
+    pub min_items: Option<f64>,
     #[serde(rename = "minLength", default, skip_serializing_if = "Option::is_none")]
-    pub min_length: Option<i64>,
+    pub min_length: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pattern: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub properties: Vec<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required: Option<bool>,
     #[serde(
-        rename = "requireUppercase",
+        rename = "requiredWhen",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub require_uppercase: Option<bool>,
+    pub required_when: Option<AuthConfigIdentityTraitsTraitsItemRequiredWhen>,
+    /// Known values: `array`, `boolean`, `date`, `email`, `enum`, `multi_select`, `number`, `object`, `phone`, `string`, `url`.
+    #[serde(default)]
+    pub r#type: String,
     #[serde(
-        rename = "requireNumber",
+        rename = "userEditable",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub require_number: Option<bool>,
-    #[serde(
-        rename = "requireSymbol",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub require_symbol: Option<bool>,
-    /// Reject known-breached passwords (HIBP).
-    #[serde(
-        rename = "checkBreaches",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub check_breaches: Option<bool>,
+    pub user_editable: Option<bool>,
+    #[serde(rename = "viewableBy", default, skip_serializing_if = "Vec::is_empty")]
+    pub viewable_by: Vec<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-/// Per-method code/link TTLs, lengths and resend limits.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedVerification {
-    #[serde(rename = "emailCode", default, skip_serializing_if = "Map::is_empty")]
-    pub email_code: Map<String, Value>,
-    #[serde(rename = "smsCode", default, skip_serializing_if = "Map::is_empty")]
-    pub sms_code: Map<String, Value>,
-    #[serde(rename = "magicLink", default, skip_serializing_if = "Map::is_empty")]
-    pub magic_link: Map<String, Value>,
+pub struct AuthConfigIdentityTraitsTraitsItemRequiredWhen {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equals: Option<Value>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub r#in: Vec<Value>,
+    #[serde(default)]
+    pub key: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigJwtTemplateSettingsValue {
+    /// Known values: `HS256`, `RS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    #[serde(
+        rename = "lifetimeSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub lifetime_seconds: Option<f64>,
+    #[serde(
+        rename = "signingSecretEnc",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub signing_secret_enc: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigKerberos {
+    #[serde(rename = "allowJitProvisioning", default)]
+    pub allow_jit_provisioning: bool,
+    #[serde(
+        rename = "emailDomain",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub email_domain: Option<String>,
+    #[serde(rename = "principalHeader", default)]
+    pub principal_header: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub realm: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigLdap {
+    #[serde(default)]
+    pub connections: Vec<AuthConfigLdapConnectionsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigLdapConnectionsItem {
+    #[serde(default)]
+    pub attributes: AuthConfigLdapConnectionsItemAttributes,
+    #[serde(rename = "baseDN", default)]
+    pub base_dn: String,
+    #[serde(rename = "bindDN", default)]
+    pub bind_dn: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub url: String,
+    #[serde(rename = "userFilter", default)]
+    pub user_filter: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigLdapConnectionsItemAttributes {
+    #[serde(default)]
+    pub email: String,
+    #[serde(rename = "firstName", default, skip_serializing_if = "Option::is_none")]
+    pub first_name: Option<String>,
+    #[serde(rename = "lastName", default, skip_serializing_if = "Option::is_none")]
+    pub last_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigLocalization {
+    #[serde(rename = "defaultLocale", default)]
+    pub default_locale: String,
+    #[serde(rename = "enabledLocales", default)]
+    pub enabled_locales: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMcpConnector {
+    #[serde(
+        rename = "allowedRedirectHosts",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub allowed_redirect_hosts: Vec<String>,
+    #[serde(rename = "dynamicRegistration", default)]
+    pub dynamic_registration: bool,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "exposedScopes", default)]
+    pub exposed_scopes: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfa {
+    #[serde(rename = "backupCodes", default)]
+    pub backup_codes: AuthConfigMfaBackupCodes,
+    #[serde(default)]
+    pub duo: AuthConfigMfaDuo,
+    #[serde(default)]
+    pub factors: AuthConfigMfaFactors,
+    #[serde(default)]
+    pub hotp: AuthConfigMfaHotp,
+    #[serde(rename = "rememberDevice", default)]
+    pub remember_device: AuthConfigMfaRememberDevice,
+    #[serde(rename = "securityQuestions", default)]
+    pub security_questions: AuthConfigMfaSecurityQuestions,
+    #[serde(rename = "smartCard", default)]
+    pub smart_card: AuthConfigMfaSmartCard,
+    #[serde(default)]
+    pub totp: AuthConfigMfaTotp,
+    #[serde(rename = "totpEnrollmentCodes", default)]
+    pub totp_enrollment_codes: f64,
+    #[serde(default)]
+    pub yubikey: AuthConfigMfaYubikey,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaBackupCodes {
+    #[serde(default)]
+    pub count: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaDuo {
+    #[serde(rename = "apiHost", default)]
+    pub api_host: String,
+    #[serde(rename = "clientId", default)]
+    pub client_id: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaFactors {
+    #[serde(rename = "customChallenge", default)]
+    pub custom_challenge: bool,
+    #[serde(default)]
+    pub duo: bool,
+    #[serde(rename = "emailCode", default)]
+    pub email_code: bool,
+    #[serde(default)]
+    pub hotp: bool,
+    #[serde(default)]
+    pub passkey: bool,
+    #[serde(default)]
+    pub push: bool,
+    #[serde(default)]
+    pub sms: bool,
+    #[serde(default)]
+    pub totp: bool,
+    #[serde(default)]
+    pub yubikey: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaHotp {
+    /// Known values: `SHA1`, `SHA256`, `SHA512`.
+    #[serde(default)]
+    pub algorithm: String,
+    #[serde(default)]
+    pub digits: f64,
+    #[serde(rename = "lookAhead", default)]
+    pub look_ahead: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaRememberDevice {
+    #[serde(default)]
+    pub days: f64,
+    #[serde(default)]
+    pub enabled: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaSecurityQuestions {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "maxAttempts", default)]
+    pub max_attempts: f64,
+    #[serde(default)]
+    pub questions: Vec<String>,
+    #[serde(default)]
+    pub required: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaSmartCard {
+    #[serde(rename = "certHeader", default)]
+    pub cert_header: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "fingerprintHeader", default)]
+    pub fingerprint_header: String,
+    #[serde(rename = "mappingRules", default)]
+    pub mapping_rules: Vec<String>,
+    #[serde(rename = "satisfiesMfa", default)]
+    pub satisfies_mfa: bool,
+    #[serde(rename = "secretHeader", default)]
+    pub secret_header: String,
+    #[serde(rename = "subjectHeader", default)]
+    pub subject_header: String,
+    #[serde(rename = "verifyHeader", default)]
+    pub verify_header: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaTotp {
+    /// Known values: `SHA1`, `SHA256`, `SHA512`.
+    #[serde(default)]
+    pub algorithm: String,
+    #[serde(default)]
+    pub digits: f64,
+    #[serde(default)]
+    pub period: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigMfaYubikey {
+    #[serde(rename = "apiUrls", default)]
+    pub api_urls: Vec<String>,
+    #[serde(rename = "clientId", default)]
+    pub client_id: String,
+    /// Known values: `cloud`, `self_held`.
+    #[serde(default)]
+    pub mode: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigNativeApps {
+    #[serde(rename = "androidApps", default)]
+    pub android_apps: Vec<AuthConfigNativeAppsAndroidAppsItem>,
+    #[serde(rename = "appleAppIds", default)]
+    pub apple_app_ids: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigNativeAppsAndroidAppsItem {
+    #[serde(rename = "packageName", default)]
+    pub package_name: String,
+    #[serde(rename = "sha256CertFingerprints", default)]
+    pub sha256_cert_fingerprints: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigOauthProvider {
+    /// Known values: `jwt`, `opaque`.
+    #[serde(rename = "accessTokenFormat", default)]
+    pub access_token_format: String,
+    #[serde(rename = "authorizationDetailsTypesSupported", default)]
+    pub authorization_details_types_supported: Vec<String>,
+    #[serde(rename = "clientIdMetadataDocuments", default)]
+    pub client_id_metadata_documents: AuthConfigOauthProviderClientIdMetadataDocuments,
+    #[serde(rename = "consentUrl", default)]
+    pub consent_url: Option<String>,
+    #[serde(rename = "customScopes", default)]
+    pub custom_scopes: Vec<AuthConfigOauthProviderCustomScopesItem>,
+    #[serde(rename = "deviceApprovalRequiresStepUp", default)]
+    pub device_approval_requires_step_up: bool,
+    #[serde(rename = "dynamicClientSecretTtlSeconds", default)]
+    pub dynamic_client_secret_ttl_seconds: f64,
+    #[serde(rename = "dynamicRegistration", default)]
+    pub dynamic_registration: bool,
+    #[serde(rename = "loginUrl", default)]
+    pub login_url: Option<String>,
+    #[serde(rename = "requireInitialAccessToken", default)]
+    pub require_initial_access_token: bool,
+    #[serde(rename = "requirePkce", default)]
+    pub require_pkce: bool,
+    #[serde(rename = "requirePushedAuthorizationRequests", default)]
+    pub require_pushed_authorization_requests: bool,
+    #[serde(rename = "tokenClaims", default)]
+    pub token_claims: Vec<AuthConfigOauthProviderTokenClaimsItem>,
+    #[serde(rename = "tokenLifetimes", default)]
+    pub token_lifetimes: AuthConfigOauthProviderTokenLifetimes,
+    #[serde(rename = "umaEnabled", default)]
+    pub uma_enabled: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigOauthProviderClientIdMetadataDocuments {
+    #[serde(rename = "allowedHosts", default)]
+    pub allowed_hosts: Vec<String>,
+    #[serde(rename = "blockedHosts", default)]
+    pub blocked_hosts: Vec<String>,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "trustedHosts", default)]
+    pub trusted_hosts: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigOauthProviderCustomScopesItem {
+    #[serde(default)]
+    pub claims: Vec<String>,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub parameters: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigOauthProviderTokenClaimsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    #[serde(default)]
+    pub template: String,
+    #[serde(default)]
+    pub tokens: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigOauthProviderTokenLifetimes {
+    #[serde(
+        rename = "accessTokenSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub access_token_seconds: Option<f64>,
+    #[serde(
+        rename = "authorizationCodeSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub authorization_code_seconds: Option<f64>,
+    #[serde(
+        rename = "deviceCodeSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_code_seconds: Option<f64>,
+    #[serde(
+        rename = "idTokenSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub id_token_seconds: Option<f64>,
+    #[serde(
+        rename = "refreshTokenAbsoluteSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub refresh_token_absolute_seconds: Option<f64>,
+    #[serde(
+        rename = "refreshTokenIdleSeconds",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub refresh_token_idle_seconds: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigOrganizations {
+    #[serde(rename = "allowCustomRolesFromApp", default)]
+    pub allow_custom_roles_from_app: bool,
+    #[serde(rename = "allowDeletionFromApp", default)]
+    pub allow_deletion_from_app: bool,
+    #[serde(rename = "creatorRole", default)]
+    pub creator_role: String,
+    #[serde(rename = "defaultMaxAllowedMemberships", default)]
+    pub default_max_allowed_memberships: Option<f64>,
+    #[serde(rename = "inheritAncestorRoles", default)]
+    pub inherit_ancestor_roles: bool,
+    #[serde(rename = "invitationTtlSeconds", default)]
+    pub invitation_ttl_seconds: f64,
+    #[serde(rename = "maxCustomRolesPerOrganization", default)]
+    pub max_custom_roles_per_organization: Option<f64>,
+    #[serde(rename = "maxMembersPerTeam", default)]
+    pub max_members_per_team: Option<f64>,
+    #[serde(rename = "maxOrganizationsPerUser", default)]
+    pub max_organizations_per_user: Option<f64>,
+    #[serde(rename = "maxPendingInvitationsPerOrganization", default)]
+    pub max_pending_invitations_per_organization: Option<f64>,
+    #[serde(rename = "maxTeamsPerOrganization", default)]
+    pub max_teams_per_organization: Option<f64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPasskeyPolicy {
+    /// Known values: `any`, `cross-platform`, `platform`.
+    #[serde(default)]
+    pub attachment: String,
+    /// Known values: `direct`, `indirect`, `none`.
+    #[serde(default)]
+    pub attestation: String,
+    #[serde(rename = "authenticatorAllowlist", default)]
+    pub authenticator_allowlist: Vec<String>,
+    #[serde(rename = "authenticatorBlocklist", default)]
+    pub authenticator_blocklist: Vec<String>,
+    #[serde(default)]
+    pub mds: AuthConfigPasskeyPolicyMds,
+    #[serde(rename = "requireUserVerification", default)]
+    pub require_user_verification: bool,
+    #[serde(rename = "requireUserVerificationForFirstFactor", default)]
+    pub require_user_verification_for_first_factor: bool,
+    #[serde(rename = "timeoutSeconds", default)]
+    pub timeout_seconds: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPasskeyPolicyMds {
+    #[serde(rename = "blockStatuses", default)]
+    pub block_statuses: Vec<String>,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "enforceAtSignIn", default)]
+    pub enforce_at_sign_in: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPasswordPolicy {
+    #[serde(rename = "bannedPasswords", default)]
+    pub banned_passwords: Vec<String>,
+    /// Re-check the password against known breaches at each sign-in: flag (audit only),
+    /// force_reset, or block.
+    ///
+    /// Known values: `off`, `flag`, `force_reset`, `block`.
+    #[serde(rename = "breachCheckOnSignIn", default)]
+    pub breach_check_on_sign_in: String,
+    /// Reject known-breached passwords (HIBP).
+    #[serde(rename = "checkBreaches", default)]
+    pub check_breaches: bool,
+    #[serde(rename = "historyCount", default)]
+    pub history_count: f64,
+    #[serde(rename = "maxAgeDays", default)]
+    pub max_age_days: f64,
+    #[serde(rename = "maxLength", default)]
+    pub max_length: f64,
+    #[serde(rename = "minLength", default)]
+    pub min_length: f64,
+    /// Refuse any of the 10,000 most common passwords (bundled list, no network call).
+    #[serde(rename = "rejectCommonPasswords", default)]
+    pub reject_common_passwords: bool,
+    #[serde(rename = "rejectIdentifierSubstring", default)]
+    pub reject_identifier_substring: bool,
+    #[serde(rename = "requireLowercase", default)]
+    pub require_lowercase: bool,
+    #[serde(rename = "requireNumber", default)]
+    pub require_number: bool,
+    #[serde(rename = "requireSymbol", default)]
+    pub require_symbol: bool,
+    #[serde(rename = "requireUppercase", default)]
+    pub require_uppercase: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPca {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "maxPlanNodes", default)]
+    pub max_plan_nodes: f64,
+    #[serde(rename = "publicRateLimitPerMin", default)]
+    pub public_rate_limit_per_min: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigPhoneChannels {
+    #[serde(default)]
+    pub sms: bool,
+    #[serde(default)]
+    pub voice: bool,
+    #[serde(default)]
+    pub whatsapp: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigQrSignIn {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "matchCodeDigits", default)]
+    pub match_code_digits: f64,
+    #[serde(rename = "ttlMinutes", default)]
+    pub ttl_minutes: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRateLimit {
+    #[serde(rename = "bapiPerMin", default)]
+    pub bapi_per_min: f64,
+    #[serde(rename = "fapiCreatePerMin", default)]
+    pub fapi_create_per_min: f64,
+    #[serde(rename = "fapiVerifyPerMin", default)]
+    pub fapi_verify_per_min: f64,
+    #[serde(rename = "ldapPerIpPerMin", default)]
+    pub ldap_per_ip_per_min: f64,
+    #[serde(rename = "ldapPerUserPerMin", default)]
+    pub ldap_per_user_per_min: f64,
+    #[serde(default)]
+    pub rules: Vec<AuthConfigRateLimitRulesItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRateLimitRulesItem {
+    /// Known values: `account_changes`, `bapi`, `bapi_organizations`, `bapi_sessions`, `bapi_tokens`, `bapi_users`, `captcha`, `code_send`, `credential_verify`, `password_reset`, `session_tokens`, `sign_in`, `sign_up`, `wallet_sign_in`.
+    #[serde(default)]
+    pub group: String,
+    /// Known values: `instance`, `ip`, `user`.
+    #[serde(default)]
+    pub key: String,
+    #[serde(default)]
+    pub max: f64,
+    #[serde(rename = "windowSeconds", default)]
+    pub window_seconds: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRestrictions {
+    #[serde(rename = "allowlistOnly", default)]
+    pub allowlist_only: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfa {
+    #[serde(default)]
+    pub baseline: AuthConfigRiskBasedMfaBaseline,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub fraud: AuthConfigRiskBasedMfaFraud,
+    #[serde(rename = "levelActions", default)]
+    pub level_actions: AuthConfigRiskBasedMfaLevelActions,
+    #[serde(rename = "midSession", default)]
+    pub mid_session: AuthConfigRiskBasedMfaMidSession,
+    /// Known values: `audit`, `enforce`.
+    #[serde(default)]
+    pub mode: String,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(rename = "onHighRiskNoFactor", default)]
+    pub on_high_risk_no_factor: String,
+    #[serde(default)]
+    pub reputation: AuthConfigRiskBasedMfaReputation,
+    #[serde(default)]
+    pub signals: AuthConfigRiskBasedMfaSignals,
+    /// Known values: `high`, `low`, `medium`.
+    #[serde(rename = "stepUpThreshold", default)]
+    pub step_up_threshold: String,
+    #[serde(default)]
+    pub weights: AuthConfigRiskBasedMfaWeights,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaBaseline {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub weight: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaFraud {
+    #[serde(
+        rename = "deviceRateLimit",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub device_rate_limit: Option<AuthConfigRiskBasedMfaFraudDeviceRateLimit>,
+    #[serde(default)]
+    pub rules: Vec<AuthConfigRiskBasedMfaFraudRulesItem>,
+    #[serde(rename = "sanctionedCountries", default)]
+    pub sanctioned_countries: Vec<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaFraudDeviceRateLimit {
+    #[serde(default)]
+    pub adaptive: bool,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "perHour", default)]
+    pub per_hour: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaFraudRulesItem {
+    /// Known values: `allow`, `block`, `challenge`.
+    #[serde(default)]
+    pub action: String,
+    #[serde(default)]
+    pub conditions: Vec<AuthConfigRiskBasedMfaFraudRulesItemConditionsItem>,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub reason: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaFraudRulesItemConditionsItem {
+    /// Known values: `anonymizer`, `asn`, `automation`, `bot_score`, `client_class`, `country`, `datacenter`, `device_velocity`, `email_disposable`, `email_velocity`, `headless`, `ip_velocity`, `org_id`, `user_age_days`, `user_banned`, `user_mfa_enabled`.
+    #[serde(default)]
+    pub field: String,
+    /// Known values: `eq`, `gt`, `gte`, `in`, `lt`, `lte`, `neq`, `nin`.
+    #[serde(default)]
+    pub op: String,
+    #[serde(default)]
+    pub value: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaLevelActions {
+    /// Known values: `allow`, `block`, `default`, `mfa`, `notify`.
+    #[serde(default)]
+    pub high: String,
+    /// Known values: `allow`, `block`, `default`, `mfa`, `notify`.
+    #[serde(default)]
+    pub medium: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaMidSession {
+    /// Known values: `audit`, `notify`, `revoke`.
+    #[serde(default)]
+    pub action: String,
+    #[serde(default)]
+    pub enabled: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaReputation {
+    #[serde(rename = "emailChecks", default)]
+    pub email_checks: bool,
+    #[serde(rename = "emailWeight", default)]
+    pub email_weight: f64,
+    #[serde(rename = "flagAnonymizers", default)]
+    pub flag_anonymizers: bool,
+    #[serde(rename = "ipWeight", default)]
+    pub ip_weight: f64,
+    #[serde(rename = "minScore", default)]
+    pub min_score: f64,
+    /// Known values: `ipqs`, `minfraud`, `none`, `spur`.
+    #[serde(default)]
+    pub provider: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaSignals {
+    #[serde(rename = "dormantAccount", default)]
+    pub dormant_account: bool,
+    #[serde(rename = "impossibleTravel", default)]
+    pub impossible_travel: bool,
+    #[serde(rename = "newDevice", default)]
+    pub new_device: bool,
+    #[serde(rename = "newIp", default)]
+    pub new_ip: bool,
+    #[serde(rename = "newSubnet", default)]
+    pub new_subnet: bool,
+    #[serde(default)]
+    pub velocity: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigRiskBasedMfaWeights {
+    #[serde(rename = "dormantAccount", default)]
+    pub dormant_account: f64,
+    #[serde(rename = "impossibleTravel", default)]
+    pub impossible_travel: f64,
+    #[serde(rename = "newDevice", default)]
+    pub new_device: f64,
+    #[serde(rename = "newIp", default)]
+    pub new_ip: f64,
+    #[serde(rename = "newSubnet", default)]
+    pub new_subnet: f64,
+    #[serde(default)]
+    pub velocity: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
+/// (direct SAML; no OIDC/atlas_byo needed).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigSamlIdp {
+    /// The SPs Atlas issues signed assertions to.
+    #[serde(rename = "serviceProviders", default)]
+    pub service_providers: Vec<AuthConfigSamlIdpServiceProvidersItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigSamlIdpServiceProvidersItem {
+    #[serde(rename = "acsUrl", default)]
+    pub acs_url: String,
+    #[serde(
+        rename = "allowedEmailDomains",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub allowed_email_domains: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assignment: Option<AuthConfigSamlIdpServiceProvidersItemAssignment>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub attributes: HashMap<String, String>,
+    #[serde(rename = "entityId", default)]
+    pub entity_id: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Known values: `email`, `user_id`.
+    #[serde(
+        rename = "nameIdField",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub name_id_field: Option<String>,
+    #[serde(rename = "presetId", default, skip_serializing_if = "Option::is_none")]
+    pub preset_id: Option<String>,
+    /// Known values: `saml11`, `saml2`.
+    #[serde(
+        rename = "tokenFormat",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub token_format: Option<String>,
+    #[serde(rename = "wsTrust", default, skip_serializing_if = "Option::is_none")]
+    pub ws_trust: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigSamlIdpServiceProvidersItemAssignment {
+    #[serde(default)]
+    pub groups: Vec<String>,
+    /// Known values: `assigned`, `everyone`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub organizations: Vec<String>,
+    #[serde(default)]
+    pub roles: Vec<String>,
+    #[serde(rename = "userIds", default)]
+    pub user_ids: Vec<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25199,41 +35016,254 @@ pub struct InstanceGetResponseAuthConfigResolvedVerification {
 /// Session lifetime + token behaviour.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedSession {
-    #[serde(rename = "idleMs", default, skip_serializing_if = "Option::is_none")]
-    pub idle_ms: Option<i64>,
-    #[serde(
-        rename = "absoluteMs",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub absolute_ms: Option<i64>,
-    #[serde(
-        rename = "jwtTtlSeconds",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub jwt_ttl_seconds: Option<i64>,
-    #[serde(
-        rename = "crossSubdomainCookies",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub cross_subdomain_cookies: Option<bool>,
+pub struct AuthConfigSession {
+    #[serde(rename = "absoluteMs", default)]
+    pub absolute_ms: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<Value>,
+    #[serde(rename = "crossSubdomainCookies", default)]
+    pub cross_subdomain_cookies: bool,
+    #[serde(rename = "customData", default)]
+    pub custom_data: AuthConfigSessionCustomData,
+    #[serde(rename = "idleMs", default)]
+    pub idle_ms: f64,
+    #[serde(rename = "idleReconcileAcrossOrgs", default)]
+    pub idle_reconcile_across_orgs: bool,
+    #[serde(rename = "idleTimeout", default)]
+    pub idle_timeout: bool,
     /// Add email/name to the session JWT.
-    #[serde(
-        rename = "includeEmailClaim",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub include_email_claim: Option<bool>,
+    #[serde(rename = "includeEmailClaim", default)]
+    pub include_email_claim: bool,
     /// Add the eu_orgs reader claim.
+    #[serde(rename = "includeEndUserPoolClaim", default)]
+    pub include_end_user_pool_claim: bool,
+    #[serde(rename = "includeOrgsClaim", default)]
+    pub include_orgs_claim: bool,
+    #[serde(rename = "jwtTtlSeconds", default)]
+    pub jwt_ttl_seconds: f64,
+    #[serde(rename = "maxConcurrentSessions", default)]
+    pub max_concurrent_sessions: f64,
+    #[serde(rename = "multiSession", default)]
+    pub multi_session: bool,
+    #[serde(rename = "refreshRotation", default)]
+    pub refresh_rotation: bool,
+    #[serde(rename = "rememberMe", default)]
+    pub remember_me: bool,
+    #[serde(rename = "revokeOnPasswordChange", default)]
+    pub revoke_on_password_change: bool,
+    #[serde(rename = "tokenIncludedSettingsKeys", default)]
+    pub token_included_settings_keys: Vec<String>,
+    /// Known values: `refresh`, `sliding`.
+    #[serde(rename = "tokenStrategy", default)]
+    pub token_strategy: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigSessionCustomData {
+    #[serde(default)]
+    pub claim: String,
+    #[serde(rename = "inToken", default)]
+    pub in_token: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigSignals {
+    #[serde(rename = "rawCapture", default)]
+    pub raw_capture: bool,
+    #[serde(rename = "retentionDays", default)]
+    pub retention_days: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigSrp {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "poolName", default)]
+    pub pool_name: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigStepUp {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "windowMs", default)]
+    pub window_ms: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Which first-factor sign-in methods are enabled.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigStrategies {
+    #[serde(default)]
+    pub anonymous: bool,
+    /// Email one-time code (passwordless).
+    #[serde(rename = "emailCode", default)]
+    pub email_code: bool,
+    /// Magic link.
+    #[serde(rename = "emailLink", default)]
+    pub email_link: bool,
+    #[serde(default)]
+    pub kerberos: bool,
+    #[serde(rename = "oauthProviders", default)]
+    pub oauth_providers: Vec<String>,
+    /// WebAuthn passkeys.
+    #[serde(default)]
+    pub passkey: bool,
+    #[serde(default)]
+    pub password: bool,
+    /// SMS OTP (off by default).
+    #[serde(rename = "phoneCode", default)]
+    pub phone_code: bool,
+    #[serde(default)]
+    pub siwe: bool,
+    #[serde(default)]
+    pub siwf: bool,
+    #[serde(default)]
+    pub siws: bool,
+    /// Username as a login identifier.
+    #[serde(default)]
+    pub username: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Per-method code/link TTLs, lengths and resend limits.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigVerification {
+    #[serde(rename = "emailCode", default)]
+    pub email_code: AuthConfigVerificationEmailCode,
+    #[serde(rename = "magicLink", default)]
+    pub magic_link: AuthConfigVerificationMagicLink,
+    #[serde(rename = "smsCode", default)]
+    pub sms_code: AuthConfigVerificationSmsCode,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigVerificationEmailCode {
+    #[serde(default)]
+    pub length: f64,
+    #[serde(rename = "maxAttempts", default)]
+    pub max_attempts: f64,
+    #[serde(rename = "resendCooldownSeconds", default)]
+    pub resend_cooldown_seconds: f64,
+    #[serde(rename = "resendHourlyLimit", default)]
+    pub resend_hourly_limit: f64,
+    #[serde(rename = "resendSameCode", default)]
+    pub resend_same_code: bool,
+    #[serde(rename = "ttlMinutes", default)]
+    pub ttl_minutes: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigVerificationMagicLink {
+    #[serde(rename = "resendCooldownSeconds", default)]
+    pub resend_cooldown_seconds: f64,
+    #[serde(rename = "resendHourlyLimit", default)]
+    pub resend_hourly_limit: f64,
+    #[serde(rename = "ttlMinutes", default)]
+    pub ttl_minutes: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigVerificationSmsCode {
+    #[serde(default)]
+    pub length: f64,
+    #[serde(rename = "maxAttempts", default)]
+    pub max_attempts: f64,
+    #[serde(rename = "resendCooldownSeconds", default)]
+    pub resend_cooldown_seconds: f64,
+    #[serde(rename = "resendHourlyLimit", default)]
+    pub resend_hourly_limit: f64,
+    #[serde(rename = "ttlMinutes", default)]
+    pub ttl_minutes: f64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigWalletGating {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(rename = "rpcUrls", default)]
+    pub rpc_urls: HashMap<String, Value>,
+    #[serde(default)]
+    pub rules: Vec<AuthConfigWalletGatingRulesItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AuthConfigWalletGatingRulesItem {
+    /// Known values: `grant`, `require`.
+    #[serde(default)]
+    pub action: String,
+    #[serde(rename = "chainId", default)]
+    pub chain_id: f64,
+    #[serde(default)]
+    pub contract: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
     #[serde(
-        rename = "includeEndUserPoolClaim",
+        rename = "minBalance",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub include_end_user_pool_claim: Option<bool>,
+    pub min_balance: Option<String>,
+    /// Known values: `erc1155`, `erc20`, `erc721`.
+    #[serde(default)]
+    pub standard: String,
+    #[serde(rename = "tokenId", default, skip_serializing_if = "Option::is_none")]
+    pub token_id: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25245,11 +35275,11 @@ pub struct InstanceGetResponseAuthConfigResolvedSession {
 /// written with PATCH /v1/branding.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedBranding {
+pub struct AuthConfigBranding {
     /// Audience hint (\[a-z0-9_-\]{1,32}) → { heading, subheading, logoUrl, primaryColor }, or null
     /// to delete that audience.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub audiences: HashMap<String, InstanceGetResponseAuthConfigResolvedBrandingAudiencesValue>,
+    pub audiences: HashMap<String, AuthConfigBrandingAudiencesValue>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25258,7 +35288,7 @@ pub struct InstanceGetResponseAuthConfigResolvedBranding {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedBrandingAudiencesValue {
+pub struct AuthConfigBrandingAudiencesValue {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub heading: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -25277,18 +35307,15 @@ pub struct InstanceGetResponseAuthConfigResolvedBrandingAudiencesValue {
     pub extra: Map<String, Value>,
 }
 
-/// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
-/// (direct SAML; no OIDC/atlas_byo needed).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedSamlIdp {
-    /// The SPs Atlas issues signed assertions to.
-    #[serde(
-        rename = "serviceProviders",
-        default,
-        skip_serializing_if = "Vec::is_empty"
-    )]
-    pub service_providers: Vec<InstanceGetResponseAuthConfigResolvedSamlIdpServiceProvidersItem>,
+pub struct InstanceGetResponseInactiveMethodsItem {
+    /// Known values: `password`, `email_code`, `email_link`.
+    #[serde(default)]
+    pub method: String,
+    /// Always `email_provider_required`.
+    #[serde(default)]
+    pub reason: String,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25297,69 +35324,15 @@ pub struct InstanceGetResponseAuthConfigResolvedSamlIdp {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedSamlIdpServiceProvidersItem {
-    /// Stable key used in the SSO URL + audit.
+pub struct InstanceGetResponseLimitedMethodsItem {
+    /// Always `password`.
     #[serde(default)]
-    pub id: String,
-    /// The SP's SAML entityId (assertion audience).
-    #[serde(rename = "entityId", default)]
-    pub entity_id: String,
-    /// The SP's Assertion Consumer Service URL (https) the Response is POSTed to.
-    #[serde(rename = "acsUrl", default)]
-    pub acs_url: String,
-    /// User field for the NameID. Default email.
-    ///
-    /// Known values: `email`, `user_id`.
-    #[serde(
-        rename = "nameIdField",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub name_id_field: Option<String>,
-    /// Extra attribute statements: SAML attribute name → user field / metadata key.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub attributes: HashMap<String, String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
-/// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedExternalJwt {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub issuers: Vec<InstanceGetResponseAuthConfigResolvedExternalJwtIssuersItem>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetResponseAuthConfigResolvedExternalJwtIssuersItem {
-    /// Stable key; the linked identity is stored under provider ext_jwt:&lt;id&gt;.
+    pub method: String,
+    /// Always `email_provider_required`.
     #[serde(default)]
-    pub id: String,
-    /// The expected iss claim.
+    pub reason: String,
     #[serde(default)]
-    pub issuer: String,
-    /// The issuer's JWKS URL, used to verify the token signature.
-    #[serde(rename = "jwksUri", default)]
-    pub jwks_uri: String,
-    /// The expected aud claim.
-    #[serde(default)]
-    pub audience: String,
-    /// Claim to read the email from. Default email.
-    #[serde(
-        rename = "emailClaim",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub email_claim: Option<String>,
+    pub unavailable: Vec<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25402,10 +35375,23 @@ pub struct InstanceUpdateResponse {
     /// The raw stored patch (often {} = defaults).
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub auth_config: Map<String, Value>,
-    /// Instance auth configuration. Partial + additive on PATCH — omitted sections are untouched.
-    /// GET /v1/instance returns this resolved (defaults expanded) as auth_config_resolved.
+    /// The resolved instance auth configuration (every section, defaults expanded), as GET
+    /// /v1/instance returns it in auth_config_resolved. PATCH /v1/instance takes the same shape as
+    /// a partial patch (AuthConfigPatch).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auth_config_resolved: Option<InstanceUpdateResponseAuthConfigResolved>,
+    /// Sign-in methods that are switched on but not offered to users (not on the hosted pages, the
+    /// embedded components or the Frontend API environment), because they need an email provider
+    /// and the instance has none. Email is bring-your-own. They become active on their own once a
+    /// provider is configured. Password is listed only when sign-up must verify the address by
+    /// email and no user holds a password yet.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub inactive_methods: Vec<InstanceUpdateResponseInactiveMethodsItem>,
+    /// Sign-in methods that still work without an email provider, minus the parts that need email:
+    /// password sign-in for users who already hold a password, without password reset (and without
+    /// password sign-up while sign-up must verify the address by email).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub limited_methods: Vec<InstanceUpdateResponseLimitedMethodsItem>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -25415,318 +35401,15 @@ pub struct InstanceUpdateResponse {
     pub extra: Map<String, Value>,
 }
 
-/// Instance auth configuration. Partial + additive on PATCH — omitted sections are untouched.
-/// GET /v1/instance returns this resolved (defaults expanded) as auth_config_resolved.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolved {
-    /// Which first-factor sign-in methods are enabled.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub strategies: Option<InstanceUpdateResponseAuthConfigResolvedStrategies>,
-    #[serde(
-        rename = "passwordPolicy",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub password_policy: Option<InstanceUpdateResponseAuthConfigResolvedPasswordPolicy>,
-    /// Per-method code/link TTLs, lengths and resend limits.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verification: Option<InstanceUpdateResponseAuthConfigResolvedVerification>,
-    /// Session lifetime + token behaviour.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub session: Option<InstanceUpdateResponseAuthConfigResolvedSession>,
-    /// Known values: `off`, `optional`, `required`.
-    #[serde(rename = "mfaPolicy", default, skip_serializing_if = "Option::is_none")]
-    pub mfa_policy: Option<String>,
-    /// public: anyone may sign up. waitlist: unknown addresses join a waitlist (403 WAITLISTED)
-    /// until approved. restricted: invitation-only — only invited or waitlist-approved addresses
-    /// may sign up (403 SIGN_UP_RESTRICTED otherwise).
-    ///
-    /// Known values: `public`, `waitlist`, `restricted`.
-    #[serde(
-        rename = "signUpMode",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub sign_up_mode: Option<String>,
-    /// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
-    /// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
-    /// written with PATCH /v1/branding.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub branding: Option<InstanceUpdateResponseAuthConfigResolvedBranding>,
-    /// Strict writes for this instance's secret keys: a Backend API write that carries a body field
-    /// the endpoint does not know is refused with 422 UNKNOWN_FIELD instead of being accepted and
-    /// ignored. true for every instance created from 2026-10 on; older instances stay false
-    /// (lenient: the ignored fields are named in the Atlas-Unknown-Fields response header) until
-    /// set. One request overrides it with the Atlas-Strict: true | false header. Fields that look
-    /// writable and have their own call (verified on an email address, banned, …) are refused with
-    /// 422 READ_ONLY_FIELD either way; echoed id, object, created_at and updated_at are 422
-    /// READ_ONLY_FIELD only when strict.
-    #[serde(
-        rename = "strictRequestBodies",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub strict_request_bodies: Option<bool>,
-    /// Whether a password sign-up must prove the address with an emailed code before it completes.
-    /// When false the sign-up completes at once, but the address stays unverified (verified,
-    /// verification.status and email_verified report false) until the user proves it later.
-    #[serde(
-        rename = "requireEmailVerification",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub require_email_verification: Option<bool>,
-    /// DANGEROUS. When true, addresses that skipped proof because requireEmailVerification was
-    /// false are reported as verified again in users, tokens, webhooks and exports (the old
-    /// behaviour). Anyone can then sign up as any address and present a verified claim. Atlas still
-    /// treats those addresses as unproven when linking social sign-ins, auto-joining organizations
-    /// and accepting invitations. Preflight reports email_verified_unproven while this is on.
-    #[serde(
-        rename = "dangerouslyReportSkippedEmailsAsVerified",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub dangerously_report_skipped_emails_as_verified: Option<bool>,
-    /// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
-    /// (direct SAML; no OIDC/atlas_byo needed).
-    #[serde(rename = "samlIdp", default, skip_serializing_if = "Option::is_none")]
-    pub saml_idp: Option<InstanceUpdateResponseAuthConfigResolvedSamlIdp>,
-    /// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
-    /// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
-    #[serde(
-        rename = "externalJwt",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub external_jwt: Option<InstanceUpdateResponseAuthConfigResolvedExternalJwt>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Which first-factor sign-in methods are enabled.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedStrategies {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub password: Option<bool>,
-    /// Email one-time code (passwordless).
-    #[serde(rename = "emailCode", default, skip_serializing_if = "Option::is_none")]
-    pub email_code: Option<bool>,
-    /// Magic link.
-    #[serde(rename = "emailLink", default, skip_serializing_if = "Option::is_none")]
-    pub email_link: Option<bool>,
-    /// WebAuthn passkeys.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub passkey: Option<bool>,
-    /// SMS OTP (off by default).
-    #[serde(rename = "phoneCode", default, skip_serializing_if = "Option::is_none")]
-    pub phone_code: Option<bool>,
-    /// Username as a login identifier.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub username: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siwe: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siws: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub siwf: Option<bool>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedPasswordPolicy {
-    #[serde(rename = "minLength", default, skip_serializing_if = "Option::is_none")]
-    pub min_length: Option<i64>,
-    #[serde(
-        rename = "requireUppercase",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub require_uppercase: Option<bool>,
-    #[serde(
-        rename = "requireNumber",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub require_number: Option<bool>,
-    #[serde(
-        rename = "requireSymbol",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub require_symbol: Option<bool>,
-    /// Reject known-breached passwords (HIBP).
-    #[serde(
-        rename = "checkBreaches",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub check_breaches: Option<bool>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Per-method code/link TTLs, lengths and resend limits.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedVerification {
-    #[serde(rename = "emailCode", default, skip_serializing_if = "Map::is_empty")]
-    pub email_code: Map<String, Value>,
-    #[serde(rename = "smsCode", default, skip_serializing_if = "Map::is_empty")]
-    pub sms_code: Map<String, Value>,
-    #[serde(rename = "magicLink", default, skip_serializing_if = "Map::is_empty")]
-    pub magic_link: Map<String, Value>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Session lifetime + token behaviour.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedSession {
-    #[serde(rename = "idleMs", default, skip_serializing_if = "Option::is_none")]
-    pub idle_ms: Option<i64>,
-    #[serde(
-        rename = "absoluteMs",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub absolute_ms: Option<i64>,
-    #[serde(
-        rename = "jwtTtlSeconds",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub jwt_ttl_seconds: Option<i64>,
-    #[serde(
-        rename = "crossSubdomainCookies",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub cross_subdomain_cookies: Option<bool>,
-    /// Add email/name to the session JWT.
-    #[serde(
-        rename = "includeEmailClaim",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub include_email_claim: Option<bool>,
-    /// Add the eu_orgs reader claim.
-    #[serde(
-        rename = "includeEndUserPoolClaim",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub include_end_user_pool_claim: Option<bool>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// On PATCH /v1/instance only branding.audiences is applied (per-audience hosted-page branding,
-/// merged per hint; see PATCH /v1/branding for the shape). Every other branding field is
-/// written with PATCH /v1/branding.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedBranding {
-    /// Audience hint (\[a-z0-9_-\]{1,32}) → { heading, subheading, logoUrl, primaryColor }, or null
-    /// to delete that audience.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub audiences: HashMap<String, InstanceUpdateResponseAuthConfigResolvedBrandingAudiencesValue>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedBrandingAudiencesValue {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub heading: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subheading: Option<String>,
-    #[serde(rename = "logoUrl", default, skip_serializing_if = "Option::is_none")]
-    pub logo_url: Option<String>,
-    #[serde(
-        rename = "primaryColor",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub primary_color: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Atlas AS a SAML IdP — "Sign in with Atlas" over SAML for a downstream Service Provider
-/// (direct SAML; no OIDC/atlas_byo needed).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedSamlIdp {
-    /// The SPs Atlas issues signed assertions to.
-    #[serde(
-        rename = "serviceProviders",
-        default,
-        skip_serializing_if = "Vec::is_empty"
-    )]
-    pub service_providers: Vec<InstanceUpdateResponseAuthConfigResolvedSamlIdpServiceProvidersItem>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedSamlIdpServiceProvidersItem {
-    /// Stable key used in the SSO URL + audit.
+pub struct InstanceUpdateResponseInactiveMethodsItem {
+    /// Known values: `password`, `email_code`, `email_link`.
     #[serde(default)]
-    pub id: String,
-    /// The SP's SAML entityId (assertion audience).
-    #[serde(rename = "entityId", default)]
-    pub entity_id: String,
-    /// The SP's Assertion Consumer Service URL (https) the Response is POSTed to.
-    #[serde(rename = "acsUrl", default)]
-    pub acs_url: String,
-    /// User field for the NameID. Default email.
-    ///
-    /// Known values: `email`, `user_id`.
-    #[serde(
-        rename = "nameIdField",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub name_id_field: Option<String>,
-    /// Extra attribute statements: SAML attribute name → user field / metadata key.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub attributes: HashMap<String, String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// Trust JWTs minted by an EXTERNAL issuer as a sign-in credential (e.g. a legacy IdP or your
-/// own token service). The linked identity is stored under provider ext_jwt:&lt;id&gt;.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedExternalJwt {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub issuers: Vec<InstanceUpdateResponseAuthConfigResolvedExternalJwtIssuersItem>,
+    pub method: String,
+    /// Always `email_provider_required`.
+    #[serde(default)]
+    pub reason: String,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -25735,26 +35418,15 @@ pub struct InstanceUpdateResponseAuthConfigResolvedExternalJwt {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct InstanceUpdateResponseAuthConfigResolvedExternalJwtIssuersItem {
-    /// Stable key; the linked identity is stored under provider ext_jwt:&lt;id&gt;.
+pub struct InstanceUpdateResponseLimitedMethodsItem {
+    /// Always `password`.
     #[serde(default)]
-    pub id: String,
-    /// The expected iss claim.
+    pub method: String,
+    /// Always `email_provider_required`.
     #[serde(default)]
-    pub issuer: String,
-    /// The issuer's JWKS URL, used to verify the token signature.
-    #[serde(rename = "jwksUri", default)]
-    pub jwks_uri: String,
-    /// The expected aud claim.
+    pub reason: String,
     #[serde(default)]
-    pub audience: String,
-    /// Claim to read the email from. Default email.
-    #[serde(
-        rename = "emailClaim",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub email_claim: Option<String>,
+    pub unavailable: Vec<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -26025,6 +35697,9 @@ pub struct InstanceListBeforeUserCreateCallsResponse {
     pub data: Vec<InstanceListBeforeUserCreateCallsResponseDataItem>,
     #[serde(default)]
     pub has_more: bool,
+    /// Pass as starting_after for the next page; null on the last page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -26135,420 +35810,6 @@ pub struct InstanceTestBeforeUserCreateHookResponseError {
     pub extra: Map<String, Value>,
 }
 
-/// enabled:false and nothing else when no Chatly connection is set.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetChatlyIntegrationResponse {
-    /// Always `chatly_integration`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub channel: Option<String>,
-    /// The name to pass to getToken({ template: 'chatly' }).
-    ///
-    /// Always `chatly`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub template: Option<String>,
-    /// chatly:&lt;channel&gt;
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// The iss of every token (your Frontend API origin).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    /// The JWKS to verify the tokens with (RS256).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub token_ttl_seconds: Option<i64>,
-    /// What the chat channel's identity verification needs (no shared secret).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub identity_verification: Option<InstanceGetChatlyIntegrationResponseIdentityVerification>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// What the chat channel's identity verification needs (no shared secret).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetChatlyIntegrationResponseIdentityVerification {
-    /// Always `oidc`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mode: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// enabled:false and nothing else when no Chatly connection is set.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetChatlyIntegrationResponse {
-    /// Always `chatly_integration`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub channel: Option<String>,
-    /// The name to pass to getToken({ template: 'chatly' }).
-    ///
-    /// Always `chatly`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub template: Option<String>,
-    /// chatly:&lt;channel&gt;
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// The iss of every token (your Frontend API origin).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    /// The JWKS to verify the tokens with (RS256).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub token_ttl_seconds: Option<i64>,
-    /// What the chat channel's identity verification needs (no shared secret).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub identity_verification: Option<InstanceSetChatlyIntegrationResponseIdentityVerification>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// What the chat channel's identity verification needs (no shared secret).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetChatlyIntegrationResponseIdentityVerification {
-    /// Always `oidc`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mode: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// enabled:false and nothing else when no Chatly connection is set.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceDeleteChatlyIntegrationResponse {
-    /// Always `chatly_integration`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub channel: Option<String>,
-    /// The name to pass to getToken({ template: 'chatly' }).
-    ///
-    /// Always `chatly`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub template: Option<String>,
-    /// chatly:&lt;channel&gt;
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// The iss of every token (your Frontend API origin).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    /// The JWKS to verify the tokens with (RS256).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub token_ttl_seconds: Option<i64>,
-    /// What the chat channel's identity verification needs (no shared secret).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub identity_verification: Option<InstanceDeleteChatlyIntegrationResponseIdentityVerification>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// What the chat channel's identity verification needs (no shared secret).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceDeleteChatlyIntegrationResponseIdentityVerification {
-    /// Always `oidc`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mode: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// enabled:false and nothing else when no Forumulate connection is set.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetForumulateIntegrationResponse {
-    /// Always `forumulate_integration`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub org_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub spaces: Vec<InstanceGetForumulateIntegrationResponseSpacesItem>,
-    /// The aud of every reader token.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// The iss of every token (your Frontend API origin).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    /// The JWKS to verify the tokens with (RS256).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub token_ttl_seconds: Option<i64>,
-    /// The external_jwt provider to store on each space in Forumulate (PUT
-    /// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
-    /// no shared secret.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reader_auth_provider: Option<InstanceGetForumulateIntegrationResponseReaderAuthProvider>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetForumulateIntegrationResponseSpacesItem {
-    #[serde(default)]
-    pub id: String,
-    /// Where the reader's browser redeems the token.
-    #[serde(default)]
-    pub redeem_url: String,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The external_jwt provider to store on each space in Forumulate (PUT
-/// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
-/// no shared secret.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetForumulateIntegrationResponseReaderAuthProvider {
-    /// Always `external_jwt`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub method: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub order: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub config: Option<InstanceGetForumulateIntegrationResponseReaderAuthProviderConfig>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceGetForumulateIntegrationResponseReaderAuthProviderConfig {
-    #[serde(rename = "jwksUrl", default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
-    pub client_id: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// enabled:false and nothing else when no Forumulate connection is set.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetForumulateIntegrationResponse {
-    /// Always `forumulate_integration`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub org_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub spaces: Vec<InstanceSetForumulateIntegrationResponseSpacesItem>,
-    /// The aud of every reader token.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// The iss of every token (your Frontend API origin).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    /// The JWKS to verify the tokens with (RS256).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub token_ttl_seconds: Option<i64>,
-    /// The external_jwt provider to store on each space in Forumulate (PUT
-    /// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
-    /// no shared secret.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reader_auth_provider: Option<InstanceSetForumulateIntegrationResponseReaderAuthProvider>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetForumulateIntegrationResponseSpacesItem {
-    #[serde(default)]
-    pub id: String,
-    /// Where the reader's browser redeems the token.
-    #[serde(default)]
-    pub redeem_url: String,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The external_jwt provider to store on each space in Forumulate (PUT
-/// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
-/// no shared secret.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetForumulateIntegrationResponseReaderAuthProvider {
-    /// Always `external_jwt`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub method: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub order: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub config: Option<InstanceSetForumulateIntegrationResponseReaderAuthProviderConfig>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceSetForumulateIntegrationResponseReaderAuthProviderConfig {
-    #[serde(rename = "jwksUrl", default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
-    pub client_id: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// enabled:false and nothing else when no Forumulate connection is set.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceDeleteForumulateIntegrationResponse {
-    /// Always `forumulate_integration`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub org_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub spaces: Vec<InstanceDeleteForumulateIntegrationResponseSpacesItem>,
-    /// The aud of every reader token.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub audience: Option<String>,
-    /// The iss of every token (your Frontend API origin).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    /// The JWKS to verify the tokens with (RS256).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub token_ttl_seconds: Option<i64>,
-    /// The external_jwt provider to store on each space in Forumulate (PUT
-    /// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
-    /// no shared secret.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reader_auth_provider: Option<InstanceDeleteForumulateIntegrationResponseReaderAuthProvider>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceDeleteForumulateIntegrationResponseSpacesItem {
-    #[serde(default)]
-    pub id: String,
-    /// Where the reader's browser redeems the token.
-    #[serde(default)]
-    pub redeem_url: String,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The external_jwt provider to store on each space in Forumulate (PUT
-/// /orgs/{orgId}/spaces/{spaceId}/reader-auth providers\[\]), so it accepts these tokens with
-/// no shared secret.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceDeleteForumulateIntegrationResponseReaderAuthProvider {
-    /// Always `external_jwt`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub method: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub order: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub config: Option<InstanceDeleteForumulateIntegrationResponseReaderAuthProviderConfig>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct InstanceDeleteForumulateIntegrationResponseReaderAuthProviderConfig {
-    #[serde(rename = "jwksUrl", default, skip_serializing_if = "Option::is_none")]
-    pub jwks_url: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub issuer: Option<String>,
-    #[serde(rename = "clientId", default, skip_serializing_if = "Option::is_none")]
-    pub client_id: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
 /// The response of `PUT /v1/instance/kerberos_secret`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -26640,6 +35901,15 @@ pub struct OriginMove {
     /// Platform twin only: the app after the move.
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub app: Map<String, Value>,
+    /// Webhook endpoints whose url moves (or moved), each with the call that tests it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub moved_webhook_endpoints: Vec<OriginMoveMovedWebhookEndpointsItem>,
+    /// With test_webhooks: true on a real run: the result of the test sent to each moved endpoint.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub webhook_tests: Vec<OriginMoveWebhookTestsItem>,
+    /// What to do after the move, when anything is left.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -26683,6 +35953,73 @@ pub struct OriginMoveProblemsItem {
     pub url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OriginMoveMovedWebhookEndpointsItem {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The url after the move.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test: Option<OriginMoveMovedWebhookEndpointsItemTest>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OriginMoveMovedWebhookEndpointsItemTest {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OriginMoveWebhookTestsItem {
+    /// Always `webhook_test_result`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub delivery_id: String,
+    #[serde(default)]
+    pub event_id: String,
+    /// Known values: `success`, `failed`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<i64>,
+    /// The first 1 KB of the response.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response_snippet: Option<String>,
+    /// webhook_http_error, webhook_timeout, webhook_network_error, webhook_redirect_not_followed or
+    /// webhook_url_blocked:&lt;reason&gt;.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// The atlas-signature header that was sent, to compare with what your verifier computes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature_header_sent: Option<String>,
+    /// A failed test is retried on the normal schedule.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_retry: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_endpoint_id: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -27168,7 +36505,9 @@ pub struct InstanceGetReferralsResponse {
     pub object: String,
     #[serde(default)]
     pub enabled: bool,
-    /// `webhook` (the Atlas referral protocol, any platform) or a built-in vendor adapter id.
+    /// `webhook` (the Atlas referral protocol, any platform) or a built-in vendor adapter id
+    /// (`referalli`, `dub`, `firstpromoter`). The retired spelling `referally` is accepted on write
+    /// and reads back as `referalli`; see `providers\[\].aliases`.
     #[serde(default)]
     pub provider: String,
     /// Base URL of the platform connection (generic protocol).
@@ -27180,6 +36519,21 @@ pub struct InstanceGetReferralsResponse {
     /// Your label for the connection on the platform side.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connection_id: Option<String>,
+    /// Retired spellings of `provider` that are still accepted on write.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub provider_aliases: Vec<String>,
+    /// What the chosen provider can do now: its built-in capabilities plus anything its last ping
+    /// advertised (`partner` turns on only when the platform says it accepts user-chosen codes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capabilities: Option<InstanceGetReferralsResponseCapabilities>,
+    /// One-click connect to a referral platform (an OAuth install: the merchant picks an
+    /// organization and program, and no secret is copied). `one_click` is the Referalli preset;
+    /// `one_click_presets` lists every platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub one_click: Option<InstanceGetReferralsResponseOneClick>,
+    /// Every platform this deployment offers a one-click install for.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub one_click_presets: Vec<InstanceGetReferralsResponseOneClickPresetsItem>,
     /// Whether a signing secret is stored (the value is never returned).
     #[serde(default)]
     pub signing_secret_set: bool,
@@ -27189,9 +36543,14 @@ pub struct InstanceGetReferralsResponse {
     /// Query parameters that carry a referral code, in priority order.
     #[serde(default)]
     pub url_params: Vec<String>,
-    /// First-party tracking cookie read under consent; null = never read a cookie.
+    /// The first tracking cookie read under consent; null = never read a cookie. `context_cookies`
+    /// lists every cookie, in the order they are tried.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context_cookie: Option<String>,
+    /// First-party tracking cookies read under consent, in the order they are tried (the first one
+    /// present wins). Empty = never read a cookie.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context_cookies: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consent_category: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -27227,7 +36586,7 @@ pub struct InstanceGetReferralsResponse {
     /// Which consent manager decides on the tracking cookie's ids: auto (any common one), one
     /// manager, or app (only the app's referralConsent). Default auto.
     ///
-    /// Known values: `auto`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `app`.
+    /// Known values: `auto`, `atlasconsent`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `gpc`, `app`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consent_provider: Option<String>,
     /// The security part of the referral settings (the `security` object of GET/PATCH
@@ -27260,6 +36619,98 @@ pub struct InstanceGetReferralsResponse {
     pub providers: Vec<InstanceGetReferralsResponseProvidersItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the chosen provider can do now: its built-in capabilities plus anything its last ping
+/// advertised (`partner` turns on only when the platform says it accepts user-chosen codes).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseCapabilities {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signup: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub erase: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub export: Option<bool>,
+    /// Registers a referral code the user chose in your app with the platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner: Option<bool>,
+    /// Every new user becomes a referrer: the platform returns the partner's code and tracked link
+    /// in the sign-up answer, and Atlas stores them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_enroll: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signal: Option<bool>,
+    /// Re-keys a customer whose external_id changed after sign-up.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alias: Option<bool>,
+    /// Takes user lifecycle updates (email, name, suspension).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<bool>,
+    /// Answers a ping for "Test connection" (org, program, clock).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ping: Option<bool>,
+    /// Sends Atlas referral changes made after sign-up (two-way sync).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inbound: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One-click connect to a referral platform (an OAuth install: the merchant picks an
+/// organization and program, and no secret is copied). `one_click` is the Referalli preset;
+/// `one_click_presets` lists every platform.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseOneClick {
+    /// The preset id to put in the install URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Whether this deployment offers it. When false, connect with a key or the signing secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    /// Atlas's callback, the redirect URI to register with the platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirect_uri: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One-click connect to a referral platform (an OAuth install: the merchant picks an
+/// organization and program, and no secret is copied). `one_click` is the Referalli preset;
+/// `one_click_presets` lists every platform.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseOneClickPresetsItem {
+    /// The preset id to put in the install URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Whether this deployment offers it. When false, connect with a key or the signing secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    /// Atlas's callback, the redirect URI to register with the platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirect_uri: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -27376,6 +36827,10 @@ pub struct InstanceGetReferralsResponseConnectionLastPing {
     /// True when the skew is over 60 seconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clock_skew_warning: Option<bool>,
+    /// Capabilities the platform advertised in this ping (for example `partner`). They are merged
+    /// into the settings `capabilities`.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub advertised_capabilities: HashMap<String, bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -27446,6 +36901,9 @@ pub struct InstanceGetReferralsResponseInboundLastEvent {
 pub struct InstanceGetReferralsResponseProvidersItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    /// Retired spellings of this id, accepted on write and never returned as `provider`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub aliases: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -27454,6 +36912,9 @@ pub struct InstanceGetReferralsResponseProvidersItem {
     pub needs: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_context_cookie: Option<String>,
+    /// Every cookie the vendor has written, in the order Atlas tries them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub default_context_cookies: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub docs_url: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -27507,7 +36968,9 @@ pub struct InstanceUpdateReferralsResponse {
     pub object: String,
     #[serde(default)]
     pub enabled: bool,
-    /// `webhook` (the Atlas referral protocol, any platform) or a built-in vendor adapter id.
+    /// `webhook` (the Atlas referral protocol, any platform) or a built-in vendor adapter id
+    /// (`referalli`, `dub`, `firstpromoter`). The retired spelling `referally` is accepted on write
+    /// and reads back as `referalli`; see `providers\[\].aliases`.
     #[serde(default)]
     pub provider: String,
     /// Base URL of the platform connection (generic protocol).
@@ -27519,6 +36982,21 @@ pub struct InstanceUpdateReferralsResponse {
     /// Your label for the connection on the platform side.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connection_id: Option<String>,
+    /// Retired spellings of `provider` that are still accepted on write.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub provider_aliases: Vec<String>,
+    /// What the chosen provider can do now: its built-in capabilities plus anything its last ping
+    /// advertised (`partner` turns on only when the platform says it accepts user-chosen codes).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capabilities: Option<InstanceUpdateReferralsResponseCapabilities>,
+    /// One-click connect to a referral platform (an OAuth install: the merchant picks an
+    /// organization and program, and no secret is copied). `one_click` is the Referalli preset;
+    /// `one_click_presets` lists every platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub one_click: Option<InstanceUpdateReferralsResponseOneClick>,
+    /// Every platform this deployment offers a one-click install for.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub one_click_presets: Vec<InstanceUpdateReferralsResponseOneClickPresetsItem>,
     /// Whether a signing secret is stored (the value is never returned).
     #[serde(default)]
     pub signing_secret_set: bool,
@@ -27528,9 +37006,14 @@ pub struct InstanceUpdateReferralsResponse {
     /// Query parameters that carry a referral code, in priority order.
     #[serde(default)]
     pub url_params: Vec<String>,
-    /// First-party tracking cookie read under consent; null = never read a cookie.
+    /// The first tracking cookie read under consent; null = never read a cookie. `context_cookies`
+    /// lists every cookie, in the order they are tried.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context_cookie: Option<String>,
+    /// First-party tracking cookies read under consent, in the order they are tried (the first one
+    /// present wins). Empty = never read a cookie.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context_cookies: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consent_category: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -27566,7 +37049,7 @@ pub struct InstanceUpdateReferralsResponse {
     /// Which consent manager decides on the tracking cookie's ids: auto (any common one), one
     /// manager, or app (only the app's referralConsent). Default auto.
     ///
-    /// Known values: `auto`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `app`.
+    /// Known values: `auto`, `atlasconsent`, `cookiemunch`, `onetrust`, `cookiebot`, `didomi`, `usercentrics`, `osano`, `cookieyes`, `complianz`, `klaro`, `tcf`, `consent_mode`, `gpc`, `app`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub consent_provider: Option<String>,
     /// The security part of the referral settings (the `security` object of GET/PATCH
@@ -27599,6 +37082,98 @@ pub struct InstanceUpdateReferralsResponse {
     pub providers: Vec<InstanceUpdateReferralsResponseProvidersItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// What the chosen provider can do now: its built-in capabilities plus anything its last ping
+/// advertised (`partner` turns on only when the platform says it accepts user-chosen codes).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseCapabilities {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signup: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub erase: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub export: Option<bool>,
+    /// Registers a referral code the user chose in your app with the platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partner: Option<bool>,
+    /// Every new user becomes a referrer: the platform returns the partner's code and tracked link
+    /// in the sign-up answer, and Atlas stores them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_enroll: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signal: Option<bool>,
+    /// Re-keys a customer whose external_id changed after sign-up.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alias: Option<bool>,
+    /// Takes user lifecycle updates (email, name, suspension).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user: Option<bool>,
+    /// Answers a ping for "Test connection" (org, program, clock).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ping: Option<bool>,
+    /// Sends Atlas referral changes made after sign-up (two-way sync).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inbound: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One-click connect to a referral platform (an OAuth install: the merchant picks an
+/// organization and program, and no secret is copied). `one_click` is the Referalli preset;
+/// `one_click_presets` lists every platform.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseOneClick {
+    /// The preset id to put in the install URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Whether this deployment offers it. When false, connect with a key or the signing secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    /// Atlas's callback, the redirect URI to register with the platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirect_uri: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One-click connect to a referral platform (an OAuth install: the merchant picks an
+/// organization and program, and no secret is copied). `one_click` is the Referalli preset;
+/// `one_click_presets` lists every platform.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseOneClickPresetsItem {
+    /// The preset id to put in the install URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Whether this deployment offers it. When false, connect with a key or the signing secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    /// Atlas's callback, the redirect URI to register with the platform.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub redirect_uri: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -27683,6 +37258,10 @@ pub struct InstanceUpdateReferralsResponseConnectionLastPing {
     /// True when the skew is over 60 seconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clock_skew_warning: Option<bool>,
+    /// Capabilities the platform advertised in this ping (for example `partner`). They are merged
+    /// into the settings `capabilities`.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub advertised_capabilities: HashMap<String, bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -27753,6 +37332,9 @@ pub struct InstanceUpdateReferralsResponseInboundLastEvent {
 pub struct InstanceUpdateReferralsResponseProvidersItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    /// Retired spellings of this id, accepted on write and never returned as `provider`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub aliases: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -27761,6 +37343,9 @@ pub struct InstanceUpdateReferralsResponseProvidersItem {
     pub needs: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_context_cookie: Option<String>,
+    /// Every cookie the vendor has written, in the order Atlas tries them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub default_context_cookies: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub docs_url: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -27942,6 +37527,9 @@ pub struct InstanceListReferralCallsResponse {
     pub data: Vec<InstanceListReferralCallsResponseDataItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub has_more: Option<bool>,
+    /// Pass as starting_after for the next page; null on the last page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -27970,6 +37558,9 @@ pub struct InstanceListReferralCallsResponseDataItem {
     pub customer_ref: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
+    /// The W3C trace-id every attempt carried in its traceparent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -28113,6 +37704,9 @@ pub struct InstanceGetReferralCallResponse {
     pub customer_ref: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
+    /// The W3C trace-id every attempt carried in its traceparent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -28218,6 +37812,9 @@ pub struct InstanceRetryReferralCallResponse {
     pub customer_ref: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
+    /// The W3C trace-id every attempt carried in its traceparent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -28476,6 +38073,10 @@ pub struct InstanceTestReferralsResponsePing {
     /// True when the skew is over 60 seconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clock_skew_warning: Option<bool>,
+    /// Capabilities the platform advertised in this ping (for example `partner`). They are merged
+    /// into the settings `capabilities`.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub advertised_capabilities: HashMap<String, bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -28890,6 +38491,9 @@ pub struct InvitationsBulkCreateResponseErrorsItem {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct JobsListResponse {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
     #[serde(default)]
     pub data: Vec<Job>,
     #[serde(default)]
@@ -28980,6 +38584,9 @@ pub struct User {
     pub public_metadata: Map<String, Value>,
     #[serde(default)]
     pub mfa_enabled: bool,
+    /// Factor classes this user must always use (POL-04); empty = none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_factors: Vec<String>,
     /// Whether this identity is still an anonymous guest.
     #[serde(default)]
     pub is_anonymous: bool,
@@ -29113,6 +38720,28 @@ pub struct JwtTemplatesCreateResponse {
     /// Claim name → value. Reserved claims (iss, sub, exp, …) are refused.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub claims: HashMap<String, String>,
+    /// Non-secret mint settings. The HS256 secret is never returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<JwtTemplatesCreateResponseSettings>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Non-secret mint settings. The HS256 secret is never returned.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct JwtTemplatesCreateResponseSettings {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifetime_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Known values: `RS256`, `HS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_signing_secret: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -29145,6 +38774,28 @@ pub struct JwtTemplatesListResponseDataItem {
     /// Claim name → value. Reserved claims (iss, sub, exp, …) are refused.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub claims: HashMap<String, String>,
+    /// Non-secret mint settings. The HS256 secret is never returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<JwtTemplatesListResponseDataItemSettings>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Non-secret mint settings. The HS256 secret is never returned.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct JwtTemplatesListResponseDataItemSettings {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifetime_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Known values: `RS256`, `HS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_signing_secret: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -29163,6 +38814,28 @@ pub struct JwtTemplatesGetResponse {
     /// Claim name → value. Reserved claims (iss, sub, exp, …) are refused.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub claims: HashMap<String, String>,
+    /// Non-secret mint settings. The HS256 secret is never returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<JwtTemplatesGetResponseSettings>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Non-secret mint settings. The HS256 secret is never returned.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct JwtTemplatesGetResponseSettings {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifetime_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Known values: `RS256`, `HS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_signing_secret: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -29181,6 +38854,28 @@ pub struct JwtTemplatesUpdateResponse {
     /// Claim name → value. Reserved claims (iss, sub, exp, …) are refused.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub claims: HashMap<String, String>,
+    /// Non-secret mint settings. The HS256 secret is never returned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<JwtTemplatesUpdateResponseSettings>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Non-secret mint settings. The HS256 secret is never returned.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct JwtTemplatesUpdateResponseSettings {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lifetime_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Known values: `RS256`, `HS256`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub has_signing_secret: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -29224,8 +38919,14 @@ pub struct LegacyAuthConnectionGetResponse {
     pub import_on_login: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i64>,
+    /// Known values: `password`, `preset`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// Non-secret preset settings (the secret is never returned).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub preset_config: HashMap<String, String>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -29261,8 +38962,14 @@ pub struct LegacyAuthConnectionSetResponse {
     pub import_on_login: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i64>,
+    /// Known values: `password`, `preset`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strategy: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// Non-secret preset settings (the secret is never returned).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub preset_config: HashMap<String, String>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -29380,7 +39087,7 @@ pub struct LogStream {
     pub id: String,
     #[serde(default)]
     pub name: String,
-    /// Known values: `http`, `datadog`, `splunk`.
+    /// Known values: `http`, `datadog`, `splunk`, `s3`, `gcs`, `azure_blob`, `aws_eventbridge`, `kinesis_firehose`, `cloudwatch_logs`, `elastic`, `sumo_logic`, `new_relic`, `azure_event_hubs`, `sentinel`, `gcp_pubsub`, `bigquery`, `loki`, `otlp`, `kafka`.
     #[serde(default)]
     pub r#type: String,
     #[serde(default)]
@@ -30152,6 +39859,9 @@ pub struct DevelopmentEmail {
     /// Always `development_email`.
     #[serde(default)]
     pub object: String,
+    /// Always true on a configured object (the unconfigured reply is { configured: false }).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Value>,
     /// Your email provider, in development mode.
     #[serde(default)]
     pub provider_id: String,
@@ -30231,6 +39941,9 @@ pub struct ManagedEmail {
     /// Always `managed_email`.
     #[serde(default)]
     pub object: String,
+    /// Always true on a configured object (the unconfigured reply is { configured: false }).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Value>,
     #[serde(default)]
     pub id: String,
     #[serde(default)]
@@ -30488,6 +40201,9 @@ pub struct NetworkAcl {
     pub action: String,
     #[serde(default)]
     pub cidr: String,
+    /// The network zone this rule matches instead of `cidr`.
+    #[serde(default)]
+    pub zone_id: Option<String>,
     #[serde(default)]
     pub description: Option<String>,
     #[serde(default)]
@@ -30555,6 +40271,9 @@ pub struct OAuthClientsListResponseDataItem {
     /// Always `oauth_client`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
+    /// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_settings: Option<OAuthClientsListResponseDataItemAppSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -30587,6 +40306,15 @@ pub struct OAuthClientsListResponseDataItem {
     /// PKCE is required for this client even though it is confidential.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_pkce: Option<bool>,
+    /// The policy profile the client is assigned (PUT /v1/oauth_clients/{id}/profile).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Your own sign-in page for this client (PUT /v1/oauth_clients/{id}/delegated_ui).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub login_url: Option<String>,
+    /// Your own consent page for this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_url: Option<String>,
     /// `cimd` when the client was created from its Client ID Metadata Document (its client_id is
     /// that document's URL); null for a registered client.
     ///
@@ -30647,6 +40375,123 @@ pub struct OAuthClientsListResponseDataItem {
     pub extra: Map<String, Value>,
 }
 
+/// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsListResponseDataItemAppSettings {
+    /// The sign-in methods a session must have used for this app: password, email_code, email_link,
+    /// passkey, phone_code, siwe, siws, siwf, a provider such as oauth_google, or the families
+    /// oauth (any social provider) and enterprise_sso (any enterprise connection). The hosted pages
+    /// offer only these when the sign-in is for this app; a session made another way signs in again
+    /// at /oauth2/authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_sign_in_methods: Option<Vec<String>>,
+    /// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+    /// when the sign-in is for this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<OAuthClientsListResponseDataItemAppSettingsBranding>,
+    /// The user claims this app receives in its ID token and from userinfo (for example email,
+    /// name, org_id). Protocol claims (iss, sub, aud, exp, iat, nonce, auth_time, acr, amr, azp,
+    /// sid) always pass. \[\] = protocol claims only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claims_allowlist: Option<Vec<String>>,
+    /// The identity traits a session that came from this app (a native app that exchanged its token
+    /// for a session) may change through PATCH /v1/client/me. Others are refused with 403.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub writable_traits: Option<Vec<String>>,
+    /// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+    /// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+    /// signals and reputation feeds stay instance-wide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<OAuthClientsListResponseDataItemAppSettingsRisk>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+/// when the sign-in is for this app.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsListResponseDataItemAppSettingsBranding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// An https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// A hex, rgb() or named CSS colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+/// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+/// signals and reputation feeds stay instance-wide.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsListResponseDataItemAppSettingsRisk {
+    /// Turn risk-based MFA on or off for sign-ins to this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// audit scores and records sign-ins without changing them.
+    ///
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Value>,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_up_threshold: Option<Value>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_high_risk_no_factor: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<OAuthClientsListResponseDataItemAppSettingsRiskLevelActions>,
+    /// The refresh-time check for sessions that came from this app (its native token exchange).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<OAuthClientsListResponseDataItemAppSettingsRiskMidSession>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsListResponseDataItemAppSettingsRiskLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<Value>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The refresh-time check for sessions that came from this app (its native token exchange).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsListResponseDataItemAppSettingsRiskMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// This client's token lifetime overrides (seconds); null = inherited.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -30682,6 +40527,9 @@ pub struct OAuthClientsCreateResponse {
     /// Always `oauth_client`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
+    /// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_settings: Option<OAuthClientsCreateResponseAppSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -30714,6 +40562,15 @@ pub struct OAuthClientsCreateResponse {
     /// PKCE is required for this client even though it is confidential.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_pkce: Option<bool>,
+    /// The policy profile the client is assigned (PUT /v1/oauth_clients/{id}/profile).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Your own sign-in page for this client (PUT /v1/oauth_clients/{id}/delegated_ui).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub login_url: Option<String>,
+    /// Your own consent page for this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_url: Option<String>,
     /// `cimd` when the client was created from its Client ID Metadata Document (its client_id is
     /// that document's URL); null for a registered client.
     ///
@@ -30768,6 +40625,123 @@ pub struct OAuthClientsCreateResponse {
     /// With an `X-Secret-Recipient`: the fields that arrived sealed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets_sealed: Option<SecretsSealed>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsCreateResponseAppSettings {
+    /// The sign-in methods a session must have used for this app: password, email_code, email_link,
+    /// passkey, phone_code, siwe, siws, siwf, a provider such as oauth_google, or the families
+    /// oauth (any social provider) and enterprise_sso (any enterprise connection). The hosted pages
+    /// offer only these when the sign-in is for this app; a session made another way signs in again
+    /// at /oauth2/authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_sign_in_methods: Option<Vec<String>>,
+    /// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+    /// when the sign-in is for this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<OAuthClientsCreateResponseAppSettingsBranding>,
+    /// The user claims this app receives in its ID token and from userinfo (for example email,
+    /// name, org_id). Protocol claims (iss, sub, aud, exp, iat, nonce, auth_time, acr, amr, azp,
+    /// sid) always pass. \[\] = protocol claims only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claims_allowlist: Option<Vec<String>>,
+    /// The identity traits a session that came from this app (a native app that exchanged its token
+    /// for a session) may change through PATCH /v1/client/me. Others are refused with 403.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub writable_traits: Option<Vec<String>>,
+    /// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+    /// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+    /// signals and reputation feeds stay instance-wide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<OAuthClientsCreateResponseAppSettingsRisk>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+/// when the sign-in is for this app.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsCreateResponseAppSettingsBranding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// An https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// A hex, rgb() or named CSS colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+/// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+/// signals and reputation feeds stay instance-wide.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsCreateResponseAppSettingsRisk {
+    /// Turn risk-based MFA on or off for sign-ins to this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// audit scores and records sign-ins without changing them.
+    ///
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Value>,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_up_threshold: Option<Value>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_high_risk_no_factor: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<OAuthClientsCreateResponseAppSettingsRiskLevelActions>,
+    /// The refresh-time check for sessions that came from this app (its native token exchange).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<OAuthClientsCreateResponseAppSettingsRiskMidSession>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsCreateResponseAppSettingsRiskLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<Value>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The refresh-time check for sessions that came from this app (its native token exchange).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsCreateResponseAppSettingsRiskMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -30830,6 +40804,9 @@ pub struct OAuthClientsImportResponseDataItem {
     /// Always `oauth_client`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
+    /// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_settings: Option<OAuthClientsImportResponseDataItemAppSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -30862,6 +40839,15 @@ pub struct OAuthClientsImportResponseDataItem {
     /// PKCE is required for this client even though it is confidential.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_pkce: Option<bool>,
+    /// The policy profile the client is assigned (PUT /v1/oauth_clients/{id}/profile).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Your own sign-in page for this client (PUT /v1/oauth_clients/{id}/delegated_ui).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub login_url: Option<String>,
+    /// Your own consent page for this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_url: Option<String>,
     /// `cimd` when the client was created from its Client ID Metadata Document (its client_id is
     /// that document's URL); null for a registered client.
     ///
@@ -30916,6 +40902,123 @@ pub struct OAuthClientsImportResponseDataItem {
     /// With an `X-Secret-Recipient`: the fields that arrived sealed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets_sealed: Option<SecretsSealed>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsImportResponseDataItemAppSettings {
+    /// The sign-in methods a session must have used for this app: password, email_code, email_link,
+    /// passkey, phone_code, siwe, siws, siwf, a provider such as oauth_google, or the families
+    /// oauth (any social provider) and enterprise_sso (any enterprise connection). The hosted pages
+    /// offer only these when the sign-in is for this app; a session made another way signs in again
+    /// at /oauth2/authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_sign_in_methods: Option<Vec<String>>,
+    /// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+    /// when the sign-in is for this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<OAuthClientsImportResponseDataItemAppSettingsBranding>,
+    /// The user claims this app receives in its ID token and from userinfo (for example email,
+    /// name, org_id). Protocol claims (iss, sub, aud, exp, iat, nonce, auth_time, acr, amr, azp,
+    /// sid) always pass. \[\] = protocol claims only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claims_allowlist: Option<Vec<String>>,
+    /// The identity traits a session that came from this app (a native app that exchanged its token
+    /// for a session) may change through PATCH /v1/client/me. Others are refused with 403.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub writable_traits: Option<Vec<String>>,
+    /// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+    /// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+    /// signals and reputation feeds stay instance-wide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<OAuthClientsImportResponseDataItemAppSettingsRisk>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+/// when the sign-in is for this app.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsImportResponseDataItemAppSettingsBranding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// An https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// A hex, rgb() or named CSS colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+/// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+/// signals and reputation feeds stay instance-wide.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsImportResponseDataItemAppSettingsRisk {
+    /// Turn risk-based MFA on or off for sign-ins to this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// audit scores and records sign-ins without changing them.
+    ///
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Value>,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_up_threshold: Option<Value>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_high_risk_no_factor: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<OAuthClientsImportResponseDataItemAppSettingsRiskLevelActions>,
+    /// The refresh-time check for sessions that came from this app (its native token exchange).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<OAuthClientsImportResponseDataItemAppSettingsRiskMidSession>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsImportResponseDataItemAppSettingsRiskLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<Value>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The refresh-time check for sessions that came from this app (its native token exchange).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsImportResponseDataItemAppSettingsRiskMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -31023,6 +41126,9 @@ pub struct OAuthClientsGetResponse {
     /// Always `oauth_client`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
+    /// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_settings: Option<OAuthClientsGetResponseAppSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -31055,6 +41161,15 @@ pub struct OAuthClientsGetResponse {
     /// PKCE is required for this client even though it is confidential.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_pkce: Option<bool>,
+    /// The policy profile the client is assigned (PUT /v1/oauth_clients/{id}/profile).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Your own sign-in page for this client (PUT /v1/oauth_clients/{id}/delegated_ui).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub login_url: Option<String>,
+    /// Your own consent page for this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_url: Option<String>,
     /// `cimd` when the client was created from its Client ID Metadata Document (its client_id is
     /// that document's URL); null for a registered client.
     ///
@@ -31115,6 +41230,123 @@ pub struct OAuthClientsGetResponse {
     pub extra: Map<String, Value>,
 }
 
+/// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsGetResponseAppSettings {
+    /// The sign-in methods a session must have used for this app: password, email_code, email_link,
+    /// passkey, phone_code, siwe, siws, siwf, a provider such as oauth_google, or the families
+    /// oauth (any social provider) and enterprise_sso (any enterprise connection). The hosted pages
+    /// offer only these when the sign-in is for this app; a session made another way signs in again
+    /// at /oauth2/authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_sign_in_methods: Option<Vec<String>>,
+    /// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+    /// when the sign-in is for this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<OAuthClientsGetResponseAppSettingsBranding>,
+    /// The user claims this app receives in its ID token and from userinfo (for example email,
+    /// name, org_id). Protocol claims (iss, sub, aud, exp, iat, nonce, auth_time, acr, amr, azp,
+    /// sid) always pass. \[\] = protocol claims only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claims_allowlist: Option<Vec<String>>,
+    /// The identity traits a session that came from this app (a native app that exchanged its token
+    /// for a session) may change through PATCH /v1/client/me. Others are refused with 403.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub writable_traits: Option<Vec<String>>,
+    /// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+    /// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+    /// signals and reputation feeds stay instance-wide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<OAuthClientsGetResponseAppSettingsRisk>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+/// when the sign-in is for this app.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsGetResponseAppSettingsBranding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// An https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// A hex, rgb() or named CSS colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+/// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+/// signals and reputation feeds stay instance-wide.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsGetResponseAppSettingsRisk {
+    /// Turn risk-based MFA on or off for sign-ins to this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// audit scores and records sign-ins without changing them.
+    ///
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Value>,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_up_threshold: Option<Value>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_high_risk_no_factor: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<OAuthClientsGetResponseAppSettingsRiskLevelActions>,
+    /// The refresh-time check for sessions that came from this app (its native token exchange).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<OAuthClientsGetResponseAppSettingsRiskMidSession>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsGetResponseAppSettingsRiskLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<Value>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The refresh-time check for sessions that came from this app (its native token exchange).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsGetResponseAppSettingsRiskMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// This client's token lifetime overrides (seconds); null = inherited.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -31150,6 +41382,9 @@ pub struct OAuthClientsUpdateResponse {
     /// Always `oauth_client`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
+    /// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_settings: Option<OAuthClientsUpdateResponseAppSettings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -31182,6 +41417,15 @@ pub struct OAuthClientsUpdateResponse {
     /// PKCE is required for this client even though it is confidential.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_pkce: Option<bool>,
+    /// The policy profile the client is assigned (PUT /v1/oauth_clients/{id}/profile).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Your own sign-in page for this client (PUT /v1/oauth_clients/{id}/delegated_ui).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub login_url: Option<String>,
+    /// Your own consent page for this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_url: Option<String>,
     /// `cimd` when the client was created from its Client ID Metadata Document (its client_id is
     /// that document's URL); null for a registered client.
     ///
@@ -31236,6 +41480,123 @@ pub struct OAuthClientsUpdateResponse {
     /// With an `X-Secret-Recipient`: the fields that arrived sealed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets_sealed: Option<SecretsSealed>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsUpdateResponseAppSettings {
+    /// The sign-in methods a session must have used for this app: password, email_code, email_link,
+    /// passkey, phone_code, siwe, siws, siwf, a provider such as oauth_google, or the families
+    /// oauth (any social provider) and enterprise_sso (any enterprise connection). The hosted pages
+    /// offer only these when the sign-in is for this app; a session made another way signs in again
+    /// at /oauth2/authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_sign_in_methods: Option<Vec<String>>,
+    /// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+    /// when the sign-in is for this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<OAuthClientsUpdateResponseAppSettingsBranding>,
+    /// The user claims this app receives in its ID token and from userinfo (for example email,
+    /// name, org_id). Protocol claims (iss, sub, aud, exp, iat, nonce, auth_time, acr, amr, azp,
+    /// sid) always pass. \[\] = protocol claims only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claims_allowlist: Option<Vec<String>>,
+    /// The identity traits a session that came from this app (a native app that exchanged its token
+    /// for a session) may change through PATCH /v1/client/me. Others are refused with 403.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub writable_traits: Option<Vec<String>>,
+    /// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+    /// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+    /// signals and reputation feeds stay instance-wide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<OAuthClientsUpdateResponseAppSettingsRisk>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+/// when the sign-in is for this app.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsUpdateResponseAppSettingsBranding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// An https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// A hex, rgb() or named CSS colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+/// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+/// signals and reputation feeds stay instance-wide.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsUpdateResponseAppSettingsRisk {
+    /// Turn risk-based MFA on or off for sign-ins to this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// audit scores and records sign-ins without changing them.
+    ///
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Value>,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_up_threshold: Option<Value>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_high_risk_no_factor: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<OAuthClientsUpdateResponseAppSettingsRiskLevelActions>,
+    /// The refresh-time check for sessions that came from this app (its native token exchange).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<OAuthClientsUpdateResponseAppSettingsRiskMidSession>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsUpdateResponseAppSettingsRiskLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<Value>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The refresh-time check for sessions that came from this app (its native token exchange).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsUpdateResponseAppSettingsRiskMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -31319,6 +41680,9 @@ pub struct BackchannelLogoutDelivery {
     /// Always `backchannel_logout_delivery`.
     #[serde(default)]
     pub object: String,
+    /// The W3C trace-id the logout_token POST carried in its traceparent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
     #[serde(default)]
     pub id: String,
     #[serde(default)]
@@ -31412,6 +41776,9 @@ pub struct OAuthClientsRotateSecretResponse {
     /// Always `oauth_client`.
     #[serde(default)]
     pub object: String,
+    /// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_settings: Option<OAuthClientsRotateSecretResponseAppSettings>,
     #[serde(default)]
     pub id: String,
     #[serde(default)]
@@ -31444,6 +41811,15 @@ pub struct OAuthClientsRotateSecretResponse {
     /// PKCE is required for this client even though it is confidential.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub require_pkce: Option<bool>,
+    /// The policy profile the client is assigned (PUT /v1/oauth_clients/{id}/profile).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
+    /// Your own sign-in page for this client (PUT /v1/oauth_clients/{id}/delegated_ui).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub login_url: Option<String>,
+    /// Your own consent page for this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_url: Option<String>,
     /// `cimd` when the client was created from its Client ID Metadata Document (its client_id is
     /// that document's URL); null for a registered client.
     ///
@@ -31503,6 +41879,123 @@ pub struct OAuthClientsRotateSecretResponse {
     /// With an `X-Secret-Recipient`: the fields that arrived sealed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secrets_sealed: Option<SecretsSealed>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Per-application settings (see /v1/oauth_clients/{id}/app_settings).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRotateSecretResponseAppSettings {
+    /// The sign-in methods a session must have used for this app: password, email_code, email_link,
+    /// passkey, phone_code, siwe, siws, siwf, a provider such as oauth_google, or the families
+    /// oauth (any social provider) and enterprise_sso (any enterprise connection). The hosted pages
+    /// offer only these when the sign-in is for this app; a session made another way signs in again
+    /// at /oauth2/authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_sign_in_methods: Option<Vec<String>>,
+    /// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+    /// when the sign-in is for this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<OAuthClientsRotateSecretResponseAppSettingsBranding>,
+    /// The user claims this app receives in its ID token and from userinfo (for example email,
+    /// name, org_id). Protocol claims (iss, sub, aud, exp, iat, nonce, auth_time, acr, amr, azp,
+    /// sid) always pass. \[\] = protocol claims only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claims_allowlist: Option<Vec<String>>,
+    /// The identity traits a session that came from this app (a native app that exchanged its token
+    /// for a session) may change through PATCH /v1/client/me. Others are refused with 403.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub writable_traits: Option<Vec<String>>,
+    /// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+    /// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+    /// signals and reputation feeds stay instance-wide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<OAuthClientsRotateSecretResponseAppSettingsRisk>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The heading, sub-heading, logo and primary colour of the hosted sign-in and sign-up pages
+/// when the sign-in is for this app.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRotateSecretResponseAppSettingsBranding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subheading: Option<String>,
+    /// An https URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    /// A hex, rgb() or named CSS colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_color: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Overrides of the instance's riskBasedMfa for sign-ins to this app (a sign-in started from
+/// this app's /oauth2/authorize request). A field left null keeps the instance value; weights,
+/// signals and reputation feeds stay instance-wide.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRotateSecretResponseAppSettingsRisk {
+    /// Turn risk-based MFA on or off for sign-ins to this app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// audit scores and records sign-ins without changing them.
+    ///
+    /// Known values: `enforce`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<Value>,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_up_threshold: Option<Value>,
+    /// Known values: `allow`, `block`, `require_enroll`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_high_risk_no_factor: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub level_actions: Option<OAuthClientsRotateSecretResponseAppSettingsRiskLevelActions>,
+    /// The refresh-time check for sessions that came from this app (its native token exchange).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mid_session: Option<OAuthClientsRotateSecretResponseAppSettingsRiskMidSession>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRotateSecretResponseAppSettingsRiskLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<Value>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The refresh-time check for sessions that came from this app (its native token exchange).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRotateSecretResponseAppSettingsRiskMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -31572,6 +42065,8 @@ pub struct OAuthInitialAccessTokensListResponseDataItem {
     pub token_prefix: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
     /// Known values: `active`, `expired`, `used_up`, `revoked`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
@@ -31614,6 +42109,8 @@ pub struct OAuthInitialAccessTokensCreateResponse {
     pub token_prefix: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
     /// Known values: `active`, `expired`, `used_up`, `revoked`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
@@ -31662,6 +42159,8 @@ pub struct OAuthInitialAccessTokensRevokeResponse {
     pub token_prefix: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<String>,
     /// Known values: `active`, `expired`, `used_up`, `revoked`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
@@ -32372,6 +42871,9 @@ pub struct OrgSettingsSchemaCreateResponse {
     /// Always `organization_settings_schema`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub object: Option<String>,
+    /// False when no schema is registered (schema is then null).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<bool>,
     /// A JSON Schema (OpenAPI 3.1 dialect). The validated subset is
     /// type/required/properties/enum/minimum/maximum/minLength/maxLength/minItems/maxItems/items/additionalProperties/pattern/format
     /// (format: email, uri/url, date-time, uuid).
@@ -33575,154 +44077,7 @@ pub struct AtlasIdAppsRevokeGrantResponse {
     pub extra: Map<String, Value>,
 }
 
-/// The `AtlasIdAppPreflight` object.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppPreflight {
-    /// Always `preflight`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub app_id: String,
-    /// True when there are no error-severity findings.
-    #[serde(default)]
-    pub ok: bool,
-    #[serde(default)]
-    pub checked_at: i64,
-    /// People who have approved the app.
-    #[serde(default)]
-    pub user_count: i64,
-    /// Ordered error, then warning, then info.
-    #[serde(default)]
-    pub findings: Vec<PreflightFinding>,
-    /// The page origins the Sign in with Atlas button script ran on in the last 7 days.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub button_rendered_origins: Vec<AtlasIdAppPreflightButtonRenderedOriginsItem>,
-    /// How the last 7 days' sign-ins started: the rendered button, the script API, One Tap, the
-    /// no-script fallback, or unmarked.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub authorize_requests_7d: Option<AtlasIdAppPreflightAuthorizeRequests7d>,
-    /// Origins of sign-ins that came through the no-script fallback link (`?atlasid_fallback=1`).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub fallback_origins: Vec<AtlasIdAppPreflightFallbackOriginsItem>,
-    /// Whether the app's homepage references the button script (`null` = could not check).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub homepage_includes_script: Option<bool>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppPreflightButtonRenderedOriginsItem {
-    #[serde(default)]
-    pub origin: String,
-    #[serde(default)]
-    pub last_seen_at: i64,
-    #[serde(default)]
-    pub requests: i64,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppPreflightFallbackOriginsItem {
-    #[serde(default)]
-    pub origin: String,
-    #[serde(default)]
-    pub last_seen_at: i64,
-    #[serde(default)]
-    pub requests: i64,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppPreflightAuthorizeRequests7d {
-    #[serde(default)]
-    pub button: i64,
-    #[serde(default)]
-    pub js: i64,
-    #[serde(default)]
-    pub fedcm: i64,
-    #[serde(default)]
-    pub fallback: i64,
-    #[serde(default)]
-    pub unmarked: i64,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The `PreflightFinding` object.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct PreflightFinding {
-    /// Known values: `error`, `warning`, `info`.
-    #[serde(default)]
-    pub severity: String,
-    /// Stable snake_case identifier. Every code is listed by GET /v1/instance/preflight/codes.
-    #[serde(default)]
-    pub code: String,
-    /// What is wrong, in a plain sentence.
-    #[serde(default)]
-    pub message: String,
-    /// What to do about it, in a plain sentence.
-    #[serde(default)]
-    pub fix: String,
-    /// Ids of what the finding is about (provider, id/client_id, origin, domain_id/host, site_id,
-    /// …).
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub subject: HashMap<String, String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The request body of `PUT /v1/platform/atlas_id_apps/{id}/managed_by`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppsSetManagedByBody {
-    /// The instance (of the same account) to hand the app's grant management to, or `null` to
-    /// take it back. Always sent.
-    #[serde(default)]
-    pub instance_id: Option<String>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-impl AtlasIdAppsSetManagedByBody {
-    /// Hand grant management to this instance.
-    pub fn new(instance_id: impl Into<String>) -> Self {
-        Self {
-            instance_id: Some(instance_id.into()),
-            ..Default::default()
-        }
-    }
-    /// Take grant management back (sends `instance_id: null`).
-    pub fn release() -> Self {
-        Self::default()
-    }
-    /// Set a field this version of the crate does not know about.
-    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
-        self.extra.insert(key.into(), value.into());
-        self
-    }
-}
-
-/// The response of `PUT /v1/platform/atlas_id_apps/{id}/managed_by`: the app after the change.
+/// The response of `PUT /v1/platform/atlas_id_apps/{id}/managed_by`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct AtlasIdAppsSetManagedByResponse {
@@ -33736,76 +44091,11 @@ pub struct AtlasIdAppsSetManagedByResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub managed_by_instance_id: Option<String>,
-    /// `instance_toggle` or `adopted`; `null` once taken back.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub managed_via: Option<String>,
-    /// Whether the call changed anything.
-    #[serde(default)]
-    pub changed: bool,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The response of `GET /v1/platform/atlas_id_apps/{id}/users`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppsFindUsersResponse {
-    /// Always `list`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub data: Vec<AtlasIdAppsFindUsersResponseDataItem>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppsFindUsersResponseDataItem {
-    /// Always `atlas_id_user`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub atlas_id_user: Value,
-    /// The user id as this app sees it (the id_token `sub`).
-    #[serde(default)]
-    pub sub: String,
-    #[serde(default)]
-    pub grant_id: String,
-    #[serde(default)]
-    pub scopes: Vec<String>,
-    #[serde(default)]
-    pub granted_at: i64,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-/// The response of `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdAppsRotateWebhookSecretResponse {
-    /// Always `atlas_id_app`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub id: String,
-    #[serde(default)]
-    pub client_id: String,
-    #[serde(default)]
-    pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub logo_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub homepage_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub branding: Option<AtlasIdAppsRotateWebhookSecretResponseBranding>,
+    pub branding: Option<AtlasIdAppsSetManagedByResponseBranding>,
     #[serde(default)]
     pub redirect_uris: Vec<String>,
     #[serde(default)]
@@ -33825,8 +44115,17 @@ pub struct AtlasIdAppsRotateWebhookSecretResponse {
     pub r#type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
+    /// The instance that manages this app's grants: its key (atlas_id_grants:* or
+    /// privacy:grants:revoke) lists and revokes them. Null when only the account does.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub managed_by_instance_id: Option<String>,
+    /// `instance_toggle`: the app of an instance's Sign in with Atlas toggle (changed only there).
+    /// `adopted`: your app, handed to an instance with PUT …/managed_by (still yours to edit). Null
+    /// when not managed by an instance.
+    ///
+    /// Known values: `instance_toggle`, `adopted`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_via: Option<String>,
     /// The per-app webhook URL, or null.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_url: Option<String>,
@@ -33839,6 +44138,14 @@ pub struct AtlasIdAppsRotateWebhookSecretResponse {
     /// deliveries (epoch ms); else null.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook_previous_secret_expires_at: Option<i64>,
+    /// Test sign-in mode: `+atlas_test` addresses on the account's verified domains sign in to this
+    /// app with the fixed code 424242, creating test accounts confined to this app. Off by default;
+    /// while on, anyone who knows the pattern can sign in as such an address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_mode: Option<bool>,
+    /// Test and review accounts of this app must use an email on the account's verified domains.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provisioned_verified_domains_only: Option<bool>,
     /// After a client secret rotation with overlap: when the previous secret stops working (epoch
     /// ms); else null.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -33850,20 +44157,9 @@ pub struct AtlasIdAppsRotateWebhookSecretResponse {
     pub created_at: i64,
     #[serde(default)]
     pub updated_at: i64,
-    /// Returned exactly once.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub webhook_secret: Option<String>,
-    /// The overlap applied, in seconds (echoed).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub overlap_seconds: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub note: Option<String>,
-    /// With an `X-Secret-Recipient`: `webhook_secret` sealed to it (then `webhook_secret` is absent).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sealed_webhook_secret: Option<String>,
-    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub secrets_sealed: Option<SecretsSealed>,
+    /// False when the app was already handled that way.
+    #[serde(default)]
+    pub changed: bool,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -33872,7 +44168,7 @@ pub struct AtlasIdAppsRotateWebhookSecretResponse {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub struct AtlasIdAppsRotateWebhookSecretResponseBranding {
+pub struct AtlasIdAppsSetManagedByResponseBranding {
     /// Known values: `auto`, `light`, `dark`.
     #[serde(default)]
     pub theme: String,
@@ -33892,7 +44188,7 @@ pub struct AtlasIdAppsRotateWebhookSecretResponseBranding {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved_design: Option<ResolvedDesign>,
     #[serde(default)]
-    pub copy: AtlasIdAppsRotateWebhookSecretResponseBrandingCopy,
+    pub copy: AtlasIdAppsSetManagedByResponseBrandingCopy,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -34043,10 +44339,8 @@ pub struct AtlasDesignPaletteDark {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct AtlasDesignTypography {
-    /// Known values: `system`, `system-serif`, `system-mono`, `inter`, `roboto`, `open-sans`, `lato`, `montserrat`, `poppins`, `nunito`, `work-sans`, `dm-sans`, `manrope`, `source-serif`, `merriweather`, `playfair-display`, `jetbrains-mono`, `ibm-plex-mono`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub font: Option<String>,
-    /// Known values: `system`, `system-serif`, `system-mono`, `inter`, `roboto`, `open-sans`, `lato`, `montserrat`, `poppins`, `nunito`, `work-sans`, `dm-sans`, `manrope`, `source-serif`, `merriweather`, `playfair-display`, `jetbrains-mono`, `ibm-plex-mono`.
     #[serde(
         rename = "headingFont",
         default,
@@ -34438,6 +44732,321 @@ pub struct ResolvedDesign {
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
+pub struct AtlasIdAppsSetManagedByResponseBrandingCopy {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_in_title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_in_subtitle: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_up_title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_up_subtitle: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consent_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_label: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `AtlasIdAppPreflight` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppPreflight {
+    /// Always `preflight`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub app_id: String,
+    /// True when there are no error-severity findings.
+    #[serde(default)]
+    pub ok: bool,
+    #[serde(default)]
+    pub checked_at: i64,
+    /// People who have approved the app.
+    #[serde(default)]
+    pub user_count: i64,
+    /// Ordered error, then warning, then info.
+    #[serde(default)]
+    pub findings: Vec<PreflightFinding>,
+    /// The page origins the Sign in with Atlas button script ran on in the last 7 days: authorize
+    /// requests carrying atlasid_button (the rendered button, the JavaScript API, a server login
+    /// route that forwards it) and One Tap. Most recent first. Empty when every sign-in started
+    /// without the script.
+    #[serde(default)]
+    pub button_rendered_origins: Vec<AtlasIdAppPreflightButtonRenderedOriginsItem>,
+    /// How the app's authorize requests of the last 7 days started: button (atlasid_button=1), js
+    /// (atlasid_button=js), fedcm (One Tap), fallback (the no-script link, atlasid_fallback=1) and
+    /// unmarked (none of these). atlas_id_button_never_rendered fires when button, js and fedcm are
+    /// all 0, at least one request came in, and the homepage includes the script.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authorize_requests_7d: Option<AtlasIdAppPreflightAuthorizeRequests7d>,
+    /// The page origins whose sign-ins came through the no-script fallback link in the last 7 days.
+    #[serde(default)]
+    pub fallback_origins: Vec<AtlasIdAppPreflightFallbackOriginsItem>,
+    /// Whether the app's homepage_url HTML references the button script (checked at most hourly).
+    /// null = no homepage_url, or it could not be read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub homepage_includes_script: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `PreflightFinding` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PreflightFinding {
+    /// Known values: `error`, `warning`, `info`.
+    #[serde(default)]
+    pub severity: String,
+    /// Stable snake_case identifier. Every code is listed by GET /v1/instance/preflight/codes.
+    #[serde(default)]
+    pub code: String,
+    /// What is wrong, in a plain sentence.
+    #[serde(default)]
+    pub message: String,
+    /// What to do about it, in a plain sentence.
+    #[serde(default)]
+    pub fix: String,
+    /// Ids of what the finding is about (provider, id/client_id, origin, domain_id/host, site_id,
+    /// …).
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub subject: HashMap<String, String>,
+    /// Set on the security posture findings (weaker than the defaults new instances get).
+    ///
+    /// Always `security_posture`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// Only with include_suppressed=true: the finding does not apply to how the instance
+    /// integrates.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suppressed: Option<Value>,
+    /// Only with include_suppressed=true: why it does not apply.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suppressed_reason: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `AtlasIdButtonOrigin` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdButtonOrigin {
+    /// The page origin (scheme, host and port).
+    #[serde(default)]
+    pub origin: String,
+    /// Epoch ms of the latest request from it.
+    #[serde(default)]
+    pub last_seen_at: i64,
+    /// Authorize requests from it in the last 7 days.
+    #[serde(default)]
+    pub requests: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// How the app's authorize requests of the last 7 days started: button (atlasid_button=1), js
+/// (atlasid_button=js), fedcm (One Tap), fallback (the no-script link, atlasid_fallback=1) and
+/// unmarked (none of these). atlas_id_button_never_rendered fires when button, js and fedcm are
+/// all 0, at least one request came in, and the homepage includes the script.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppPreflightAuthorizeRequests7d {
+    #[serde(default)]
+    pub button: i64,
+    #[serde(default)]
+    pub js: i64,
+    #[serde(default)]
+    pub fedcm: i64,
+    #[serde(default)]
+    pub fallback: i64,
+    #[serde(default)]
+    pub unmarked: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/platform/atlas_id_apps/{id}/users`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsFindUsersResponse {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub data: Vec<AtlasIdAppsFindUsersResponseDataItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsFindUsersResponseDataItem {
+    /// Always `atlas_id_user`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub atlas_id_user: Value,
+    /// The user id as this app sees it (the id_token `sub`).
+    #[serde(default)]
+    pub sub: String,
+    #[serde(default)]
+    pub grant_id: String,
+    #[serde(default)]
+    pub scopes: Vec<String>,
+    #[serde(default)]
+    pub granted_at: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsRotateWebhookSecretResponse {
+    /// Always `atlas_id_app`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub client_id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logo_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub homepage_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branding: Option<AtlasIdAppsRotateWebhookSecretResponseBranding>,
+    #[serde(default)]
+    pub redirect_uris: Vec<String>,
+    #[serde(default)]
+    pub post_logout_redirect_uris: Vec<String>,
+    #[serde(default)]
+    pub backchannel_logout_uri: Option<String>,
+    #[serde(default)]
+    pub backchannel_logout_session_required: bool,
+    #[serde(default)]
+    pub frontchannel_logout_uri: Option<String>,
+    #[serde(default)]
+    pub frontchannel_logout_session_required: bool,
+    #[serde(default)]
+    pub allowed_scopes: Vec<String>,
+    /// Known values: `confidential`, `public`.
+    #[serde(default)]
+    pub r#type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_prefix: Option<String>,
+    /// The instance that manages this app's grants: its key (atlas_id_grants:* or
+    /// privacy:grants:revoke) lists and revokes them. Null when only the account does.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_by_instance_id: Option<String>,
+    /// `instance_toggle`: the app of an instance's Sign in with Atlas toggle (changed only there).
+    /// `adopted`: your app, handed to an instance with PUT …/managed_by (still yours to edit). Null
+    /// when not managed by an instance.
+    ///
+    /// Known values: `instance_toggle`, `adopted`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_via: Option<String>,
+    /// The per-app webhook URL, or null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub webhook_events: Vec<String>,
+    /// false once auto-disabled after repeated failures; null without a webhook.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_active: Option<bool>,
+    /// While a webhook secret rotation overlap is open: when the previous secret stops signing
+    /// deliveries (epoch ms); else null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_previous_secret_expires_at: Option<i64>,
+    /// Test sign-in mode: `+atlas_test` addresses on the account's verified domains sign in to this
+    /// app with the fixed code 424242, creating test accounts confined to this app. Off by default;
+    /// while on, anyone who knows the pattern can sign in as such an address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_mode: Option<bool>,
+    /// Test and review accounts of this app must use an email on the account's verified domains.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provisioned_verified_domains_only: Option<bool>,
+    /// After a client secret rotation with overlap: when the previous secret stops working (epoch
+    /// ms); else null.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_secret_expires_at: Option<i64>,
+    /// When the current client secret was issued (epoch ms); null for a public app.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_issued_at: Option<i64>,
+    #[serde(default)]
+    pub created_at: i64,
+    #[serde(default)]
+    pub updated_at: i64,
+    /// Returned exactly once.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_secret: Option<String>,
+    /// The overlap applied, in seconds (echoed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub overlap_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    /// With an `X-Secret-Recipient`: `webhook_secret` sealed to it (then `webhook_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_webhook_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdAppsRotateWebhookSecretResponseBranding {
+    /// Known values: `auto`, `light`, `dark`.
+    #[serde(default)]
+    pub theme: String,
+    #[serde(default)]
+    pub accent_color: Option<String>,
+    #[serde(default)]
+    pub background_color: Option<String>,
+    #[serde(default)]
+    pub privacy_policy_url: Option<String>,
+    #[serde(default)]
+    pub terms_of_service_url: Option<String>,
+    /// The stored design overrides (null = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub design: Option<AtlasDesign>,
+    /// The fully-resolved design every surface renders (defaults ← preset ← overrides): the same
+    /// shape as AtlasDesign with every field present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_design: Option<ResolvedDesign>,
+    #[serde(default)]
+    pub copy: AtlasIdAppsRotateWebhookSecretResponseBrandingCopy,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct AtlasIdAppsRotateWebhookSecretResponseBrandingCopy {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sign_in_title: Option<String>,
@@ -34459,53 +45068,6 @@ pub struct AtlasIdAppsRotateWebhookSecretResponseBrandingCopy {
     pub extra: Map<String, Value>,
 }
 
-/// The response of `GET /v1/platform/atlas_id_publisher`.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdPublisherGetResponse {
-    /// Always `atlas_id_publisher`.
-    #[serde(default)]
-    pub object: String,
-    #[serde(default)]
-    pub name: String,
-    #[serde(default)]
-    pub domain: String,
-    #[serde(default)]
-    pub verified: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verified_at: Option<i64>,
-    #[serde(default)]
-    pub skip_consent: bool,
-    #[serde(default)]
-    pub verification: AtlasIdPublisherGetResponseVerification,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_checked_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<i64>,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub struct AtlasIdPublisherGetResponseVerification {
-    #[serde(default)]
-    pub record_name: String,
-    /// Always `TXT`.
-    #[serde(default)]
-    pub record_type: String,
-    #[serde(default)]
-    pub record_value: String,
-    /// Fields this version of the crate does not know about, kept verbatim.
-    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
-    #[serde(flatten)]
-    pub extra: Map<String, Value>,
-}
-
 /// The response of `PUT /v1/platform/atlas_id_publisher`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -34513,6 +45075,8 @@ pub struct AtlasIdPublisherSetResponse {
     /// Always `atlas_id_publisher`.
     #[serde(default)]
     pub object: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Value>,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
@@ -34560,6 +45124,8 @@ pub struct AtlasIdPublisherUpdateResponse {
     /// Always `atlas_id_publisher`.
     #[serde(default)]
     pub object: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Value>,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
@@ -34622,6 +45188,8 @@ pub struct AtlasIdPublisherVerifyResponse {
     /// Always `atlas_id_publisher`.
     #[serde(default)]
     pub object: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Value>,
     #[serde(default)]
     pub name: String,
     #[serde(default)]
@@ -36115,23 +46683,158 @@ pub struct RiskBasedMfa {
     /// Known values: `allow`, `block`, `require_enroll`.
     #[serde(default)]
     pub on_high_risk_no_factor: String,
-    #[serde(default)]
-    pub weights: RiskBasedMfaWeights,
-    #[serde(default)]
-    pub signals: RiskBasedMfaSignals,
     /// Known values: `enforce`, `audit`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub level_actions: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reputation: Option<Value>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fraud: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mid_session: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reputation: Option<Value>,
+    #[serde(default)]
+    pub weights: RiskBasedMfaWeights,
+    #[serde(default)]
+    pub signals: RiskBasedMfaSignals,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaLevelActions {
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<String>,
+    /// Known values: `default`, `allow`, `notify`, `mfa`, `block`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaFraud {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sanctioned_countries: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_rate_limit: Option<RiskBasedMfaFraudDeviceRateLimit>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rules: Vec<FraudRule>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaFraudDeviceRateLimit {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub per_hour: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adaptive: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The `FraudRule` object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FraudRule {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub enabled: bool,
+    /// Known values: `allow`, `challenge`, `block`.
+    #[serde(default)]
+    pub action: String,
+    /// Reason code returned when the rule matches.
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub conditions: Vec<FraudRuleConditionsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct FraudRuleConditionsItem {
+    /// Known values: `country`, `asn`, `datacenter`, `anonymizer`, `headless`, `automation`, `client_class`, `bot_score`, `email_disposable`, `ip_velocity`, `device_velocity`, `email_velocity`.
+    #[serde(default)]
+    pub field: String,
+    /// Known values: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`.
+    #[serde(default)]
+    pub op: String,
+    #[serde(default)]
+    pub value: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaBaseline {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weight: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaMidSession {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Known values: `revoke`, `notify`, `audit`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskBasedMfaReputation {
+    /// Known values: `none`, `ipqs`, `spur`, `minfraud`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip_weight: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_score: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flag_anonymizers: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email_checks: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email_weight: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -36196,6 +46899,132 @@ pub struct RiskBasedMfaSignals {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `GET /v1/risk_events`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsListResponse {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub data: Vec<RiskEvent>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsListResponseDataItem {
+    /// Always `risk_event`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub user_id: String,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default)]
+    pub level: String,
+    #[serde(default)]
+    pub score: i64,
+    #[serde(default)]
+    pub signals: Vec<String>,
+    #[serde(default)]
+    pub action: String,
+    /// Known values: `enforce`, `audit`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip: Option<String>,
+    /// Known values: `legit`, `fraud`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_at: Option<String>,
+    #[serde(default)]
+    pub created_at: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/risk_events/metrics`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsMetricsResponse {
+    /// Always `risk_event_metrics`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub days: i64,
+    #[serde(default)]
+    pub total: i64,
+    #[serde(default)]
+    pub buckets: Vec<RiskEventsMetricsResponseBucketsItem>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsMetricsResponseBucketsItem {
+    #[serde(default)]
+    pub level: String,
+    #[serde(default)]
+    pub action: String,
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub count: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/risk_events/{id}/feedback`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct RiskEventsFeedbackResponse {
+    /// Always `risk_event`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub user_id: String,
+    /// Known values: `low`, `medium`, `high`.
+    #[serde(default)]
+    pub level: String,
+    #[serde(default)]
+    pub score: i64,
+    #[serde(default)]
+    pub signals: Vec<String>,
+    #[serde(default)]
+    pub action: String,
+    /// Known values: `enforce`, `audit`.
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip: Option<String>,
+    /// Known values: `legit`, `fraud`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_at: Option<String>,
+    #[serde(default)]
+    pub created_at: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `GET /v1/roles`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -36235,6 +47064,11 @@ pub struct Role {
     pub description: Option<String>,
     #[serde(default)]
     pub is_system: bool,
+    /// internal roles are backend-assigned only and hidden from org-admin UIs.
+    ///
+    /// Known values: `public`, `internal`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visibility: Option<String>,
     /// Set on a per-organization custom role; null for an instance-wide role.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub organization_id: Option<String>,
@@ -38814,6 +49648,8 @@ pub struct SsoOnboardingProfile {
     pub company_name: Option<String>,
     #[serde(default)]
     pub allow_scim: bool,
+    #[serde(default)]
+    pub intents: Vec<String>,
     /// Created (epoch ms).
     #[serde(default)]
     pub created_at: i64,
