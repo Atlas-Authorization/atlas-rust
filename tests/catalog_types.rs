@@ -36,7 +36,7 @@ fn decode_action_gallery() {
     );
     // POST /v1/action_gallery/{slug}/install
     round_trip::<types::ActionGalleryInstallResult>(
-        r#"{"action":{"code":"x","created_at":7,"enabled":true,"id":"x","name":"x","object":"action","runtime":"x","secret_names":["x"],"trigger":"x","updated_at":7},"install_id":"x","missing_secrets":["x"],"object":"action_gallery_install","template":{"slug":"x","source":"x","version":"x"}}"#,
+        r#"{"action":{"code":"x","created_at":7,"enabled":true,"http_target":{"failure_mode":"open","timeout_ms":7,"url":"x"},"id":"x","name":"x","object":"action","runtime":"node","secret_names":["x"],"signing_secret":"x","trigger":"x","updated_at":7},"install_id":"x","missing_secrets":["x"],"object":"action_gallery_install","template":{"slug":"x","source":"x","version":"x"}}"#,
     );
     // GET /v1/action_gallery_installs
     round_trip::<types::ActionGalleryInstallsResponse>(
@@ -72,11 +72,11 @@ fn decode_action_templates() {
 fn decode_actions() {
     // GET /v1/actions
     round_trip::<types::ActionsListResponse>(
-        r#"{"data":[{"code":"x","created_at":7,"enabled":true,"id":"x","name":"x","object":"action","runtime":"x","secret_names":["x"],"trigger":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"code":"x","created_at":7,"enabled":true,"http_target":{"failure_mode":"open","timeout_ms":7,"url":"x"},"id":"x","name":"x","object":"action","runtime":"node","secret_names":["x"],"signing_secret":"x","trigger":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/actions
     round_trip::<types::Action>(
-        r#"{"code":"x","created_at":7,"enabled":true,"id":"x","name":"x","object":"action","runtime":"x","secret_names":["x"],"trigger":"x","updated_at":7}"#,
+        r#"{"code":"x","created_at":7,"enabled":true,"http_target":{"failure_mode":"open","timeout_ms":7,"url":"x"},"id":"x","name":"x","object":"action","runtime":"node","secret_names":["x"],"signing_secret":"x","trigger":"x","updated_at":7}"#,
     );
     // GET /v1/actions/bindings/{trigger}
     round_trip::<types::ActionsGetBindingsResponse>(
@@ -90,11 +90,11 @@ fn decode_actions() {
     round_trip::<types::ActionsDeleteResponse>(r#"{"deleted":true,"id":"x","object":"action"}"#);
     // POST /v1/actions/{id}/gallery_update
     round_trip::<types::ActionGalleryUpdateResult>(
-        r#"{"action":{"code":"x","created_at":7,"enabled":true,"id":"x","name":"x","object":"action","runtime":"x","secret_names":["x"],"trigger":"x","updated_at":7},"from_version":"x","object":"action_gallery_update","updated":true,"version":"x"}"#,
+        r#"{"action":{"code":"x","created_at":7,"enabled":true,"http_target":{"failure_mode":"open","timeout_ms":7,"url":"x"},"id":"x","name":"x","object":"action","runtime":"node","secret_names":["x"],"signing_secret":"x","trigger":"x","updated_at":7},"from_version":"x","object":"action_gallery_update","updated":true,"version":"x"}"#,
     );
     // POST /v1/actions/{id}/test
     round_trip::<types::ActionTestResult>(
-        r#"{"access_token_claims":{"k":"v"},"app_metadata":{"k":"v"},"denied":true,"deny_reason":"x","error":"x","http_requests":[{"has_body":true,"header_names":["x"],"method":"GET","save_response_as":"x","url":"x"}],"id":"x","id_token_claims":{"k":"v"},"logs":["x"],"object":"action_test_result"}"#,
+        r#"{"access_token_claims":{"k":"v"},"app_metadata":{"k":"v"},"challenge":{"k":"v"},"challenge_accepted":{"k":"v"},"denied":true,"deny_reason":"x","error":"x","http_call":{"error":"x","http_status":7,"latency_ms":7,"status":"ok"},"http_requests":[{"has_body":true,"header_names":["x"],"method":"GET","save_response_as":"x","url":"x"}],"id":"x","id_token_claims":{"k":"v"},"lock_reason":"x","logs":["x"],"object":"action_test_result","sign_up_modify":{"k":"x"},"sign_up_prefill":{"k":"x"},"suppressed_access_claims":["x"],"suppressed_id_claims":["x"],"user_edits":{"banned":{"reason":"x","value":true},"emailVerified":true,"firstName":"x","imageUrl":"x","lastName":"x"}}"#,
     );
 }
 
@@ -220,19 +220,15 @@ fn decode_billing() {
     );
     // PATCH /v1/billing/plans/{id}
     round_trip::<types::BillingPlan>(
-        r#"{"active":true,"amount":"x","audience":"user","created_at":7,"currency":"x","features":["x"],"free":true,"id":"x","interval":"month","kind":"base","limits":{"k":"v"},"name":"x","object":"billing_plan","pricing_model":"flat","provider":"stripe","provider_price_id":"x","seat_feature_id":"x","slug":"x","stripe_meter_id":"x","stripe_price_id":"x","trial_days":7,"updated_at":7,"usage_unit":"x"}"#,
+        r#"{"active":true,"amount":"x","audience":"user","created_at":7,"currency":"x","features":["x"],"free":true,"id":"x","interval":"month","kind":"base","limits":{"k":"v"},"name":"x","object":"billing_plan","pricing_model":"flat","promotion":{"k":"v"},"provider":"stripe","provider_price_id":"x","seat_feature_id":"x","slug":"x","stripe_meter_id":"x","stripe_price_id":"x","trial_days":7,"updated_at":7,"usage_unit":"x"}"#,
     );
     // GET /v1/billing/providers
     round_trip::<types::BillingListProvidersResponse>(
-        r#"{"data":[{"capabilities":{"k":"v"},"config":{"k":"x"},"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
-    );
-    // GET /v1/billing/providers/{provider}
-    round_trip::<types::BillingGetProviderResponse>(
-        r#"{"capabilities":{"k":"v"},"config":{"k":"x"},"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}"#,
+        r#"{"data":[{"capabilities":{"k":"v"},"config":{"k":"x"},"configured":true,"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // PUT /v1/billing/providers/{provider}
     round_trip::<types::BillingSetProviderResponse>(
-        r#"{"capabilities":{"k":"v"},"config":{"k":"x"},"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}"#,
+        r#"{"capabilities":{"k":"v"},"config":{"k":"x"},"configured":true,"environment":"live","last_verified_at":7,"last_webhook_at":7,"object":"billing_provider","provider":"stripe","secrets_set":{"k":true},"status":"x","updated_at":7,"webhook_url":"x"}"#,
     );
     // DELETE /v1/billing/providers/{provider}
     round_trip::<types::BillingDeleteProviderResponse>(
@@ -286,17 +282,13 @@ fn decode_bot_signals() {
     round_trip::<types::BotLabel>(
         r#"{"confidence":1.5,"created_at":7,"id":"x","label":"x","labeled_by":"x","note":"x","object":"bot_label","source":"x","subject_id":"x","subject_type":"x"}"#,
     );
-    // GET /v1/bot_signals
-    round_trip::<types::BotSignalsListResponse>(
-        r#"{"data":[{"accept_language":"x","asn":7,"attempt_id":"x","behavior_features":{"backspaceCount":1.5,"focusChanges":1.5,"hadKeydown":true,"hadPointerMove":true,"interactionCount":1.5,"keyAvgDwellMs":1.5,"keyAvgFlightMs":1.5,"keyCount":1.5,"keyDwellVariance":1.5,"keyFlightVariance":1.5,"mouseAvgSpeed":1.5,"mouseCurvatureEntropy":1.5,"mouseDistance":1.5,"mouseMaxSpeed":1.5,"mouseMoves":1.5,"mouseSpeedVariance":1.5,"mouseStraightLineRatio":1.5,"pasteCount":1.5,"scrollCount":1.5,"timeToFirstInteractionMs":1.5,"timeToSubmitMs":1.5,"typingSpeedCps":1.5},"captcha_provider":"x","captcha_score":1.5,"created_at":7,"device_features":{"automationHint":true,"colorDepth":1.5,"cookieEnabled":true,"deviceMemory":1.5,"doNotTrack":true,"fontCount":1.5,"hardwareConcurrency":1.5,"hasChrome":true,"headless":true,"language":"x","languageCount":7,"languages":["x"],"languagesEmpty":true,"maxTouchPoints":1.5,"pixelRatio":1.5,"platform":"x","pluginCount":1.5,"pointerType":"x","screenHeight":1.5,"screenWidth":1.5,"timezone":"x","timezoneOffset":1.5,"touchSupport":true,"webdriver":true,"webglRenderer":"x","webglSoftware":true,"webglVendor":"x"},"device_fingerprint":"x","device_id":"x","geo_city":"x","geo_country":"x","header_fingerprint":"x","heuristic_reasons":["x"],"heuristic_score":1.5,"id":"x","ip_hash":"x","ip_subnet":"x","is_anonymizer":true,"is_datacenter":true,"kind":"x","object":"bot_signal","outcome":"x","risk_level":"x","risk_score":1.5,"risk_signals":{"k":"v"},"source":"x","user_id":"x"}],"next_before":7,"object":"list"}"#,
-    );
 }
 
 #[test]
 fn decode_branding() {
     // GET /v1/branding
     round_trip::<types::Branding>(
-        r#"{"applicationName":"x","audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}},"background":{"angle":1.5,"color":"x","from":"x","imageUrl":"x","to":"x","type":"solid"},"backgroundPattern":"none","borderRadius":"x","buttonShape":"default","card":{"align":"left","logoSize":"sm","width":"narrow"},"cardBorder":"default","cardStyle":"default","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","fontFamily":"x","fontUrl":"x","inputSize":"sm","interaction":{"animations":true,"buttonEffect":"none","buttonStyle":"solid","density":"comfortable","inputStyle":"outline","loading":"spinner","motionEasing":"ease","motionSpeed":"slow","shadow":"none"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","object":"branding","providers":{"hidden":["x"],"order":["x"]},"resolved":{"applicationName":"x","audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}},"background":{"k":"v"},"backgroundPattern":"x","borderRadius":"x","buttonShape":"x","card":{"k":"v"},"cardBorder":"x","cardStyle":"x","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","escapedName":"x","eyebrow":"x","fontFamily":"x","fontStack":"x","fontUrl":"x","footer":"x","headline":"x","inputSize":"x","interaction":{"k":"v"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","providerHidden":["x"],"providerOrder":["x"],"providers":{"hidden":["x"],"order":["x"]},"sectionOrder":["x"],"signUpFields":[{"k":"v"}],"socialButtons":{"k":"v"},"socialPlacement":"top","subheadline":"x","supportEmail":"x","textScale":"x","theme":"light","typography":{"k":"v"}},"sectionOrder":["x"],"signUpFields":[{"key":"x","label":"x","options":["x"],"placeholder":"x","required":true,"type":"text"}],"socialButtons":{"displayNames":{"k":"x"},"icons":{"k":"x"},"labels":{"k":"x"},"layout":"list","modes":{"k":"native"},"search":"auto","size":"sm","styles":{"k":{"bg":"x","fg":"x"}},"variant":"block"},"socialPlacement":"top","supportEmail":"x","textScale":"sm","theme":"light","typography":{"headingSize":"sm","headingWeight":"normal"}}"#,
+        r#"{"applicationName":"x","audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}},"background":{"angle":1.5,"color":"x","from":"x","imageUrl":"x","to":"x","type":"solid"},"backgroundPattern":"none","borderRadius":"x","buttonShape":"default","card":{"align":"left","logoSize":"sm","width":"narrow"},"cardBorder":"default","cardStyle":"default","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","fontFamily":"x","fontUrl":"x","inputSize":"sm","interaction":{"animations":true,"buttonEffect":"none","buttonStyle":"solid","density":"comfortable","inputStyle":"outline","loading":"spinner","motionEasing":"ease","motionSpeed":"slow","shadow":"none"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","object":"branding","providers":{"hidden":["x"],"order":["x"]},"resolved":{"applicationName":"x","audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}},"background":{"k":"v"},"backgroundPattern":"x","borderRadius":"x","buttonShape":"x","card":{"k":"v"},"cardBorder":"x","cardStyle":"x","codeInput":"boxes","colorAccent":"x","colorBackground":"x","colorBorder":"x","colorCard":"x","colorPrimary":"x","colorText":"x","copy":{"eyebrow":"x","footer":"x","headline":"x","subheadline":"x"},"customCss":"x","customHtmlFooter":"x","customHtmlHeader":"x","escapedName":"x","eyebrow":"x","fontFamily":"x","fontStack":"x","fontUrl":"x","footer":"x","headline":"x","inputSize":"x","interaction":{"k":"v"},"layout":"centered","legal":{"privacyUrl":"x","required":true,"termsUrl":"x"},"logoUrl":"x","providerHidden":["x"],"providerOrder":["x"],"providers":{"hidden":["x"],"order":["x"]},"sectionOrder":["x"],"signUpFields":[{"k":"v"}],"socialButtons":{"k":"v"},"socialPlacement":"top","subheadline":"x","supportEmail":"x","textScale":"x","theme":"light","typography":{"k":"v"}},"sectionOrder":["x"],"signUpFields":[{"collect_on":"sign_up","key":"x","label":"x","options":["x"],"placeholder":"x","reprompt_days":7,"required":true,"type":"text"}],"socialButtons":{"displayNames":{"k":"x"},"icons":{"k":"x"},"labels":{"k":"x"},"layout":"list","modes":{"k":"native"},"search":"auto","size":"sm","styles":{"k":{"bg":"x","fg":"x"}},"variant":"block"},"socialPlacement":"top","supportEmail":"x","textScale":"sm","theme":"light","typography":{"headingSize":"sm","headingWeight":"normal"}}"#,
     );
     // POST /v1/branding/preview
     round_trip::<types::BrandingPreviewResponse>(r#"{"html":"x","object":"hosted_page_preview"}"#);
@@ -307,14 +299,6 @@ fn decode_captcha() {
     // POST /v1/captcha/verify
     round_trip::<types::CaptchaVerifyResponse>(
         r#"{"action":"x","challenge_ts":"x","meta":{"k":"v"},"object":"captcha_verification","provider":"x","score":1.5,"success":true,"verdict":"pass"}"#,
-    );
-}
-
-#[test]
-fn decode_config_changelog() {
-    // GET /v1/config_changelog
-    round_trip::<types::ConfigChangelogListResponse>(
-        r#"{"data":[{"action":"x","actor":{"id":"x","type":"x"},"at":7,"changes":[{"after":"sample","before":"sample","section":"x"}],"fields":["x"],"id":"x","ip":"x","target":{"id":"x","type":"x"}}],"has_more":true,"next_cursor":"x","object":"config_changelog"}"#,
     );
 }
 
@@ -394,11 +378,11 @@ fn decode_custom_oauth_providers() {
 fn decode_data_subject_requests() {
     // POST /v1/data_subject_requests
     round_trip::<types::DataSubjectRequest>(
-        r#"{"completed_at":7,"eta":7,"id":"x","object":"data_subject_request","reason":"x","requested_at":7,"requested_by_id":"x","requested_by_type":"x","result":{"k":"v"},"scheduled_for":7,"status":"pending","type":"export","updated_at":7,"user_id":"x"}"#,
+        r#"{"canonicalType":"x","canonical_type":"access","case_id":"x","completed_at":7,"deletion_effective_at":7,"detail":"x","eta":7,"external_case":{"atlas_id_app_id":"x","attempts":7,"id":"x","last_error":"x","opened_at":7,"product":"x","status":"open"},"id":"x","object":"data_subject_request","reason":"x","requested_at":7,"requested_by_id":"x","requested_by_type":"x","result":{"k":"v"},"retention":[{"k":"v"}],"scheduled_for":7,"source":"user","status":"pending","steps":[{"k":"v"}],"trace_id":"x","type":"export","updated_at":7,"user_id":"x"}"#,
     );
     // GET /v1/data_subject_requests
     round_trip::<types::DataSubjectRequestsListResponse>(
-        r#"{"data":[{"completed_at":7,"eta":7,"id":"x","object":"data_subject_request","reason":"x","requested_at":7,"requested_by_id":"x","requested_by_type":"x","result":{"k":"v"},"scheduled_for":7,"status":"pending","type":"export","updated_at":7,"user_id":"x"}],"has_more":true,"next_cursor":"x"}"#,
+        r#"{"data":[{"canonicalType":"x","canonical_type":"access","case_id":"x","completed_at":7,"deletion_effective_at":7,"detail":"x","eta":7,"external_case":{"atlas_id_app_id":"x","attempts":7,"id":"x","last_error":"x","opened_at":7,"product":"x","status":"open"},"id":"x","object":"data_subject_request","reason":"x","requested_at":7,"requested_by_id":"x","requested_by_type":"x","result":{"k":"v"},"retention":[{"k":"v"}],"scheduled_for":7,"source":"user","status":"pending","steps":[{"k":"v"}],"trace_id":"x","type":"export","updated_at":7,"user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
 }
 
@@ -474,19 +458,19 @@ fn decode_fga() {
     );
     // GET /v1/fga/stores/{id}/authorization-models
     round_trip::<types::FgaListAuthorizationModelsResponse>(
-        r#"{"data":[{"created_at":7,"id":"x","model":{"schema_version":"x","type_definitions":[{"metadata":{"relations":{"k":{"directly_related_user_types":[{"relation":"x","type":"x","wildcard":{"k":"v"}}]}}},"relations":{"k":{"any":1}},"type":"x"}]},"object":"fga.authorization_model","schema_version":"x","store_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"created_at":7,"id":"x","model":{"conditions":{"k":{"expression":"x","name":"x","parameters":{"k":{"type_name":"TYPE_NAME_ANY"}}}},"schema_version":"x","type_definitions":[{"metadata":{"relations":{"k":{"directly_related_user_types":[{"condition":"x","relation":"x","type":"x","wildcard":{"k":"v"}}]}}},"relations":{"k":{"any":1}},"type":"x"}]},"object":"fga.authorization_model","schema_version":"x","store_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/fga/stores/{id}/authorization-models
     round_trip::<types::FgaAuthorizationModel>(
-        r#"{"created_at":7,"id":"x","model":{"schema_version":"x","type_definitions":[{"metadata":{"relations":{"k":{"directly_related_user_types":[{"relation":"x","type":"x","wildcard":{"k":"v"}}]}}},"relations":{"k":{"any":1}},"type":"x"}]},"object":"fga.authorization_model","schema_version":"x","store_id":"x"}"#,
+        r#"{"created_at":7,"id":"x","model":{"conditions":{"k":{"expression":"x","name":"x","parameters":{"k":{"type_name":"TYPE_NAME_ANY"}}}},"schema_version":"x","type_definitions":[{"metadata":{"relations":{"k":{"directly_related_user_types":[{"condition":"x","relation":"x","type":"x","wildcard":{"k":"v"}}]}}},"relations":{"k":{"any":1}},"type":"x"}]},"object":"fga.authorization_model","schema_version":"x","store_id":"x"}"#,
     );
     // POST /v1/fga/stores/{id}/batch-check
     round_trip::<types::FgaBatchCheckResponse>(
-        r#"{"authorization_model_id":"x","object":"fga.batch_check","result":[{"allowed":true,"correlation_id":"x"}]}"#,
+        r#"{"authorization_model_id":"x","consistency_token":"x","object":"fga.batch_check","result":[{"allowed":true,"correlation_id":"x"}]}"#,
     );
     // POST /v1/fga/stores/{id}/check
     round_trip::<types::FgaCheckResponse>(
-        r#"{"allowed":true,"authorization_model_id":"x","object":"fga.check"}"#,
+        r#"{"allowed":true,"authorization_model_id":"x","consistency_token":"x","object":"fga.check"}"#,
     );
     // POST /v1/fga/stores/{id}/expand
     round_trip::<types::FgaExpandResponse>(
@@ -494,36 +478,20 @@ fn decode_fga() {
     );
     // POST /v1/fga/stores/{id}/list-objects
     round_trip::<types::FgaListObjectsResponse>(
-        r#"{"authorization_model_id":"x","object":"fga.list_objects","objects":["x"]}"#,
+        r#"{"authorization_model_id":"x","consistency_token":"x","has_more":true,"next_cursor":"x","object":"fga.list_objects","objects":["x"]}"#,
     );
     // POST /v1/fga/stores/{id}/read
     round_trip::<types::FgaReadResponse>(
-        r#"{"data":[{"created_at":7,"object":"fga.tuple","relation":"x","target":"x","user":"x"}],"has_more":true,"object":"list"}"#,
+        r#"{"data":[{"condition":{"context":{"k":"v"},"name":"x"},"created_at":7,"object":"fga.tuple","relation":"x","target":"x","user":"x"}],"has_more":true,"object":"list"}"#,
     );
     // POST /v1/fga/stores/{id}/write
     round_trip::<types::FgaWriteResponse>(
-        r#"{"deletes":7,"object":"fga.write_result","writes":7}"#,
-    );
-}
-
-#[test]
-fn decode_fraud() {
-    // POST /v1/fraud/lookup
-    round_trip::<types::FraudLookupResponse>(
-        r#"{"device_id":"x","matched_rules":["x"],"object":"fraud_lookup","reasons":["x"],"signals":{"country":"US"},"verdict":"allow"}"#,
+        r#"{"consistency_token":"x","deletes":7,"object":"fga.write_result","writes":7}"#,
     );
 }
 
 #[test]
 fn decode_instance() {
-    // GET /v1/instance
-    round_trip::<types::InstanceGetResponse>(
-        r#"{"allowed_origin_integrations":{"k":"redirect"},"allowed_origins":["x"],"auth_config":{"k":"v"},"auth_config_resolved":{"branding":{"audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}}},"dangerouslyReportSkippedEmailsAsVerified":true,"externalJwt":{"issuers":[{"audience":"x","emailClaim":"x","id":"x","issuer":"x","jwksUri":"x"}]},"mfaPolicy":"off","passwordPolicy":{"checkBreaches":true,"minLength":7,"requireNumber":true,"requireSymbol":true,"requireUppercase":true},"requireEmailVerification":true,"samlIdp":{"serviceProviders":[{"acsUrl":"x","attributes":{"k":"x"},"entityId":"x","id":"x","nameIdField":"email"}]},"session":{"absoluteMs":7,"crossSubdomainCookies":true,"idleMs":7,"includeEmailClaim":true,"includeEndUserPoolClaim":true,"jwtTtlSeconds":7},"signUpMode":"public","strategies":{"emailCode":true,"emailLink":true,"passkey":true,"password":true,"phoneCode":true,"siwe":true,"siwf":true,"siws":true,"username":true},"strictRequestBodies":true,"verification":{"emailCode":{"k":"v"},"magicLink":{"k":"v"},"smsCode":{"k":"v"}}},"created_at":7,"discovery_url":"x","environment":"development","frontend_api_host":"x","id":"x","issuer":"x","jwks_uri":"x","object":"instance","publishable_key":"x"}"#,
-    );
-    // PATCH /v1/instance
-    round_trip::<types::InstanceUpdateResponse>(
-        r#"{"allowed_origin_integrations":{"k":"redirect"},"allowed_origins":["x"],"auth_config":{"k":"v"},"auth_config_resolved":{"branding":{"audiences":{"k":{"heading":"x","logoUrl":"x","primaryColor":"x","subheading":"x"}}},"dangerouslyReportSkippedEmailsAsVerified":true,"externalJwt":{"issuers":[{"audience":"x","emailClaim":"x","id":"x","issuer":"x","jwksUri":"x"}]},"mfaPolicy":"off","passwordPolicy":{"checkBreaches":true,"minLength":7,"requireNumber":true,"requireSymbol":true,"requireUppercase":true},"requireEmailVerification":true,"samlIdp":{"serviceProviders":[{"acsUrl":"x","attributes":{"k":"x"},"entityId":"x","id":"x","nameIdField":"email"}]},"session":{"absoluteMs":7,"crossSubdomainCookies":true,"idleMs":7,"includeEmailClaim":true,"includeEndUserPoolClaim":true,"jwtTtlSeconds":7},"signUpMode":"public","strategies":{"emailCode":true,"emailLink":true,"passkey":true,"password":true,"phoneCode":true,"siwe":true,"siwf":true,"siws":true,"username":true},"strictRequestBodies":true,"verification":{"emailCode":{"k":"v"},"magicLink":{"k":"v"},"smsCode":{"k":"v"}}},"created_at":7,"discovery_url":"x","environment":"development","frontend_api_host":"x","id":"x","issuer":"x","jwks_uri":"x","object":"instance","publishable_key":"x"}"#,
-    );
     // PUT /v1/instance/captcha_secret
     round_trip::<types::InstanceSetCaptchaSecretResponse>(
         r#"{"object":"captcha_secret","provider":"x","set":true}"#,
@@ -546,35 +514,11 @@ fn decode_instance() {
     );
     // GET /v1/instance/hooks/before_user_create/calls
     round_trip::<types::InstanceListBeforeUserCreateCallsResponse>(
-        r#"{"data":[{"answer":{"external_id":"x","private_metadata_keys":["x"],"public_metadata_keys":["x"],"unsafe_metadata_keys":["x"]},"created_at":7,"error":"x","http_status":7,"id":"x","latency_ms":7,"object":"before_user_create_hook_call","status":"ok","test":true,"user_id":"x"}],"has_more":true,"object":"list"}"#,
+        r#"{"data":[{"answer":{"external_id":"x","private_metadata_keys":["x"],"public_metadata_keys":["x"],"unsafe_metadata_keys":["x"]},"created_at":7,"error":"x","http_status":7,"id":"x","latency_ms":7,"object":"before_user_create_hook_call","status":"ok","test":true,"user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/instance/hooks/before_user_create/test
     round_trip::<types::InstanceTestBeforeUserCreateHookResponse>(
         r#"{"answer":{"external_id":"x","private_metadata_set":true,"public_metadata":{"k":"v"},"unsafe_metadata":{"k":"v"}},"error":{"code":"x","message":"x"},"latency_ms":7,"ok":true}"#,
-    );
-    // GET /v1/instance/integrations/chatly
-    round_trip::<types::InstanceGetChatlyIntegrationResponse>(
-        r#"{"audience":"x","channel":"x","enabled":true,"identity_verification":{"audience":"x","issuer":"x","jwks_url":"x","mode":"oidc"},"issuer":"x","jwks_url":"x","object":"chatly_integration","template":"chatly","token_ttl_seconds":7}"#,
-    );
-    // PUT /v1/instance/integrations/chatly
-    round_trip::<types::InstanceSetChatlyIntegrationResponse>(
-        r#"{"audience":"x","channel":"x","enabled":true,"identity_verification":{"audience":"x","issuer":"x","jwks_url":"x","mode":"oidc"},"issuer":"x","jwks_url":"x","object":"chatly_integration","template":"chatly","token_ttl_seconds":7}"#,
-    );
-    // DELETE /v1/instance/integrations/chatly
-    round_trip::<types::InstanceDeleteChatlyIntegrationResponse>(
-        r#"{"audience":"x","channel":"x","enabled":true,"identity_verification":{"audience":"x","issuer":"x","jwks_url":"x","mode":"oidc"},"issuer":"x","jwks_url":"x","object":"chatly_integration","template":"chatly","token_ttl_seconds":7}"#,
-    );
-    // GET /v1/instance/integrations/forumulate
-    round_trip::<types::InstanceGetForumulateIntegrationResponse>(
-        r#"{"audience":"x","enabled":true,"issuer":"x","jwks_url":"x","object":"forumulate_integration","org_id":"x","reader_auth_provider":{"config":{"clientId":"x","issuer":"x","jwksUrl":"x"},"method":"external_jwt","order":7},"spaces":[{"id":"x","redeem_url":"x"}],"token_ttl_seconds":7}"#,
-    );
-    // PUT /v1/instance/integrations/forumulate
-    round_trip::<types::InstanceSetForumulateIntegrationResponse>(
-        r#"{"audience":"x","enabled":true,"issuer":"x","jwks_url":"x","object":"forumulate_integration","org_id":"x","reader_auth_provider":{"config":{"clientId":"x","issuer":"x","jwksUrl":"x"},"method":"external_jwt","order":7},"spaces":[{"id":"x","redeem_url":"x"}],"token_ttl_seconds":7}"#,
-    );
-    // DELETE /v1/instance/integrations/forumulate
-    round_trip::<types::InstanceDeleteForumulateIntegrationResponse>(
-        r#"{"audience":"x","enabled":true,"issuer":"x","jwks_url":"x","object":"forumulate_integration","org_id":"x","reader_auth_provider":{"config":{"clientId":"x","issuer":"x","jwksUrl":"x"},"method":"external_jwt","order":7},"spaces":[{"id":"x","redeem_url":"x"}],"token_ttl_seconds":7}"#,
     );
     // PUT /v1/instance/kerberos_secret
     round_trip::<types::InstanceSetKerberosSecretResponse>(
@@ -594,7 +538,7 @@ fn decode_instance() {
     );
     // POST /v1/instance/move_origin
     round_trip::<types::OriginMove>(
-        r#"{"app":{"k":"v"},"applied":true,"changes":[{"after":"sample","before":"sample","field":"x","id":"x","object":"instance"}],"dry_run":true,"from":"x","object":"origin_move","problems":[{"field":"x","id":"x","message":"x","object":"x","url":"x"}],"to":"x"}"#,
+        r#"{"app":{"k":"v"},"applied":true,"changes":[{"after":"sample","before":"sample","field":"x","id":"x","object":"instance"}],"dry_run":true,"from":"x","moved_webhook_endpoints":[{"id":"x","test":{"method":"x","path":"x"},"url":"x"}],"next":"x","object":"origin_move","problems":[{"field":"x","id":"x","message":"x","object":"x","url":"x"}],"to":"x","webhook_tests":[{"delivery_id":"x","error":"x","event_id":"x","http_status":7,"latency_ms":7,"object":"webhook_test_result","response_snippet":"x","signature_header_sent":"x","status":"success","webhook_endpoint_id":"x","will_retry":true}]}"#,
     );
     // GET /v1/instance/policy_settings
     round_trip::<types::InstanceGetPolicySettingsResponse>(
@@ -642,11 +586,11 @@ fn decode_instance() {
     );
     // GET /v1/instance/referrals
     round_trip::<types::InstanceGetReferralsResponse>(
-        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","enabled":true,"endpoint_url":"x","forward_lifecycle":true,"inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"inbound":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
+        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"inbound":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","context_cookies":["x"],"enabled":true,"endpoint_url":"x","forward_lifecycle":true,"inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","one_click":{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"},"one_click_presets":[{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"}],"program_id":"x","provider":"x","provider_aliases":["x"],"providers":[{"aliases":["x"],"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"inbound":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"default_context_cookie":"x","default_context_cookies":["x"],"docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
     );
     // PATCH /v1/instance/referrals
     round_trip::<types::InstanceUpdateReferralsResponse>(
-        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","enabled":true,"endpoint_url":"x","forward_lifecycle":true,"inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","program_id":"x","provider":"x","providers":[{"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"inbound":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"default_context_cookie":"x","docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
+        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"inbound":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","context_cookies":["x"],"enabled":true,"endpoint_url":"x","forward_lifecycle":true,"inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","one_click":{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"},"one_click_presets":[{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"}],"program_id":"x","provider":"x","provider_aliases":["x"],"providers":[{"aliases":["x"],"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"inbound":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true},"default_context_cookie":"x","default_context_cookies":["x"],"docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
     );
     // POST /v1/instance/referrals/backfill
     round_trip::<types::InstanceStartReferralBackfillResponse>(
@@ -658,7 +602,7 @@ fn decode_instance() {
     );
     // GET /v1/instance/referrals/calls
     round_trip::<types::InstanceListReferralCallsResponse>(
-        r#"{"data":[{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}],"has_more":true,"object":"list"}"#,
+        r#"{"data":[{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","trace_id":"x","updated_at":7,"user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/instance/referrals/calls/retry_failed
     round_trip::<types::InstanceRetryFailedReferralCallsResponse>(
@@ -666,11 +610,11 @@ fn decode_instance() {
     );
     // GET /v1/instance/referrals/calls/{id}
     round_trip::<types::InstanceGetReferralCallResponse>(
-        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
+        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","trace_id":"x","updated_at":7,"user_id":"x"}"#,
     );
     // POST /v1/instance/referrals/calls/{id}/retry
     round_trip::<types::InstanceRetryReferralCallResponse>(
-        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","updated_at":7,"user_id":"x"}"#,
+        r#"{"attempts":7,"batch_id":"x","created_at":7,"customer_ref":"x","error_code":"x","highlights":{"matched_via":"x","notes":["x"],"partner_external_ref":"x"},"http_status":7,"id":"x","kind":"signup","last_error":"x","latency_ms":7,"next_attempt_at":7,"object":"referral_call","outcome":"x","payload":{"k":"v"},"request":{"body":{"k":"v"},"method":"x","url":"x"},"request_id":"x","response":{"k":"v"},"risk":{"captcha":"passed","emailVerified":true,"level":"low","score":7,"signals":["self_referral"]},"status":"pending","trace_id":"x","updated_at":7,"user_id":"x"}"#,
     );
     // POST /v1/instance/referrals/simulate
     round_trip::<types::InstanceSimulateReferralSignupResponse>(
@@ -678,7 +622,7 @@ fn decode_instance() {
     );
     // POST /v1/instance/referrals/test
     round_trip::<types::InstanceTestReferralsResponse>(
-        r#"{"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"method":"ping","ok":true,"ping":{"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"warnings":["x"]}"#,
+        r#"{"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"method":"ping","ok":true,"ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"warnings":["x"]}"#,
     );
     // GET /v1/instance/security
     round_trip::<types::InstanceSecurity>(
@@ -722,11 +666,11 @@ fn decode_invitations() {
 fn decode_jobs() {
     // GET /v1/jobs
     round_trip::<types::JobsListResponse>(
-        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x"}"#,
+        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","required_factors":["x"],"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // GET /v1/jobs/{id}
     round_trip::<types::Job>(
-        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
+        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","required_factors":["x"],"updated_at":7,"username":"x","version":7}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
     );
     // GET /v1/jobs/{id}/errors
     round_trip::<types::JobsListErrorsResponse>(r#"{"data":[{"k":"v"}],"object":"list"}"#);
@@ -736,19 +680,19 @@ fn decode_jobs() {
 fn decode_jwt_templates() {
     // POST /v1/jwt_templates
     round_trip::<types::JwtTemplatesCreateResponse>(
-        r#"{"claims":{"k":"x"},"name":"x","object":"jwt_template"}"#,
+        r#"{"claims":{"k":"x"},"name":"x","object":"jwt_template","settings":{"algorithm":"RS256","audience":"x","has_signing_secret":true,"lifetime_seconds":7}}"#,
     );
     // GET /v1/jwt_templates
     round_trip::<types::JwtTemplatesListResponse>(
-        r#"{"data":[{"claims":{"k":"x"},"name":"x","object":"jwt_template"}],"object":"list"}"#,
+        r#"{"data":[{"claims":{"k":"x"},"name":"x","object":"jwt_template","settings":{"algorithm":"RS256","audience":"x","has_signing_secret":true,"lifetime_seconds":7}}],"object":"list"}"#,
     );
     // GET /v1/jwt_templates/{id}
     round_trip::<types::JwtTemplatesGetResponse>(
-        r#"{"claims":{"k":"x"},"name":"x","object":"jwt_template"}"#,
+        r#"{"claims":{"k":"x"},"name":"x","object":"jwt_template","settings":{"algorithm":"RS256","audience":"x","has_signing_secret":true,"lifetime_seconds":7}}"#,
     );
     // PATCH /v1/jwt_templates/{id}
     round_trip::<types::JwtTemplatesUpdateResponse>(
-        r#"{"claims":{"k":"x"},"name":"x","object":"jwt_template"}"#,
+        r#"{"claims":{"k":"x"},"name":"x","object":"jwt_template","settings":{"algorithm":"RS256","audience":"x","has_signing_secret":true,"lifetime_seconds":7}}"#,
     );
     // DELETE /v1/jwt_templates/{id}
     round_trip::<types::JwtTemplatesDeleteResponse>(
@@ -760,11 +704,11 @@ fn decode_jwt_templates() {
 fn decode_legacy_auth_connection() {
     // GET /v1/legacy_auth_connection
     round_trip::<types::LegacyAuthConnectionGetResponse>(
-        r#"{"configured":true,"created_at":7,"enabled":true,"has_signing_secret":true,"id":"x","import_on_login":true,"object":"legacy_auth_connection","strategy":"x","timeout_ms":7,"updated_at":7,"verify_url":"x"}"#,
+        r#"{"configured":true,"created_at":7,"enabled":true,"has_signing_secret":true,"id":"x","import_on_login":true,"object":"legacy_auth_connection","preset":"x","preset_config":{"k":"x"},"strategy":"password","timeout_ms":7,"updated_at":7,"verify_url":"x"}"#,
     );
     // PUT /v1/legacy_auth_connection
     round_trip::<types::LegacyAuthConnectionSetResponse>(
-        r#"{"configured":true,"created_at":7,"enabled":true,"has_signing_secret":true,"id":"x","import_on_login":true,"object":"legacy_auth_connection","strategy":"x","timeout_ms":7,"updated_at":7,"verify_url":"x"}"#,
+        r#"{"configured":true,"created_at":7,"enabled":true,"has_signing_secret":true,"id":"x","import_on_login":true,"object":"legacy_auth_connection","preset":"x","preset_config":{"k":"x"},"strategy":"password","timeout_ms":7,"updated_at":7,"verify_url":"x"}"#,
     );
     // DELETE /v1/legacy_auth_connection
     round_trip::<types::LegacyAuthConnectionDeleteResponse>(
@@ -898,17 +842,17 @@ fn decode_mcp_connector() {
 
 #[test]
 fn decode_messaging_providers_api() {
-    // GET /v1/messaging_providers/email/development
+    // POST /v1/messaging_providers/email/development
     round_trip::<types::DevelopmentEmail>(
-        r#"{"active":true,"enabled":true,"footer":"x","from_address":"x","limits":{"daily":7,"per_recipient_hourly":7},"next_step":"x","note":"x","object":"development_email","provider_id":"x","subject_prefix":"x","templates":["x"],"transport":"x","updated_at":7}"#,
+        r#"{"active":true,"configured":true,"enabled":true,"footer":"x","from_address":"x","limits":{"daily":7,"per_recipient_hourly":7},"next_step":"x","note":"x","object":"development_email","provider_id":"x","subject_prefix":"x","templates":["x"],"transport":"x","updated_at":7}"#,
     );
     // DELETE /v1/messaging_providers/email/development
     round_trip::<types::MessagingProvidersDisableDevelopmentEmailResponse>(
         r#"{"deleted":true,"mode":"standard","object":"development_email","provider_id":"x"}"#,
     );
-    // GET /v1/messaging_providers/email/managed
+    // POST /v1/messaging_providers/email/managed
     round_trip::<types::ManagedEmail>(
-        r#"{"backend":"resend","created_at":7,"dns":{"provider":"x","token_set":true},"dns_result":{"k":"v"},"domain":"x","failure_reason":"x","feedback_webhook":"registered","from_address":"x","id":"x","last_checked_at":7,"limits":"sample","next_step":"x","object":"managed_email","provider":"x","provider_id":"x","records":[{"name":"x","priority":7,"purpose":"dkim","status":"x","type":"TXT","value":"x"}],"region":"x","reputation":"your_provider_account","status":"x","updated_at":7,"usage":{"bounces":7,"complaints":7,"last_bounce_at":7,"last_complaint_at":7,"sent":7},"verified":true,"verified_at":7}"#,
+        r#"{"backend":"resend","configured":true,"created_at":7,"dns":{"provider":"x","token_set":true},"dns_result":{"k":"v"},"domain":"x","failure_reason":"x","feedback_webhook":"registered","from_address":"x","id":"x","last_checked_at":7,"limits":"sample","next_step":"x","object":"managed_email","provider":"x","provider_id":"x","records":[{"name":"x","priority":7,"purpose":"dkim","status":"x","type":"TXT","value":"x"}],"region":"x","reputation":"your_provider_account","status":"x","updated_at":7,"usage":{"bounces":7,"complaints":7,"last_bounce_at":7,"last_complaint_at":7,"sent":7},"verified":true,"verified_at":7}"#,
     );
     // DELETE /v1/messaging_providers/email/managed
     round_trip::<types::MessagingProvidersDeleteManagedEmailResponse>(
@@ -932,11 +876,11 @@ fn decode_better_auth_bridge_api() {
 fn decode_network_acls() {
     // GET /v1/network_acls
     round_trip::<types::NetworkAclsListResponse>(
-        r#"{"data":[{"action":"allow","cidr":"x","created_at":7,"description":"x","enabled":true,"expires_at":7,"id":"x","object":"network_acl","priority":7,"source":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"action":"allow","cidr":"x","created_at":7,"description":"x","enabled":true,"expires_at":7,"id":"x","object":"network_acl","priority":7,"source":"x","updated_at":7,"zone_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/network_acls
     round_trip::<types::NetworkAcl>(
-        r#"{"action":"allow","cidr":"x","created_at":7,"description":"x","enabled":true,"expires_at":7,"id":"x","object":"network_acl","priority":7,"source":"x","updated_at":7}"#,
+        r#"{"action":"allow","cidr":"x","created_at":7,"description":"x","enabled":true,"expires_at":7,"id":"x","object":"network_acl","priority":7,"source":"x","updated_at":7,"zone_id":"x"}"#,
     );
     // DELETE /v1/network_acls/{id}
     round_trip::<types::NetworkAclsDeleteResponse>(
@@ -948,15 +892,15 @@ fn decode_network_acls() {
 fn decode_oauth_clients() {
     // GET /v1/oauth_clients
     round_trip::<types::OAuthClientsListResponse>(
-        r#"{"data":[{"access_token_format":"jwt","allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"access_token_format":"jwt","allowed_scopes":["x"],"app_settings":{"allowed_sign_in_methods":["x"],"branding":{"heading":"x","logo_url":"x","primary_color":"x","subheading":"x"},"claims_allowlist":["x"],"risk":{"enabled":true,"level_actions":{"high":"default","medium":"default"},"mid_session":{"action":"revoke","enabled":true},"mode":"enforce","on_high_risk_no_factor":"allow","step_up_threshold":"low"},"writable_traits":["x"]},"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"consent_url":"x","created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"login_url":"x","logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"profile":"x","redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/oauth_clients
     round_trip::<types::OAuthClientsCreateResponse>(
-        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
+        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"app_settings":{"allowed_sign_in_methods":["x"],"branding":{"heading":"x","logo_url":"x","primary_color":"x","subheading":"x"},"claims_allowlist":["x"],"risk":{"enabled":true,"level_actions":{"high":"default","medium":"default"},"mid_session":{"action":"revoke","enabled":true},"mode":"enforce","on_high_risk_no_factor":"allow","step_up_threshold":"low"},"writable_traits":["x"]},"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"consent_url":"x","created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"login_url":"x","logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"profile":"x","redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
     );
     // POST /v1/oauth_clients/import
     round_trip::<types::OAuthClientsImportResponse>(
-        r#"{"data":[{"access_token_format":"jwt","allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"access_token_format":"jwt","allowed_scopes":["x"],"app_settings":{"allowed_sign_in_methods":["x"],"branding":{"heading":"x","logo_url":"x","primary_color":"x","subheading":"x"},"claims_allowlist":["x"],"risk":{"enabled":true,"level_actions":{"high":"default","medium":"default"},"mid_session":{"action":"revoke","enabled":true},"mode":"enforce","on_high_risk_no_factor":"allow","step_up_threshold":"low"},"writable_traits":["x"]},"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"consent_url":"x","created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"login_url":"x","logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"profile":"x","redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // GET /v1/oauth_clients/{clientId}/grants
     round_trip::<types::OAuthClientsListGrantsResponse>(
@@ -972,11 +916,11 @@ fn decode_oauth_clients() {
     );
     // GET /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsGetResponse>(
-        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
+        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"app_settings":{"allowed_sign_in_methods":["x"],"branding":{"heading":"x","logo_url":"x","primary_color":"x","subheading":"x"},"claims_allowlist":["x"],"risk":{"enabled":true,"level_actions":{"high":"default","medium":"default"},"mid_session":{"action":"revoke","enabled":true},"mode":"enforce","on_high_risk_no_factor":"allow","step_up_threshold":"low"},"writable_traits":["x"]},"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"consent_url":"x","created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"login_url":"x","logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"profile":"x","redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
     );
     // PATCH /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsUpdateResponse>(
-        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
+        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"app_settings":{"allowed_sign_in_methods":["x"],"branding":{"heading":"x","logo_url":"x","primary_color":"x","subheading":"x"},"claims_allowlist":["x"],"risk":{"enabled":true,"level_actions":{"high":"default","medium":"default"},"mid_session":{"action":"revoke","enabled":true},"mode":"enforce","on_high_risk_no_factor":"allow","step_up_threshold":"low"},"writable_traits":["x"]},"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"consent_url":"x","created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"login_url":"x","logo_url":"x","name":"x","object":"oauth_client","post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"profile":"x","redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
     );
     // DELETE /v1/oauth_clients/{id}
     round_trip::<types::OAuthClientsDeleteResponse>(
@@ -984,7 +928,7 @@ fn decode_oauth_clients() {
     );
     // GET /v1/oauth_clients/{id}/backchannel_deliveries
     round_trip::<types::BackchannelLogoutDeliveryList>(
-        r#"{"data":[{"attempt_number":7,"attempted_at":7,"created_at":7,"delivered_at":7,"error":"x","http_status":7,"id":"x","latency_ms":7,"location":"x","max_attempts":7,"next_retry_at":7,"oauth_client_id":"x","object":"backchannel_logout_delivery","response_snippet":"x","sid":"x","status":"pending","test":true}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"attempt_number":7,"attempted_at":7,"created_at":7,"delivered_at":7,"error":"x","http_status":7,"id":"x","latency_ms":7,"location":"x","max_attempts":7,"next_retry_at":7,"oauth_client_id":"x","object":"backchannel_logout_delivery","response_snippet":"x","sid":"x","status":"pending","test":true,"trace_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/oauth_clients/{id}/backchannel_logout/test
     round_trip::<types::BackchannelLogoutTest>(
@@ -992,7 +936,7 @@ fn decode_oauth_clients() {
     );
     // POST /v1/oauth_clients/{id}/rotate_secret
     round_trip::<types::OAuthClientsRotateSecretResponse>(
-        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"logo_url":"x","name":"x","note":"x","object":"oauth_client","overlap_seconds":7,"post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
+        r#"{"access_token_format":"jwt","allowed_scopes":["x"],"app_settings":{"allowed_sign_in_methods":["x"],"branding":{"heading":"x","logo_url":"x","primary_color":"x","subheading":"x"},"claims_allowlist":["x"],"risk":{"enabled":true,"level_actions":{"high":"default","medium":"default"},"mid_session":{"action":"revoke","enabled":true},"mode":"enforce","on_high_risk_no_factor":"allow","step_up_threshold":"low"},"writable_traits":["x"]},"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","client_id":"x","client_secret":"x","client_secret_expires_at":7,"consent_url":"x","created_at":7,"disabled":true,"discovery_source":"cimd","first_party":true,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","grant_types":["x"],"id":"x","is_public":true,"login_url":"x","logo_url":"x","name":"x","note":"x","object":"oauth_client","overlap_seconds":7,"post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"profile":"x","redirect_uris":["x"],"require_pkce":true,"secret_prefix":"x","sector_identifier_uri":"x","skip_logout_confirmation":true,"subject_type":"public","token_endpoint_auth_method":"x","token_lifetimes":{"access_token_ttl_seconds":7,"authorization_code_ttl_seconds":7,"device_code_ttl_seconds":7,"id_token_ttl_seconds":7,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7},"updated_at":7}"#,
     );
 }
 
@@ -1000,15 +944,15 @@ fn decode_oauth_clients() {
 fn decode_oauth_initial_access_tokens() {
     // GET /v1/oauth_initial_access_tokens
     round_trip::<types::OAuthInitialAccessTokensListResponse>(
-        r#"{"data":[{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","profile":"x","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/oauth_initial_access_tokens
     round_trip::<types::OAuthInitialAccessTokensCreateResponse>(
-        r#"{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}"#,
+        r#"{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","profile":"x","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}"#,
     );
     // DELETE /v1/oauth_initial_access_tokens/{id}
     round_trip::<types::OAuthInitialAccessTokensRevokeResponse>(
-        r#"{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}"#,
+        r#"{"created_at":7,"description":"x","expires_at":7,"id":"x","last_used_at":7,"max_uses":7,"object":"oauth_initial_access_token","profile":"x","revoked_at":7,"status":"active","token":"x","token_prefix":"x","use_count":7}"#,
     );
 }
 
@@ -1036,7 +980,7 @@ fn decode_open_fga() {
     );
     // GET /v1/openfga/stores/{store}/authorization-models/{mid}
     round_trip::<types::OpenFgaReadAuthorizationModelResponse>(
-        r#"{"authorization_model":{"id":"x","schema_version":"x","type_definitions":[{"metadata":{"relations":{"k":{"directly_related_user_types":[{"relation":"x","type":"x","wildcard":{"k":"v"}}]}}},"relations":{"k":{"any":1}},"type":"x"}]}}"#,
+        r#"{"authorization_model":{"id":"x","schema_version":"x","type_definitions":[{"metadata":{"relations":{"k":{"directly_related_user_types":[{"condition":"x","relation":"x","type":"x","wildcard":{"k":"v"}}]}}},"relations":{"k":{"any":1}},"type":"x"}]}}"#,
     );
     // POST /v1/openfga/stores/{store}/batch-check
     round_trip::<types::OpenFgaBatchCheckResponse>(r#"{"result":{"k":{"allowed":true}}}"#);
@@ -1086,7 +1030,7 @@ fn decode_org_ldap_connections() {
 fn decode_org_settings_schema_api() {
     // POST /v1/organization_settings_schema
     round_trip::<types::OrgSettingsSchemaCreateResponse>(
-        r#"{"object":"organization_settings_schema","schema":{"k":"v"},"updated_at":7,"version":7}"#,
+        r#"{"configured":true,"object":"organization_settings_schema","schema":{"k":"v"},"updated_at":7,"version":7}"#,
     );
 }
 
@@ -1256,37 +1200,25 @@ fn decode_atlas_id_apps() {
     round_trip::<types::AtlasIdAppsRevokeGrantResponse>(
         r#"{"backchannel_logouts":7,"id":"x","object":"atlas_id_grant","revoked":true,"sub":"x","tokens_revoked":7}"#,
     );
-    // GET /v1/platform/atlas_id_apps/{id}/preflight
-    round_trip::<types::AtlasIdAppPreflight>(
-        r#"{"app_id":"x","checked_at":7,"findings":[{"code":"x","fix":"x","message":"x","severity":"error","subject":{"k":"x"}}],"object":"preflight","ok":true,"user_count":7,"button_rendered_origins":[{"last_seen_at":7,"origin":"x","requests":7}],"authorize_requests_7d":{"button":7,"fallback":7,"fedcm":7,"js":7,"unmarked":7},"fallback_origins":[{"last_seen_at":7,"origin":"x","requests":7}],"homepage_includes_script":true}"#,
-    );
     // GET /v1/platform/atlas_id_apps/{id}/users
     round_trip::<types::AtlasIdAppsFindUsersResponse>(
         r#"{"data":[{"atlas_id_user":true,"grant_id":"x","granted_at":7,"object":"atlas_id_user","scopes":["x"],"sub":"x"}],"object":"list"}"#,
     );
-    // PUT /v1/platform/atlas_id_apps/{id}/managed_by
-    round_trip::<types::AtlasIdAppsSetManagedByResponse>(
-        r#"{"changed":true,"client_id":"x","id":"x","managed_by_instance_id":"x","managed_via":"adopted","name":"x","object":"atlas_id_app"}"#,
-    );
     // POST /v1/platform/atlas_id_apps/{id}/webhook/rotate_secret
     round_trip::<types::AtlasIdAppsRotateWebhookSecretResponse>(
-        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","branding":{"accent_color":"x","background_color":"x","copy":{"consent_message":"x","sign_in_subtitle":"x","sign_in_title":"x","sign_up_subtitle":"x","sign_up_title":"x","support_label":"x","support_url":"x"},"design":{"background":{"color":"x","gradient":{"angle":7,"stops":[{"at":1.5,"color":"x"}],"type":"linear"},"image":{"assetId":"x","blur":7,"fit":"cover","overlay":{"color":"x","opacity":1.5},"position":"top-left"},"pattern":"none"},"backgroundDark":{"color":"x","gradient":{"angle":7,"stops":[{"at":1.5,"color":"x"}],"type":"linear"},"image":{"assetId":"x","blur":7,"fit":"cover","overlay":{"color":"x","opacity":1.5},"position":"top-left"},"pattern":"none"},"buttons":{"socialLayout":"list","style":"solid"},"card":{"blur":7,"style":"solid","width":"narrow"},"colorScheme":"auto","elevation":{"cardShadow":"none"},"inputs":{"style":"outline"},"layout":{"logoPlacement":"card","logoSize":"sm","position":"center","splitImageSide":"left"},"logo":{"assetId":"x","darkAssetId":"x"},"palette":{"accent":"x","background":"x","border":"x","danger":"x","inputBackground":"x","inputText":"x","muted":"x","primary":"x","primaryInk":"x","success":"x","surface":"x","text":"x"},"paletteDark":{"accent":"x","background":"x","border":"x","danger":"x","inputBackground":"x","inputText":"x","muted":"x","primary":"x","primaryInk":"x","success":"x","surface":"x","text":"x"},"preset":"minimal","shape":{"borderWidth":7,"controlRadius":7,"radius":7},"spacing":{"density":"compact"},"typography":{"baseSize":7,"bodyWeight":7,"font":"system","headingFont":"system","headingWeight":7,"letterCase":"none","scale":"minor-second"},"version":1},"privacy_policy_url":"x","resolved_design":{"background":{"k":"v"},"backgroundDark":{"k":"v"},"buttons":{"k":"v"},"card":{"k":"v"},"colorScheme":"auto","elevation":{"k":"v"},"inputs":{"k":"v"},"layout":{"k":"v"},"logo":{"k":"v"},"palette":{"k":"x"},"paletteDark":{"k":"x"},"preset":"x","shape":{"k":"v"},"spacing":{"k":"v"},"typography":{"k":"v"},"version":1},"terms_of_service_url":"x","theme":"auto"},"client_id":"x","created_at":7,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","homepage_url":"x","id":"x","logo_url":"x","managed_by_instance_id":"x","name":"x","note":"x","object":"atlas_id_app","overlap_seconds":7,"post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"redirect_uris":["x"],"secret_issued_at":7,"secret_prefix":"x","type":"confidential","updated_at":7,"webhook_active":true,"webhook_events":["user.updated"],"webhook_previous_secret_expires_at":7,"webhook_secret":"x","webhook_url":"x"}"#,
+        r#"{"allowed_scopes":["x"],"backchannel_logout_session_required":true,"backchannel_logout_uri":"x","branding":{"accent_color":"x","background_color":"x","copy":{"consent_message":"x","sign_in_subtitle":"x","sign_in_title":"x","sign_up_subtitle":"x","sign_up_title":"x","support_label":"x","support_url":"x"},"design":{"background":{"color":"x","gradient":{"angle":7,"stops":[{"at":1.5,"color":"x"}],"type":"linear"},"image":{"assetId":"x","blur":7,"fit":"cover","overlay":{"color":"x","opacity":1.5},"position":"top-left"},"pattern":"none"},"backgroundDark":{"color":"x","gradient":{"angle":7,"stops":[{"at":1.5,"color":"x"}],"type":"linear"},"image":{"assetId":"x","blur":7,"fit":"cover","overlay":{"color":"x","opacity":1.5},"position":"top-left"},"pattern":"none"},"buttons":{"socialLayout":"list","style":"solid"},"card":{"blur":7,"style":"solid","width":"narrow"},"colorScheme":"auto","elevation":{"cardShadow":"none"},"inputs":{"style":"outline"},"layout":{"logoPlacement":"card","logoSize":"sm","position":"center","splitImageSide":"left"},"logo":{"assetId":"x","darkAssetId":"x"},"palette":{"accent":"x","background":"x","border":"x","danger":"x","inputBackground":"x","inputText":"x","muted":"x","primary":"x","primaryInk":"x","success":"x","surface":"x","text":"x"},"paletteDark":{"accent":"x","background":"x","border":"x","danger":"x","inputBackground":"x","inputText":"x","muted":"x","primary":"x","primaryInk":"x","success":"x","surface":"x","text":"x"},"preset":"minimal","shape":{"borderWidth":7,"controlRadius":7,"radius":7},"spacing":{"density":"compact"},"typography":{"baseSize":7,"bodyWeight":7,"font":"x","headingFont":"x","headingWeight":7,"letterCase":"none","scale":"minor-second"},"version":1},"privacy_policy_url":"x","resolved_design":{"background":{"k":"v"},"backgroundDark":{"k":"v"},"buttons":{"k":"v"},"card":{"k":"v"},"colorScheme":"auto","elevation":{"k":"v"},"inputs":{"k":"v"},"layout":{"k":"v"},"logo":{"k":"v"},"palette":{"k":"x"},"paletteDark":{"k":"x"},"preset":"x","shape":{"k":"v"},"spacing":{"k":"v"},"typography":{"k":"v"},"version":1},"terms_of_service_url":"x","theme":"auto"},"client_id":"x","created_at":7,"frontchannel_logout_session_required":true,"frontchannel_logout_uri":"x","homepage_url":"x","id":"x","logo_url":"x","managed_by_instance_id":"x","managed_via":"instance_toggle","name":"x","note":"x","object":"atlas_id_app","overlap_seconds":7,"post_logout_redirect_uris":["x"],"previous_secret_expires_at":7,"provisioned_verified_domains_only":true,"redirect_uris":["x"],"secret_issued_at":7,"secret_prefix":"x","test_mode":true,"type":"confidential","updated_at":7,"webhook_active":true,"webhook_events":["user.updated"],"webhook_previous_secret_expires_at":7,"webhook_secret":"x","webhook_url":"x"}"#,
     );
 }
 
 #[test]
 fn decode_atlas_id_publisher_api() {
-    // GET /v1/platform/atlas_id_publisher
-    round_trip::<types::AtlasIdPublisherGetResponse>(
-        r#"{"created_at":7,"domain":"x","last_checked_at":7,"name":"x","object":"atlas_id_publisher","skip_consent":true,"updated_at":7,"verification":{"record_name":"x","record_type":"TXT","record_value":"x"},"verified":true,"verified_at":7}"#,
-    );
     // PUT /v1/platform/atlas_id_publisher
     round_trip::<types::AtlasIdPublisherSetResponse>(
-        r#"{"created_at":7,"domain":"x","last_checked_at":7,"name":"x","object":"atlas_id_publisher","skip_consent":true,"updated_at":7,"verification":{"record_name":"x","record_type":"TXT","record_value":"x"},"verified":true,"verified_at":7}"#,
+        r#"{"configured":true,"created_at":7,"domain":"x","last_checked_at":7,"name":"x","object":"atlas_id_publisher","skip_consent":true,"updated_at":7,"verification":{"record_name":"x","record_type":"TXT","record_value":"x"},"verified":true,"verified_at":7}"#,
     );
     // PATCH /v1/platform/atlas_id_publisher
     round_trip::<types::AtlasIdPublisherUpdateResponse>(
-        r#"{"created_at":7,"domain":"x","last_checked_at":7,"name":"x","object":"atlas_id_publisher","skip_consent":true,"updated_at":7,"verification":{"record_name":"x","record_type":"TXT","record_value":"x"},"verified":true,"verified_at":7}"#,
+        r#"{"configured":true,"created_at":7,"domain":"x","last_checked_at":7,"name":"x","object":"atlas_id_publisher","skip_consent":true,"updated_at":7,"verification":{"record_name":"x","record_type":"TXT","record_value":"x"},"verified":true,"verified_at":7}"#,
     );
     // DELETE /v1/platform/atlas_id_publisher
     round_trip::<types::AtlasIdPublisherDeleteResponse>(
@@ -1294,15 +1226,7 @@ fn decode_atlas_id_publisher_api() {
     );
     // POST /v1/platform/atlas_id_publisher/verify
     round_trip::<types::AtlasIdPublisherVerifyResponse>(
-        r#"{"created_at":7,"domain":"x","last_checked_at":7,"name":"x","object":"atlas_id_publisher","record_found":true,"skip_consent":true,"updated_at":7,"verification":{"record_name":"x","record_type":"TXT","record_value":"x"},"verified":true,"verified_at":7}"#,
-    );
-}
-
-#[test]
-fn decode_platform_api() {
-    // GET /v1/platform/config_changelog
-    round_trip::<types::PlatformConfigChangelogResponse>(
-        r#"{"data":[{"action":"x","actor":{"id":"x","type":"x"},"at":7,"changes":[{"after":"sample","before":"sample","section":"x"}],"fields":["x"],"id":"x","ip":"x","target":{"id":"x","type":"x"}}],"has_more":true,"next_cursor":"x","object":"config_changelog"}"#,
+        r#"{"configured":true,"created_at":7,"domain":"x","last_checked_at":7,"name":"x","object":"atlas_id_publisher","record_found":true,"skip_consent":true,"updated_at":7,"verification":{"record_name":"x","record_type":"TXT","record_value":"x"},"verified":true,"verified_at":7}"#,
     );
 }
 
@@ -1419,38 +1343,14 @@ fn decode_resource_servers() {
 }
 
 #[test]
-fn decode_risk_based_mfa() {
-    // GET /v1/risk_based_mfa
-    round_trip::<types::RiskBasedMfa>(
-        r#"{"enabled":true,"object":"risk_based_mfa","mid_session":{"action":"revoke","enabled":true},"mode":"audit","on_high_risk_no_factor":"allow","signals":{"dormantAccount":true,"impossibleTravel":true,"newDevice":true,"newIp":true,"newSubnet":true,"velocity":true},"step_up_threshold":"low","weights":{"dormantAccount":7,"impossibleTravel":7,"newDevice":7,"newIp":7,"newSubnet":7,"velocity":7}}"#,
-    );
-}
-
-#[test]
-fn decode_risk_events() {
-    // GET /v1/risk_events
-    round_trip::<types::RiskEventsListResponse>(
-        r#"{"data":[{"action":"x","created_at":"x","feedback":"legit","feedback_at":"x","id":"x","ip":"x","level":"low","mode":"enforce","object":"risk_event","score":7.5,"signals":["x"],"user_id":"x"}],"object":"list"}"#,
-    );
-    // GET /v1/risk_events/metrics
-    round_trip::<types::RiskEventsMetricsResponse>(
-        r#"{"buckets":[{"action":"x","count":7,"level":"x","mode":"x"}],"days":7,"object":"risk_event_metrics","total":7}"#,
-    );
-    // POST /v1/risk_events/{id}/feedback
-    round_trip::<types::RiskEvent>(
-        r#"{"action":"x","created_at":"x","feedback":"fraud","feedback_at":"x","id":"x","ip":"x","level":"low","mode":"enforce","object":"risk_event","score":7.5,"signals":["x"],"user_id":"x"}"#,
-    );
-}
-
-#[test]
 fn decode_roles() {
     // GET /v1/roles
     round_trip::<types::RolesListResponse>(
-        r#"{"data":[{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"]}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"],"visibility":"public"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/roles
     round_trip::<types::Role>(
-        r#"{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"]}"#,
+        r#"{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"],"visibility":"public"}"#,
     );
     // DELETE /v1/roles/{id}
     round_trip::<types::RolesDeleteResponse>(
@@ -1648,11 +1548,11 @@ fn decode_sso_connections() {
 fn decode_sso_onboarding() {
     // GET /v1/sso_onboarding_profiles
     round_trip::<types::SsoOnboardingListProfilesResponse>(
-        r#"{"data":[{"allow_scim":true,"allowed_connection_types":["x"],"company_name":"x","created_at":7,"id":"x","name":"x","object":"sso_onboarding_profile","organization_id":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"allow_scim":true,"allowed_connection_types":["x"],"company_name":"x","created_at":7,"id":"x","intents":["sso"],"name":"x","object":"sso_onboarding_profile","organization_id":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/sso_onboarding_profiles
     round_trip::<types::SsoOnboardingProfile>(
-        r#"{"allow_scim":true,"allowed_connection_types":["x"],"company_name":"x","created_at":7,"id":"x","name":"x","object":"sso_onboarding_profile","organization_id":"x","updated_at":7}"#,
+        r#"{"allow_scim":true,"allowed_connection_types":["x"],"company_name":"x","created_at":7,"id":"x","intents":["sso"],"name":"x","object":"sso_onboarding_profile","organization_id":"x","updated_at":7}"#,
     );
     // DELETE /v1/sso_onboarding_profiles/{id}
     round_trip::<types::SsoOnboardingDeleteProfileResponse>(
@@ -1768,7 +1668,7 @@ fn decode_users() {
     );
     // PUT /v1/users/{id}/metadata
     round_trip::<types::User>(
-        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","updated_at":7,"username":"x","version":7}"#,
+        r#"{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","required_factors":["x"],"updated_at":7,"username":"x","version":7}"#,
     );
     // DELETE /v1/users/{id}/mfa/{factorId}
     round_trip::<types::UsersDeleteMfaFactorResponse>(

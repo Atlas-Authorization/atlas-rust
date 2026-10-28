@@ -1,0 +1,3 @@
+[default]
+description = "Allows signing in and out with Atlas and reading the current session token."
+permissions = ["allow-sign-in", "allow-get-token", "allow-status", "allow-sign-out"]
