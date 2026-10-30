@@ -1085,6 +1085,12 @@ BODY_ADDED = {
 for op in ops:
     op['fn'] = op['name'] + '_with' if (op['M'], op['p']) in BODY_ADDED else op['name']
 
+# Deprecated operations: `#[deprecated]` on the method (a warning, never an error).
+DEPRECATED_OPS = {
+    ('POST', '/v1/sign_in_tokens'): 'use `sessions().create_browser_ticket()` (sunset 2027-04-01)',
+    ('POST', '/v1/sign_in_tokens/{id}/revoke'): 'use `sessions().create_browser_ticket()` (sunset 2027-04-01)',
+}
+
 seen = {}
 for op in ops:
     k = (op['st'], op['name'])
@@ -1286,6 +1292,8 @@ for st, sops in by_struct.items():
             notes.append('Returns the response JSON (the API documents it as open-ended).')
         lines.append('    ///')
         lines.append(f'    /// {" ".join(notes)}')
+        if (op['M'], op['p']) in DEPRECATED_OPS:
+            lines.append(f'    #[deprecated(note = "{DEPRECATED_OPS[(op["M"], op["p"])]}")]')
         lines.append(f"    pub async fn {op['fn']}({sig(body_arg)}) -> Result<{resp_t}, BackendError> {{")
         bexpr = 'body_of(body)?' if op['req_ty'] else ('Some(body)' if op['body'] else 'None')
         lines += body_lines(bexpr, resp_t)

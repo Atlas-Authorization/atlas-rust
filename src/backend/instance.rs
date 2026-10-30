@@ -154,8 +154,16 @@ pub struct DeclaredCookie {
     pub http_only: bool,
     #[serde(default)]
     pub category: String,
+    /// The English purpose.
     #[serde(default)]
     pub purpose: String,
+    /// The purpose in every language the hosted pages speak, keyed by locale.
+    #[serde(default)]
+    pub purposes: HashMap<String, String>,
+    /// Present when the lifetime follows an instance setting: `lifetime_seconds`
+    /// is this instance's value, bounded by this range.
+    #[serde(default)]
+    pub lifetime_range: Option<CookieLifetimeRange>,
     #[serde(default)]
     pub written_when: String,
     /// `atlas_frontend_api` or `atlas_sdk`.
@@ -163,6 +171,17 @@ pub struct DeclaredCookie {
     pub set_by: String,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// The settable range of a [`DeclaredCookie`] lifetime.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CookieLifetimeRange {
+    /// The instance setting it follows, e.g. `session.absoluteMs`.
+    pub setting: String,
+    pub min_seconds: i64,
+    pub max_seconds: i64,
+    pub default_seconds: i64,
 }
 
 /// Known `settings_link.preset` values. A response's `preset` stays a plain
@@ -261,6 +280,85 @@ impl Instance<'_> {
     pub async fn delete_cookie_consent(&self) -> Result<CookieConsent, BackendError> {
         self.client.request(HttpMethod::Delete, "/v1/instance/cookie_consent", &[], None, None).await
     }
+    /// `GET /v1/instance/sign_in_with_atlas` — the "Continue with Atlas" button.
+    pub async fn get_sign_in_with_atlas(&self) -> Result<SignInWithAtlasSettings, BackendError> {
+        self.client.request(HttpMethod::Get, "/v1/instance/sign_in_with_atlas", &[], None, None).await
+    }
+    /// `PATCH /v1/instance/sign_in_with_atlas` — turn the button on or off.
+    /// `connection_id` links one of your OIDC connections to the Atlas issuer
+    /// (`None` lets Atlas choose or provision one).
+    pub async fn update_sign_in_with_atlas(
+        &self,
+        enabled: bool,
+        connection_id: Option<&str>,
+    ) -> Result<SignInWithAtlasSettings, BackendError> {
+        let mut body = Map::new();
+        body.insert("enabled".into(), Value::Bool(enabled));
+        if let Some(id) = connection_id {
+            body.insert("connection_id".into(), Value::String(id.to_string()));
+        }
+        self.client
+            .request(HttpMethod::Patch, "/v1/instance/sign_in_with_atlas", &[], Some(Value::Object(body)), None)
+            .await
+    }
+    /// `GET /v1/instance/hosted_pages` — where the hosted pages redirect.
+    pub async fn get_hosted_pages(&self) -> Result<HostedPagesSettings, BackendError> {
+        self.client.request(HttpMethod::Get, "/v1/instance/hosted_pages", &[], None, None).await
+    }
+    /// `PATCH /v1/instance/hosted_pages` — send your own sign-in, sign-up or
+    /// account page URL; null serves the Atlas page again.
+    pub async fn update_hosted_pages(&self, body: &UpdateHostedPagesBody) -> Result<HostedPagesSettings, BackendError> {
+        self.client
+            .request(HttpMethod::Patch, "/v1/instance/hosted_pages", &[], body_of(body)?, None)
+            .await
+    }
+}
+
+/// [`Instance::get_sign_in_with_atlas`].
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct SignInWithAtlasSettings {
+    pub object: String,
+    /// The button shows on the embedded sign-in and the hosted page.
+    pub enabled: bool,
+    pub connection_id: Option<String>,
+    /// `instance_toggle` (provisioned by Atlas) or `linked` (your connection).
+    pub managed_via: Option<String>,
+    /// The connection status; the button shows only while it is active.
+    pub connection_status: Option<String>,
+    /// Whether this deployment can provision a connection.
+    pub available: bool,
+    /// The Atlas issuer a connection must point at.
+    pub issuer: Option<String>,
+    /// Active OIDC connections to the Atlas issuer that `connection_id` may name.
+    pub candidates: Vec<Value>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// [`Instance::get_hosted_pages`]. A `None` URL serves the Atlas page.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct HostedPagesSettings {
+    pub object: String,
+    pub sign_in_url: Option<String>,
+    pub sign_up_url: Option<String>,
+    pub user_url: Option<String>,
+    /// The Atlas page URLs on this instance.
+    pub hosted: Map<String, Value>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The body of [`Instance::update_hosted_pages`]. `Some(None)` sends null.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct UpdateHostedPagesBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sign_in_url: Option<Option<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sign_up_url: Option<Option<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_url: Option<Option<String>>,
 }
 
 // ── allowed origins with an integration ───────────────────────────────────
@@ -1078,7 +1176,8 @@ pub struct WebhookEndpointList {
     pub extra: Map<String, Value>,
 }
 
-/// Body for `PATCH /v1/webhook_endpoints/:id`.
+/// Body for `PATCH /v1/webhook_endpoints/:id` (and `POST` via
+/// [`WebhookEndpoints::create_with`]).
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct UpdateWebhookEndpointBody {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1238,6 +1337,17 @@ impl WebhookEndpoints<'_> {
         }
         self.client
             .request(HttpMethod::Post, "/v1/webhook_endpoints", &[], Some(Value::Object(body)), idempotency_key)
+            .await
+    }
+    /// `POST /v1/webhook_endpoints` with every setting at once, e.g.
+    /// `active: Some(false)` to create it switched off.
+    pub async fn create_with(
+        &self,
+        body: &UpdateWebhookEndpointBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<WebhookEndpoint, BackendError> {
+        self.client
+            .request(HttpMethod::Post, "/v1/webhook_endpoints", &[], body_of(body)?, idempotency_key)
             .await
     }
     /// `PATCH /v1/webhook_endpoints/:id` — the secret is kept.

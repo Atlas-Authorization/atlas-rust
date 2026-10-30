@@ -113,6 +113,10 @@ pub struct User {
     /// The user's own referral link, when they are a referrer.
     #[serde(default)]
     pub referral_link: Option<String>,
+    /// Every linked provider identity (sign-in, connect, import); the same set
+    /// `identities` lists. Empty from servers older than this field.
+    #[serde(default)]
+    pub external_accounts: Vec<super::types::UserExternalAccount>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -184,6 +188,12 @@ pub struct CreateUserBody {
     pub first_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_name: Option<String>,
+    /// The profile picture: an https URL, stored as given.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<String>,
+    /// Alias of `image_url`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile_image_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email_verified: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -211,6 +221,12 @@ pub struct UpdateUserBody {
     pub first_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_name: Option<String>,
+    /// The profile picture: an https URL; `Some(None)` sends null and clears it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<Option<String>>,
+    /// Alias of `image_url`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile_image_url: Option<Option<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub public_metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -784,6 +800,9 @@ pub struct ApiKey {
     pub prefix: Option<String>,
     #[serde(default)]
     pub claims: Map<String, Value>,
+    /// Delegated-token / verify scopes on the key; `None` when none are set.
+    #[serde(default)]
+    pub scopes: Option<Vec<String>>,
     /// Per-key spend caps; `None` when the key has none.
     #[serde(default)]
     pub limits: Option<Vec<super::types::ApiKeyLimit>>,
@@ -795,8 +814,8 @@ pub struct ApiKey {
 }
 
 impl super::types::ApiKeyLimit {
-    /// A spend cap of `amount` `unit`s per `period` (`"request"`, `"day"`,
-    /// `"month"` or `"total"`), for [`CreateApiKeyBody::limits`] and
+    /// A spend cap of `amount` `unit`s per `period` (`"request"`, `"second"`,
+    /// `"minute"`, `"day"`, `"month"` or `"total"`), for [`CreateApiKeyBody::limits`] and
     /// [`UpdateApiKeyBody::limits`].
     pub fn new(unit: impl Into<String>, amount: i64, period: impl Into<String>) -> Self {
         let mut limit = Self::default();
@@ -1163,6 +1182,95 @@ pub struct MintedSession {
     pub extra: Map<String, Value>,
 }
 
+/// The body of [`Sessions::create_with`].
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct CreateSessionBody {
+    pub user_id: String,
+    /// `"session"` (default) or `"browser_ticket"`. `actor`, `set_cookies`,
+    /// `cookie_domain` and `custom_data` are refused with `browser_ticket`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// `browser_ticket` only: where the ready `url` lands (an allowed origin).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redirect_url: Option<String>,
+    /// `browser_ticket` only: 1 to 300 (default 60).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_in_seconds: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub set_cookies: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cookie_domain: Option<String>,
+    /// `{ "sub": "user_…" }` stamps an impersonation `act` claim.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actor: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_data: Option<Value>,
+}
+
+/// A one-time browser sign-in ticket ([`Sessions::create_browser_ticket`]).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct BrowserTicket {
+    /// `browser_ticket`.
+    pub object: String,
+    pub id: String,
+    pub user_id: String,
+    /// Redeem with `POST /v1/client/sign_ins {strategy:"ticket"}`.
+    pub ticket: String,
+    /// A ready sign-in URL; `None` without a `redirect_url`.
+    pub url: Option<String>,
+    pub redirect_url: Option<String>,
+    /// Seconds.
+    pub expires_in: i64,
+    /// ISO 8601.
+    pub expires_at: String,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// A one-time URL that signs a browser in as a user
+/// ([`Testing::create_sign_in_url`]).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct TestingSignInUrl {
+    /// `testing_sign_in_url`.
+    pub object: String,
+    pub id: String,
+    pub user_id: String,
+    pub ticket: String,
+    pub url: String,
+    pub redirect_url: String,
+    /// Seconds.
+    pub expires_in: i64,
+    /// ISO 8601.
+    pub expires_at: String,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl super::Testing<'_> {
+    /// `POST /v1/testing/sign_in_url` — a ready one-time URL that signs a
+    /// browser in as `user_id` and lands on `redirect_url` (an allowed origin
+    /// or localhost). Development instances only (403 `TESTING_UNAVAILABLE`
+    /// otherwise).
+    pub async fn create_sign_in_url(
+        &self,
+        user_id: &str,
+        redirect_url: &str,
+        expires_in_seconds: Option<u32>,
+    ) -> Result<TestingSignInUrl, BackendError> {
+        let mut body = serde_json::Map::new();
+        body.insert("user_id".into(), Value::String(user_id.to_string()));
+        body.insert("redirect_url".into(), Value::String(redirect_url.to_string()));
+        if let Some(secs) = expires_in_seconds {
+            body.insert("expires_in_seconds".into(), Value::from(secs));
+        }
+        self.client
+            .request(HttpMethod::Post, "/v1/testing/sign_in_url", &[], Some(Value::Object(body)), None)
+            .await
+    }
+}
+
 /// The `/v1/sessions` namespace.
 pub struct Sessions<'a> {
     pub(super) client: &'a BackendClient,
@@ -1175,6 +1283,41 @@ impl Sessions<'_> {
         body.insert("user_id".into(), Value::String(user_id.to_string()));
         if let Some(sub) = actor_sub {
             body.insert("actor".into(), serde_json::json!({ "sub": sub }));
+        }
+        self.client.request(HttpMethod::Post, "/v1/sessions", &[], Some(Value::Object(body)), None).await
+    }
+    /// `POST /v1/sessions` with the full body: `mode` (`"session"`, the
+    /// default, or `"browser_ticket"`), `redirect_url`, `expires_in_seconds`,
+    /// `set_cookies`, `cookie_domain`, `actor`, `custom_data`. The response is
+    /// a [`MintedSession`] for `session` and a [`BrowserTicket`] for
+    /// `browser_ticket`, so it is returned as JSON; deserialize it as either.
+    pub async fn create_with(&self, body: &CreateSessionBody) -> Result<Value, BackendError> {
+        self.client.request(HttpMethod::Post, "/v1/sessions", &[], body_of(body)?, None).await
+    }
+    /// `POST /v1/sessions` with `mode: "browser_ticket"` — a one-time ticket
+    /// that signs a BROWSER in as the user (support handoffs, E2E). No session
+    /// is minted here; the browser gets one through the normal ticket exchange
+    /// (`POST /v1/client/sign_ins {strategy:"ticket"}`, or open `url`).
+    /// `redirect_url` must be one of the instance's allowed origins (without
+    /// it there is no `url`); `expires_in_seconds` is 1 to 300 (default 60).
+    /// The successor of the deprecated `sign_in_tokens().create()`. On a
+    /// development instance the same client may re-redeem a ticket within 10
+    /// seconds (a dev-server double render); production tickets are strictly
+    /// single-use.
+    pub async fn create_browser_ticket(
+        &self,
+        user_id: &str,
+        redirect_url: Option<&str>,
+        expires_in_seconds: Option<u32>,
+    ) -> Result<BrowserTicket, BackendError> {
+        let mut body = serde_json::Map::new();
+        body.insert("user_id".into(), Value::String(user_id.to_string()));
+        body.insert("mode".into(), Value::String("browser_ticket".into()));
+        if let Some(url) = redirect_url {
+            body.insert("redirect_url".into(), Value::String(url.to_string()));
+        }
+        if let Some(secs) = expires_in_seconds {
+            body.insert("expires_in_seconds".into(), Value::from(secs));
         }
         self.client.request(HttpMethod::Post, "/v1/sessions", &[], Some(Value::Object(body)), None).await
     }

@@ -2592,7 +2592,15 @@ impl Instance<'_> {
     /// naming each one and the POST /v1/instance/move_origin call that moves them. Strict writes:
     /// auth_config.strictRequestBodies (true on instances created from 2026-10 on) refuses unknown
     /// body fields with 422 UNKNOWN_FIELD on every Backend API write; set it to opt in or out, or
-    /// send Atlas-Strict: true | false on one request.
+    /// send Atlas-Strict: true | false on one request. Every auth_config key is checked at every
+    /// depth against the auth_config schema: strict, an unknown or moved key is 422 UNKNOWN_FIELD
+    /// with param naming its full path (auth_config.strategies.atlasId), meta.did_you_mean when a
+    /// real key is close, and meta.hint naming the endpoint for a setting that has its own
+    /// (auth_config.branding → PATCH /v1/branding, design → PUT /v1/instance/design, hostedPages →
+    /// PATCH /v1/instance/hosted_pages, …); lenient, the key is dropped (never stored) and listed
+    /// in warnings as unknown_field and in the Atlas-Unknown-Fields header. A null on any key and
+    /// an unchanged echo of a stored section (the raw auth_config GET returns, sent back as is) are
+    /// always accepted.
     ///
     /// Query parameters: `force`.
     ///
@@ -3077,7 +3085,11 @@ impl Instance<'_> {
     /// `PATCH /v1/instance/referrals` — Update the referral attribution settings. Only the fields
     /// you send change; null clears. signing_secret, api_key and inbound_secret are write-only.
     /// Enabling requires what the provider needs (422 REFERRALS_NOT_CONFIGURED). Every change is
-    /// audit-logged without secret values.
+    /// audit-logged without secret values. `warnings` says what was stored differently from what
+    /// was sent: renamed (a retired provider spelling such as referally stored as referalli, in
+    /// provider or browser_sources\[i\], with from and to; the write also carries Deprecation and
+    /// Sunset headers) and defaulted (a newly picked platform's tracking cookies filled into
+    /// context_cookies because the body named none).
     ///
     /// Takes [`types::InstanceUpdateReferralsBody`]. Returns [`types::InstanceUpdateReferralsResponse`].
     pub async fn update_referrals(
@@ -4197,12 +4209,16 @@ impl MessagingProvidersApi<'_> {
     /// DNS `records` to publish (DKIM, SPF / return-path for Resend; ownership, DKIM, DMARC for
     /// Brevo). Until the domain is verified email delivery stays unavailable and preflight warns
     /// `managed_email_unverified`. Pass `dns: {provider: "cloudflare", api_token}` and Atlas writes
-    /// the records itself (DNS-only; the token is write-only) and verifies in the same call when
-    /// DNS propagates in time. Atlas also registers a bounce / complaint webhook on your Resend or
-    /// Brevo account, for this instance only (`feedback_webhook`); the counts appear in `usage`. No
-    /// Atlas sending limits apply (`limits: null`): the account and its limits are yours. Atlas
-    /// never uses an email account of its own. 409 when the domain is set up on another Atlas
-    /// instance; 502 MANAGED_EMAIL_PROVIDER_ERROR when your provider refuses.
+    /// the records itself (DNS-only; the token is write-only) IN THE BACKGROUND: the call answers
+    /// 202 at once with the records and `dns.status: "pending"`, then Atlas writes them and checks
+    /// with your provider until the domain is verified (`dns.status` pending → verifying →
+    /// verified; `dns.last_error` and `failed` when it cannot). No further call is needed; GET
+    /// shows progress and POST …/verify checks at once. Atlas also registers a bounce / complaint
+    /// webhook on your Resend or Brevo account, for this instance only (`feedback_webhook`,
+    /// `feedback_webhook_id`); the counts appear in `usage`. No Atlas sending limits apply
+    /// (`limits: null`): the account and its limits are yours. Atlas never uses an email account of
+    /// its own. 409 when the domain is set up on another Atlas instance; 502
+    /// MANAGED_EMAIL_PROVIDER_ERROR when your provider refuses.
     ///
     /// Takes [`types::MessagingProvidersCreateManagedEmailBody`]. Returns [`types::ManagedEmail`].
     pub async fn create_managed_email(
@@ -4220,8 +4236,8 @@ impl MessagingProvidersApi<'_> {
             .await
     }
     /// `DELETE /v1/messaging_providers/email/managed` — Stop using managed email: removes the
-    /// domain from your provider account (and, on Resend, the bounce / complaint webhook Atlas
-    /// registered there) and the email provider (managed_domain mode) that held your key
+    /// domain from your provider account (and the bounce / complaint webhook Atlas registered
+    /// there, on Resend or Brevo) and the email provider (managed_domain mode) that held your key
     /// (`provider_removed`). DNS records are left in place. Refused with 409 EMAIL_PROVIDER_IN_USE
     /// while it is the only way the instance can send email and email-dependent features are on;
     /// pass force=true to remove it anyway.
@@ -6965,6 +6981,7 @@ impl SignInTokens<'_> {
     /// Responses carry RFC 8594 `Deprecation`/`Sunset` headers.
     ///
     /// Takes [`types::SignInTokensCreateBody`]. Returns [`types::SignInToken`].
+    #[deprecated(note = "use `sessions().create_browser_ticket()` (sunset 2027-04-01)")]
     pub async fn create(
         &self,
         body: &types::SignInTokensCreateBody,
@@ -6984,6 +7001,7 @@ impl SignInTokens<'_> {
     /// surface; prefer POST /v1/sessions.
     ///
     /// Returns [`types::SignInTokensRevokeResponse`].
+    #[deprecated(note = "use `sessions().create_browser_ticket()` (sunset 2027-04-01)")]
     pub async fn revoke(
         &self,
         id: &str,
@@ -7529,13 +7547,15 @@ impl ImportExport<'_> {
     /// bcrypt, PBKDF2/scrypt (Django, passlib), Firebase scrypt (with
     /// password_hash_config.firebase) and Better Auth scrypt hashes are imported verbatim and
     /// upgraded on first sign-in; other formats are rejected per row. Each row may also carry
-    /// external_id, created_at, phone_number / phone_numbers and organization_memberships (org by
-    /// id, external id or slug, plus a role); create_organizations:true creates a missing org.
-    /// Per-row failures are recorded, never fatal. Body: an array of users, or { users, upsert?,
-    /// notify?, create_organizations?, password_hash_config? }. An import never notifies the
-    /// imported users: with notify false (the default) no email, SMS or push is sent as a
-    /// consequence of the import, whatever templates are configured; notify:true is reserved for
-    /// future welcome messages and currently sends nothing.
+    /// external_id, image_url (alias profile_image_url: an https URL; an invalid one fails the row
+    /// with invalid_image_url), created_at, phone_number / phone_numbers and
+    /// organization_memberships (org by id, external id or slug, plus a role);
+    /// create_organizations:true creates a missing org. Per-row failures are recorded, never fatal.
+    /// Body: an array of users, or { users, upsert?, notify?, create_organizations?,
+    /// password_hash_config? }. An import never notifies the imported users: with notify false (the
+    /// default) no email, SMS or push is sent as a consequence of the import, whatever templates
+    /// are configured; notify:true is reserved for future welcome messages and currently sends
+    /// nothing.
     ///
     /// Takes [`types::ImportExportImportUsersBody`]. Returns [`types::Job`].
     pub async fn import_users(

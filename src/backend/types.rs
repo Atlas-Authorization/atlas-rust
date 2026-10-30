@@ -27733,7 +27733,7 @@ pub struct ApiKeyUsageDebit {
 pub struct ApiKeyLimitState {
     #[serde(default)]
     pub unit: String,
-    /// Known values: `request`, `day`, `month`, `total`.
+    /// Known values: `request`, `second`, `minute`, `day`, `month`, `total`.
     #[serde(default)]
     pub period: String,
     #[serde(default)]
@@ -27811,9 +27811,11 @@ pub struct ApiKeyLimit {
     /// The cap, in `unit`.
     #[serde(default)]
     pub amount: i64,
-    /// `request` caps a single debit; `day`/`month` are UTC calendar windows; `total` never resets.
+    /// `request` caps a single debit; `second`/`minute` are fixed rate windows aligned to the UTC
+    /// clock (e.g. 600 requests per minute); `day`/`month` are UTC calendar windows; `total` never
+    /// resets.
     ///
-    /// Known values: `request`, `day`, `month`, `total`.
+    /// Known values: `request`, `second`, `minute`, `day`, `month`, `total`.
     #[serde(default)]
     pub period: String,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -35380,6 +35382,12 @@ pub struct InstanceUpdateResponse {
     /// a partial patch (AuthConfigPatch).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auth_config_resolved: Option<InstanceUpdateResponseAuthConfigResolved>,
+    /// PATCH only. origin_still_referenced: a removed origin that webhook endpoints or OAuth client
+    /// URIs still point at. unknown_field (lenient writes): an auth_config key that was ignored and
+    /// not stored, with its full path in field, the endpoint that writes it in hint (for settings
+    /// that moved, e.g. branding → PATCH /v1/branding), and did_you_mean when a real key is close.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<InstanceUpdateResponseWarningsItem>,
     /// Sign-in methods that are switched on but not offered to users (not on the hosted pages, the
     /// embedded components or the Frontend API environment), because they need an email provider
     /// and the instance has none. Email is bring-your-own. They become active on their own once a
@@ -35395,6 +35403,30 @@ pub struct InstanceUpdateResponse {
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateResponseWarningsItem {
+    /// Known values: `origin_still_referenced`, `unknown_field`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// unknown_field: the full path, e.g. auth_config.strategies.atlasId.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub field: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hint: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did_you_mean: Option<String>,
+    /// origin_still_referenced: the removed origin.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -37082,6 +37114,8 @@ pub struct InstanceUpdateReferralsResponse {
     pub providers: Vec<InstanceUpdateReferralsResponseProvidersItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<InstanceUpdateReferralsResponseWarningsItem>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -37384,6 +37418,29 @@ pub struct InstanceUpdateReferralsResponseProvidersItemCapabilities {
     /// Sends Atlas referral changes made after sign-up (two-way sync).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inbound: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseWarningsItem {
+    /// Known values: `renamed`, `defaulted`.
+    #[serde(default)]
+    pub code: String,
+    /// provider, browser_sources\[i\] or context_cookies.
+    #[serde(default)]
+    pub field: String,
+    /// renamed: the name sent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<String>,
+    /// renamed: the name stored. defaulted: the cookie names set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to: Option<Value>,
+    #[serde(default)]
+    pub message: String,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -38626,6 +38683,11 @@ pub struct User {
     /// The user's own referral link, when they are a referrer.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub referral_link: Option<String>,
+    /// Every linked provider identity, however it was linked (a sign-in, a connect flow, identities
+    /// on create, a bulk import or identities/import); the same set GET /v1/users/{id}/identities
+    /// lists. Present on read, list, create, update and password responses.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub external_accounts: Vec<UserExternalAccount>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -38671,6 +38733,42 @@ pub struct UserReferral {
     /// An admin marked the referral fraudulent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flagged: Option<bool>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// A provider identity linked to the user. Tokens and the raw provider profile are never
+/// included.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct UserExternalAccount {
+    /// Always `external_account`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub provider: String,
+    #[serde(default)]
+    pub provider_user_id: String,
+    /// The provider's address at the last sign-in or import (a snapshot, not proof of ownership).
+    #[serde(default)]
+    pub provider_email: Option<String>,
+    /// Whether the provider (or the import) said that address is verified.
+    #[serde(default)]
+    pub email_verified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_name: Option<String>,
+    /// The provider's avatar for this identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<String>,
+    /// Linked (epoch ms).
+    #[serde(default)]
+    pub connected_at: i64,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -39960,13 +40058,19 @@ pub struct ManagedEmail {
     /// Your email provider (mode managed_domain) that holds the API key.
     #[serde(default)]
     pub provider_id: Option<String>,
-    /// On create (Brevo and Resend) and on verify (Resend): whether the bounce / complaint webhook
-    /// was registered on your account. not_registered leaves sending unaffected; the counters in
-    /// usage then stay 0.
+    /// Whether the bounce / complaint webhook is registered on your Resend or Brevo account (create
+    /// and verify register it). not_registered leaves sending unaffected; the counters in usage
+    /// then stay 0, and feedback_webhook_error says why.
     ///
     /// Known values: `registered`, `not_registered`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub feedback_webhook: Option<String>,
+    /// The webhook's id on your Resend or Brevo account.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_webhook_id: Option<String>,
+    /// Why the last registration failed; null once it is registered.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_webhook_error: Option<String>,
     #[serde(default)]
     pub region: Option<String>,
     /// not_started | pending | verified | failed | temporary_failure. Email sends only when
@@ -39999,9 +40103,6 @@ pub struct ManagedEmail {
     pub created_at: i64,
     #[serde(default)]
     pub updated_at: i64,
-    /// Create only, with dns: the zone and the records Atlas wrote.
-    #[serde(default, skip_serializing_if = "Map::is_empty")]
-    pub dns_result: Map<String, Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_step: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -40054,6 +40155,8 @@ pub struct ManagedEmailUsage {
     pub extra: Map<String, Value>,
 }
 
+/// DNS automation. The records are written and the domain verified in the background; poll this
+/// object.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct ManagedEmailDns {
@@ -40061,6 +40164,23 @@ pub struct ManagedEmailDns {
     pub provider: String,
     #[serde(default)]
     pub token_set: bool,
+    /// pending: the records are not written yet. verifying: written; Atlas checks with your
+    /// provider on a growing interval. verified: done. failed: Atlas stopped (see last_error); fix
+    /// it and POST again, or POST …/verify.
+    ///
+    /// Known values: `pending`, `verifying`, `verified`, `failed`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// The last DNS write or provider check error (code: message); null once a step succeeds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attempts: Option<i64>,
+    /// Epoch ms of the next background step; null when nothing is due.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_check_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

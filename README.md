@@ -321,8 +321,8 @@ Error codes worth branching on are in `atlasauth::backend::codes`
 
 ### API key spend caps
 
-Give an end-user API key caps per unit and period (`"request"`, `"day"`,
-`"month"` or `"total"`), then meter what each call costs. A debit that would
+Give an end-user API key caps per unit and period (`"request"`, `"second"`,
+`"minute"`, `"day"`, `"month"` or `"total"`), then meter what each call costs. A debit that would
 exceed a cap records nothing and comes back with `allowed: false`; it is not an
 error:
 
@@ -532,6 +532,60 @@ Platform rotations take an overlap too: `platform().apps().rotate_instance_secre
 &RotatePlatformSecretBody::new().with_overlap_seconds(0), ..)` (default 72 hours),
 `platform().atlas_id_apps().rotate_secret_with(..)` (default 24 hours) and `rotate_webhook_secret_with(..)`
 (default 0).
+
+### Application webhooks
+
+Send your app's own events to endpoints your customers' organizations register. Atlas signs them with
+Standard Webhooks headers (`webhook-id`, `webhook-timestamp` in seconds, `webhook-signature`), retries
+them and keeps the delivery log. Organization members manage their endpoints from the Frontend API with
+the `org:webhooks:manage` permission (`PERMISSION_ORG_WEBHOOKS_MANAGE`).
+
+```rust,no_run
+# async fn demo(atlas: &atlasauth::backend::BackendClient, raw: &[u8], headers: Vec<(String, String)>) -> Result<(), Box<dyn std::error::Error>> {
+use atlasauth::backend::{types_ext, AppEventTypeBody, PublishAppEventBody, Webhook};
+use serde_json::json;
+
+atlas.app_events().types().create(&AppEventTypeBody::new("call.completed"), None).await?;
+atlas
+    .app_events()
+    .endpoints()
+    .create(
+        "org_123",
+        &types_ext::OrganizationsWebhookEndpointsCreateBody::new()
+            .with_url("https://hooks.example.com/atlas")
+            .with_enabled_events(vec!["call.completed".to_string()]),
+        None,
+    )
+    .await?;
+let event = atlas
+    .app_events()
+    .publish(&PublishAppEventBody::new("org_123", "call.completed", json!({ "call_id": "c1" })), Some("c1"))
+    .await?;
+println!("queued for {:?} endpoints (replay: {})", event.deliveries_queued, event.idempotent_replay);
+
+// On the receiving side: the endpoint's whsec_ secret, the raw body and the request headers.
+let delivery = Webhook::new("whsec_...").verify_standard(raw, &headers)?;
+println!("{} {}", delivery.id, delivery.payload["type"]);
+# Ok(()) }
+```
+
+### Browser tickets, test sign-in URLs, hosted pages
+
+`sessions().create_browser_ticket(user_id, redirect_url, expires_in_seconds)` returns a one-time ticket
+(and a ready `url` when you pass a `redirect_url`) that signs a browser in as the user, for support
+handoffs and end-to-end tests. It replaces `sign_in_tokens().create()`, deprecated with a sunset of
+2027-04-01. On a development instance the same client may redeem a ticket again within 10 seconds (a
+dev-server double render); production tickets are strictly single-use. `sessions().create_with(..)`
+takes the full `POST /v1/sessions` body. On development instances `testing().create_sign_in_url(user_id,
+redirect_url, None)` gives the URL in one call.
+
+`instance().get_sign_in_with_atlas()` / `update_sign_in_with_atlas(enabled, connection_id)` control the
+"Continue with Atlas" button, `get_hosted_pages()` / `update_hosted_pages(..)` send the hosted sign-in,
+sign-up and account pages to your own URLs, and `privacy().connect_integration(..)` sets up the consent
+manager, privacy orchestrator, completion webhook and executor key in one idempotent call
+(`get_integration()` reads it back). `PATCH /v1/instance` and `PATCH /v1/instance/referrals` responses
+carry `warnings` (for example an `unknown_field` that was dropped). `/v1/instance/secret_keys` is the same
+route as `/v1/secret_keys` (`secret_keys()`).
 
 ### Policy acceptance
 
@@ -850,7 +904,7 @@ MIT.
 Two more framework integrations, off by default, both over the same `AtlasBackend` verifier (local RS256 against the cached JWKS, issuer, expiry, `azp` allowlist). A missing or invalid credential is a 401; a verifier that was never registered fails closed with a 500.
 
 ```toml
-atlasauth = { version = "0.26", features = ["actix"] }   # or "rocket"
+atlasauth = { version = "0.27", features = ["actix"] }   # or "rocket"
 ```
 
 ```rust

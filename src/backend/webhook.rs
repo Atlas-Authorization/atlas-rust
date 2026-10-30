@@ -278,6 +278,94 @@ impl Webhook {
     }
 }
 
+/// Standard Webhooks header names (application webhooks, see
+/// [`Webhook::verify_standard`]).
+pub const STANDARD_HEADER_ID: &str = "webhook-id";
+pub const STANDARD_HEADER_TIMESTAMP: &str = "webhook-timestamp";
+pub const STANDARD_HEADER_SIGNATURE: &str = "webhook-signature";
+
+impl Webhook {
+    /// Verify an application-webhook delivery (Standard Webhooks): the
+    /// `webhook-id`, `webhook-timestamp` (epoch SECONDS) and
+    /// `webhook-signature` headers, where the signature is one or more
+    /// space-separated `v1,<base64>` entries of HMAC-SHA256 over
+    /// `<id>.<timestamp>.<raw body>`, keyed with the base64-decoded secret
+    /// after its `whsec_` prefix. Any one matching entry verifies (a rotated
+    /// secret signs with both). The window is [`Webhook::tolerance_ms`]
+    /// (default five minutes) and "now" is [`Webhook::now_ms`] when pinned.
+    ///
+    /// `raw` MUST be the exact bytes received.
+    pub fn verify_standard<H: WebhookHeaders + ?Sized>(
+        &self,
+        raw: &[u8],
+        headers: &H,
+    ) -> Result<StandardDelivery, WebhookError> {
+        let id = headers.get_header(STANDARD_HEADER_ID).ok_or(WebhookError::MissingHeaders)?;
+        let ts_raw = headers
+            .get_header(STANDARD_HEADER_TIMESTAMP)
+            .ok_or(WebhookError::MissingHeaders)?;
+        let sig = headers
+            .get_header(STANDARD_HEADER_SIGNATURE)
+            .ok_or(WebhookError::MissingHeaders)?;
+
+        let provided: Vec<Vec<u8>> = sig
+            .split_whitespace()
+            .filter_map(|entry| entry.split_once(','))
+            .filter(|(version, value)| *version == SIGNATURE_VERSION && !value.is_empty())
+            .filter_map(|(_, value)| STANDARD.decode(value).ok())
+            .collect();
+        if provided.is_empty() {
+            return Err(WebhookError::MalformedSignature);
+        }
+
+        // Digits only, as the server writes it (no sign, no spaces).
+        if ts_raw.is_empty() || !ts_raw.bytes().all(|b| b.is_ascii_digit()) {
+            return Err(WebhookError::StaleTimestamp);
+        }
+        let timestamp: i64 = ts_raw.parse().map_err(|_| WebhookError::StaleTimestamp)?;
+        let now_sec = self.now_ms.unwrap_or_else(now_epoch_ms) / 1000;
+        if (now_sec - timestamp).abs() > self.tolerance_ms / 1000 {
+            return Err(WebhookError::StaleTimestamp);
+        }
+
+        let encoded = self.secret.strip_prefix("whsec_").unwrap_or(&self.secret);
+        // A secret that is not base64 can never have produced a signature.
+        let key = STANDARD.decode(encoded).map_err(|_| WebhookError::SignatureMismatch)?;
+        let mut mac = HmacSha256::new_from_slice(&key).expect("HMAC accepts a key of any length");
+        mac.update(id.as_bytes());
+        mac.update(b".");
+        mac.update(timestamp.to_string().as_bytes());
+        mac.update(b".");
+        mac.update(raw);
+        let mut matched = false;
+        for candidate in &provided {
+            if mac.clone().verify_slice(candidate).is_ok() {
+                matched = true;
+            }
+        }
+        if !matched {
+            return Err(WebhookError::SignatureMismatch);
+        }
+        Ok(StandardDelivery {
+            id: id.to_string(),
+            timestamp,
+            payload: serde_json::from_slice(raw).unwrap_or(serde_json::Value::Null),
+        })
+    }
+}
+
+/// A verified application-webhook delivery ([`Webhook::verify_standard`]).
+#[derive(Debug, Clone, PartialEq)]
+pub struct StandardDelivery {
+    /// The signed `webhook-id`: the event's `evt_` id, the same on every
+    /// retry and redelivery, so deduplicate on it.
+    pub id: String,
+    /// The signed `webhook-timestamp` (epoch seconds) of this attempt.
+    pub timestamp: i64,
+    /// The parsed JSON body (`Null` when the body is not JSON).
+    pub payload: serde_json::Value,
+}
+
 /// A verified delivery: the envelope plus the signed headers that identify it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VerifiedDelivery {
