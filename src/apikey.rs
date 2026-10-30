@@ -73,6 +73,11 @@ pub struct ApiKeyVerification {
     pub claims: Option<Map<String, Value>>,
     #[serde(default)]
     pub scopes: Option<Vec<String>>,
+    /// The key's scopes (and any `claims.scope`) expanded through the
+    /// instance's scope implications (e.g. `calls:write` implies `calls:read`).
+    /// Empty on an invalid verdict and from servers older than this field.
+    #[serde(default)]
+    pub effective_scopes: Vec<String>,
     #[serde(default)]
     pub constraints: Option<Map<String, Value>>,
     /// The key's spend caps (`None` when it has none, or on an invalid verdict).

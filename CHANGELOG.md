@@ -2,9 +2,33 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
-## Unreleased
+## 0.27.0 — 2026-10-30
 
 ### Added
+
+- **Application webhooks.** `app_events()`: `publish` (body plus `Idempotency-Key`; the response carries `idempotent_replay`, `deliveries_queued` and `endpoint_ids`), `list` (`organization_id` required) and `get`; `app_events().types()` (the event catalog: `list`, `create`, `get`, `update`, `delete`, by `aet_` id or type name); `app_events().endpoints()` (one organization's endpoints at `/v1/organizations/{id}/app_webhook_endpoints`: `list`, `create`, `get`, `update`, `delete`, `rotate_secret`, `reveal_secret`, `test` with `wait`, `deliveries`, `redeliver`, `replay`, and `app_event_types` at `GET /v1/organizations/{id}/app_event_types`). Typed `AppEvent`, `PublishAppEventBody`, `AppEventType`, `AppEventTypeBody`; `PERMISSION_ORG_WEBHOOKS_MANAGE` (`org:webhooks:manage`).
+- **Standard Webhooks verifier.** `Webhook::verify_standard(raw, headers)` checks `webhook-id`, `webhook-timestamp` (seconds) and the space-separated `v1,<base64>` list in `webhook-signature` against the base64 key after `whsec_`, in constant time, within the tolerance. Returns `StandardDelivery { id, timestamp, payload }`.
+- **Browser tickets.** `sessions().create_browser_ticket(user_id, redirect_url, expires_in_seconds)` (`POST /v1/sessions` with `mode: "browser_ticket"`) returns `BrowserTicket`; `sessions().create_with(&CreateSessionBody)` sends `mode`, `redirect_url`, `expires_in_seconds` and the other session fields. The 10-second same-client re-redeem of a ticket is development-instance-only.
+- **Test sign-in URL.** `testing().create_sign_in_url(user_id, redirect_url, expires_in_seconds)` (`POST /v1/testing/sign_in_url`, development instances only) returns `TestingSignInUrl`.
+- **Sign in with Atlas and hosted pages.** `instance().get_sign_in_with_atlas()` / `update_sign_in_with_atlas(..)` (`SignInWithAtlasSettings`) and `get_hosted_pages()` / `update_hosted_pages(&UpdateHostedPagesBody)` (`HostedPagesSettings`).
+- **Privacy integration.** `privacy().get_integration()` and `privacy().connect_integration(body, idempotency_key)` (`/v1/instance/privacy_integrations`).
+- `webhook_endpoints().create_with(&UpdateWebhookEndpointBody, ..)` creates an endpoint with every setting, e.g. `active: Some(false)`.
+- `warnings` on `types::InstanceUpdateResponse` (`code`, `message`, `field`, `hint`, `did_you_mean`, `origin`) and `types::InstanceUpdateReferralsResponse`.
+- `ApiKeyVerification::effective_scopes`; `ApiKey::scopes`; API key limit periods `second` and `minute`.
+- `DeclaredCookie::purposes` (by locale) and `lifetime_range` (`CookieLifetimeRange`).
+- `CreateUserBody` / `UpdateUserBody` gain `image_url` and its alias `profile_image_url` (import rows accept both too); `User::external_accounts` and `types::User::external_accounts` with the new `types::UserExternalAccount`.
+- Managed email: `ManagedEmail::feedback_webhook_id` and `feedback_webhook_error`; `ManagedEmailDns` gains `status`, `last_error`, `attempts`, `next_check_at` and `started_at` (DNS automation runs in the background, and create may answer 202).
+- `/v1/instance/secret_keys` is an alias of `/v1/secret_keys`: keep using `secret_keys()`.
+
+### Deprecated
+
+- `sign_in_tokens().create()` and `revoke()` (sunset 2027-04-01): use `sessions().create_browser_ticket()`.
+
+### Removed
+
+- `types::ManagedEmail::dns_result` (the server no longer sends it; read `dns`).
+
+### Added (earlier, unreleased)
 
 - **More of the Backend API.** 452 further operations, reached through new namespaces on `BackendClient` (and sub-namespaces such as `iga().campaigns()`, `groups().rules()`, `abac().templates()`, `ssf().streams()`, `migrations().imports()`, `mcp_gateways().budgets()`, `vc().credentials()`, `vault().key_provider()`, `connections().webhooks()`, `analytics().alert_rules()`), each with typed request and response models in `backend::types_ext`: `iga`, `groups`, `connections`, `analytics`, `migrations`, `ssf`, `vault`, `vc`, `abac`, `access_policies`, `resources`, `org_role_grants`, `directory_pull_sources`, `workflows`, `journeys`, `desktop_mfa`, `mfa_factors`, `passkey_api`, `agents`, `agent_access_requests`, `agent_registration`, `app_catalog`, `audit_event_schemas`, `authz_decisions`, `delivery_health`, `devices`, `flags`, `identity_verification`, `ldap_server_clients`, `least_privilege`, `listen`, `managed_grants`, `marketing`, `mcp_gateways`, `network_zones`, `oauth_client_profiles`, `policy_bundles`, `proxy_apps`, `relay_agents`, `scim_provisioning_presets` and `service_connectors`. Existing `users()`, `oauth_clients()`, `organizations()`, `actions()`, `fga()`, `openfga()`, `attack_protection()`, `risk_based_mfa()` and `integrations()` gain their missing operations.
 - `listen().stream_session` returns the response body (text) as bytes.

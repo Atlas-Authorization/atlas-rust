@@ -16,6 +16,7 @@
 //! # let _ = (user, first_page); Ok(()) }
 //! ```
 
+mod app_events;
 mod better_auth;
 mod catalog;
 mod catalog_ext;
@@ -37,6 +38,10 @@ pub mod types_ext;
 pub mod legacy;
 mod webhook;
 
+pub use app_events::{
+    AppEvent, AppEventType, AppEventTypeBody, AppEventTypes, AppEvents, AppWebhookEndpoints, PublishAppEventBody,
+    PERMISSION_ORG_WEBHOOKS_MANAGE,
+};
 pub use better_auth::{
     better_auth_cookie_names, client_ip_from_headers, exchange_better_auth_session, read_better_auth_session_cookie,
     split_bundle_parts, BetterAuthBridge, BetterAuthExchangeResult, BridgeAction, BridgeCookie, BridgeDecision,
@@ -61,7 +66,8 @@ pub use design::{
 };
 pub use error::{codes, AtlasApiError, AtlasErrorItem, BackendError};
 pub use instance::{
-    cookie_settings_link_presets, AllowedOriginEntry, AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig,
+    cookie_settings_link_presets, AllowedOriginEntry, CookieLifetimeRange, HostedPagesSettings, SignInWithAtlasSettings,
+    UpdateHostedPagesBody, AwsSnsConfig, BandwidthConfig, BrevoConfig, ClicksendConfig,
     CookieConsent, CookieSettingsLink, DeclaredCookie, SdkAdvisory, SdkVersionSeen, CookieSettingsLinkInput, DeleteMessagingProviderParams,
     EmailProviderConfig, InfobipConfig, Instance, MailgunConfig, MessagebirdConfig, MessagingChannel, MessagingProvider,
     MessagingProviders, MessagingProvidersApi, OAuthProvider, OAuthProviderFilter, OAuthProviderUpdate,
@@ -86,7 +92,7 @@ pub use machines::{
     MachineOrgMembership, MachineToken, MachineWithSecret, Machines, OrgFilter, RedeemedEnrolment,
 };
 pub use resources::{
-    AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,
+    BrowserTicket, CreateSessionBody, TestingSignInUrl, AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,
     BillingSubscription, CreateApiKeyBody, CreateBillingPlanBody, CreateOrganizationBody,
     CreateUserBody, CustomDomain, DeletedObject, Domains, Grant, GrantRevocation, Grants,
     EndUserPoolPolicy, ImportApiKey, Invitation, Invitations, ListPage, Metadata, MintApiKeyTokenBody,
@@ -119,5 +125,6 @@ pub use suite::{
 pub use testing::FakeTransport;
 pub use webhook::{
     canonical_webhook_event, is_deprecated_webhook_event, webhook_event_spellings, WEBHOOK_EVENT_ALIASES, Event, EventType, VerifiedDelivery, Webhook, WebhookError, WebhookHeaders, HEADER_ID,
-    HEADER_SIGNATURE, HEADER_TIMESTAMP,
+    HEADER_SIGNATURE, HEADER_TIMESTAMP, StandardDelivery, STANDARD_HEADER_ID, STANDARD_HEADER_SIGNATURE,
+    STANDARD_HEADER_TIMESTAMP,
 };

@@ -912,6 +912,27 @@ impl Privacy<'_> {
     pub async fn delete_orchestrator(&self) -> Result<Value, BackendError> {
         self.client.request(HttpMethod::Delete, "/v1/instance/privacy_orchestrator", &[], None, None).await
     }
+    /// `GET /v1/instance/privacy_integrations` — the consent manager,
+    /// orchestrator, completion webhook and executor key together, with
+    /// `connected` true when all four are live.
+    pub async fn get_integration(&self) -> Result<Value, BackendError> {
+        self.client.request(HttpMethod::Get, "/v1/instance/privacy_integrations", &[], None, None).await
+    }
+    /// `POST /v1/instance/privacy_integrations/connect` — set all four up in
+    /// one idempotent call: `{ preset ("cookiemunch" | "custom"), site_id?,
+    /// api_key? | partner_link_id?, completion_webhook_url?, cookie_consent?,
+    /// orchestrator?, key? }`. `executor_key.secret` is in the response only
+    /// on the call that minted it; `warnings` reports the consent-manager site
+    /// check and never fails the call.
+    pub async fn connect_integration<B: Serialize + ?Sized>(
+        &self,
+        body: &B,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(HttpMethod::Post, "/v1/instance/privacy_integrations/connect", &[], jb(body)?, idempotency_key)
+            .await
+    }
 }
 
 /// A verified request from Atlas to your privacy executor / orchestrator
