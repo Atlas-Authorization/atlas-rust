@@ -11603,8 +11603,9 @@ pub struct AuthConfigPatch {
     )]
     pub sign_in_after_reset: Option<bool>,
     /// public: anyone may sign up. waitlist: unknown addresses join a waitlist (403 WAITLISTED)
-    /// until approved. restricted: invitation-only — only invited or waitlist-approved addresses
-    /// may sign up (403 SIGN_UP_RESTRICTED otherwise).
+    /// until approved. restricted: invite-only — only an address with a pending, unexpired
+    /// invitation (POST /v1/invitations or an organization invitation) or an approved waitlist
+    /// entry may sign up (403 SIGN_UP_RESTRICTED otherwise).
     ///
     /// Known values: `public`, `waitlist`, `restricted`.
     #[serde(
@@ -19894,6 +19895,8 @@ pub struct InstanceSetCaptchaSecretBody {
     pub secret: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub site_key: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -19913,6 +19916,11 @@ impl InstanceSetCaptchaSecretBody {
     /// Set `provider`.
     pub fn with_provider(mut self, v: impl Into<String>) -> Self {
         self.provider = Some(v.into());
+        self
+    }
+    /// Set `site_key`.
+    pub fn with_site_key(mut self, v: impl Into<String>) -> Self {
+        self.site_key = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -20045,6 +20053,10 @@ pub struct InstanceUpdateBeforeUserCreateHookBody {
     pub signing_secret: Option<Option<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<i64>,
+    /// Refuse the sign-up when the hook times out, errors or answers something unusable. Default
+    /// false (the sign-up continues without your answer).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fail_closed: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -20084,6 +20096,11 @@ impl InstanceUpdateBeforeUserCreateHookBody {
     /// Set `timeout_ms`.
     pub fn with_timeout_ms(mut self, v: impl Into<i64>) -> Self {
         self.timeout_ms = Some(v.into());
+        self
+    }
+    /// Set `fail_closed`.
+    pub fn with_fail_closed(mut self, v: impl Into<bool>) -> Self {
+        self.fail_closed = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -20354,6 +20371,48 @@ impl InstanceSetPolicySourceBody {
     }
 }
 
+/// The request body of `PUT /v1/instance/preflight/acks/{code}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetAcksBody {
+    /// Why the finding is accepted (shown with the finding).
+    #[serde(default)]
+    pub reason: String,
+    /// When the acknowledgement lapses: epoch ms or ISO 8601, in the future. Omit or null for no
+    /// expiry.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<Value>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl InstanceSetAcksBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(reason: impl Into<String>) -> Self {
+        Self {
+            reason: reason.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `reason`.
+    pub fn with_reason(mut self, v: impl Into<String>) -> Self {
+        self.reason = v.into();
+        self
+    }
+    /// Set `expires_at`.
+    pub fn with_expires_at(mut self, v: impl Into<Value>) -> Self {
+        self.expires_at = Some(v.into());
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `POST /v1/instance/proxy_secret`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -20454,15 +20513,17 @@ pub struct InstanceUpdateReferralsBody {
     /// 1-10 names of \[A-Za-z0-9_.-\]{1,40}.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url_params: Option<Vec<String>>,
-    /// A cookie name, or a list of up to 5 names tried in order; null clears. Names are
-    /// \[A-Za-z0-9_.-\]{1,64}.
+    /// The older name of `context_cookies`, still accepted: a cookie name, or a list of up to 5
+    /// names tried in order; null clears. Names are \[A-Za-z0-9_.-\]{1,64}. Send `context_cookies`
+    /// instead.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         deserialize_with = "double_option"
     )]
     pub context_cookie: Option<Option<String>>,
-    /// The same as `context_cookie` with a list; wins when both are sent.
+    /// The canonical field: up to 5 cookie names (\[A-Za-z0-9_.-\]{1,64}) tried in order; \[\] or
+    /// null clears. Wins over `context_cookie` when both are sent.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -21493,6 +21554,10 @@ pub struct InvitationsBulkCreateBodyInvitationsItem {
     pub email_address: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metadata: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_in_days: Option<f64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -21512,6 +21577,16 @@ impl InvitationsBulkCreateBodyInvitationsItem {
     /// Set `public_metadata`.
     pub fn with_public_metadata(mut self, v: impl Into<Map<String, Value>>) -> Self {
         self.public_metadata = Some(v.into());
+        self
+    }
+    /// Set `expires_at`.
+    pub fn with_expires_at(mut self, v: impl Into<Value>) -> Self {
+        self.expires_at = Some(v.into());
+        self
+    }
+    /// Set `expires_in_days`.
+    pub fn with_expires_in_days(mut self, v: impl Into<f64>) -> Self {
+        self.expires_in_days = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -23839,6 +23914,14 @@ pub struct OAuthClientsCreateBody {
     /// UMA 2.0 claims-gathering redirect allowlist (exact match).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claims_redirect_uris: Option<Vec<String>>,
+    /// Also add the origins of redirect_uris to the instance's allowed_origins: https origins, plus
+    /// http://localhost, 127.0.0.1 and \[::1\] on a development instance; private-use schemes
+    /// never. Append only (never removes an origin); an origin already allowed (exactly or by a
+    /// wildcard) is skipped. Each write is an instance.updated entry in the config changelog. The
+    /// response lists what was added in added_origins. A client a connected integration signs users
+    /// in with gets this automatically.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub add_redirect_origins: Option<bool>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -23861,6 +23944,25 @@ pub struct OAuthClientsCreateBody {
     /// without the "Sign out?" page. Default false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// First-party clients only (422 otherwise). When true, the sign-in of the app follows the
+    /// Atlas session it came from: every successful refresh_token grant (and POST
+    /// /oauth2/session/touch) also counts as activity on that Atlas session, sliding its inactivity
+    /// window (never past its absolute expiry, at most one write a minute), and once that session
+    /// has ended (signed out, revoked, inactive or expired) the refresh fails with invalid_grant
+    /// and the grant is revoked, offline_access included. Grants not issued under a browser session
+    /// (device flow, CIBA) are unaffected. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// When true, /oauth2/authorize issues no code to this client for a user whose primary email is
+    /// not proven (a sign-up that skipped verification does not count). The first time, the user is
+    /// sent through the hosted sign-in, which asks them to verify the address with a code, and the
+    /// authorization then continues; if they come back still unverified, or under prompt=none, or
+    /// when the account has no email, the application has no email provider, or the client uses its
+    /// own login_url, the redirect carries error=access_denied with an error_description saying
+    /// why. Only new authorizations are checked (existing refresh tokens keep working). Default
+    /// false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// https URL of your own sign-in page; /oauth2/authorize then redirects there with a
     /// login_challenge. null clears (update).
     #[serde(
@@ -23918,6 +24020,14 @@ pub struct OAuthClientsCreateBody {
         deserialize_with = "double_option"
     )]
     pub token_lifetimes: Option<Option<OAuthClientsCreateBodyTokenLifetimes>>,
+    /// Your own secret for a confidential client, so a provisioning script can write it into its
+    /// config before the client exists. 32 to 256 printable ASCII characters (no spaces), random:
+    /// at least 10 different characters, none more than a quarter of the secret, no repeating
+    /// pattern (422 otherwise). Generate it with a CSPRNG, e.g. 32 random bytes in base64url. Omit
+    /// it and Atlas generates one. Refused for a client without a secret (public, key-based or
+    /// workload auth).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -23978,6 +24088,11 @@ impl OAuthClientsCreateBody {
         self.claims_redirect_uris = Some(v.into());
         self
     }
+    /// Set `add_redirect_origins`.
+    pub fn with_add_redirect_origins(mut self, v: impl Into<bool>) -> Self {
+        self.add_redirect_origins = Some(v.into());
+        self
+    }
     /// Set `backchannel_logout_uri`.
     pub fn with_backchannel_logout_uri(mut self, v: impl Into<String>) -> Self {
         self.backchannel_logout_uri = Some(Some(v.into()));
@@ -24011,6 +24126,16 @@ impl OAuthClientsCreateBody {
     /// Set `skip_logout_confirmation`.
     pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
         self.skip_logout_confirmation = Some(v.into());
+        self
+    }
+    /// Set `refresh_touches_session`.
+    pub fn with_refresh_touches_session(mut self, v: impl Into<bool>) -> Self {
+        self.refresh_touches_session = Some(v.into());
+        self
+    }
+    /// Set `require_verified_email`.
+    pub fn with_require_verified_email(mut self, v: impl Into<bool>) -> Self {
+        self.require_verified_email = Some(v.into());
         self
     }
     /// Set `login_url`.
@@ -24074,6 +24199,11 @@ impl OAuthClientsCreateBody {
     /// Send `token_lifetimes: null` to clear it.
     pub fn clear_token_lifetimes(mut self) -> Self {
         self.token_lifetimes = Some(None);
+        self
+    }
+    /// Set `client_secret`.
+    pub fn with_client_secret(mut self, v: impl Into<String>) -> Self {
+        self.client_secret = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -24419,6 +24549,14 @@ pub struct OAuthClientsUpdateBody {
     /// UMA 2.0 claims-gathering redirect allowlist (exact match).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claims_redirect_uris: Option<Vec<String>>,
+    /// Also add the origins of redirect_uris to the instance's allowed_origins: https origins, plus
+    /// http://localhost, 127.0.0.1 and \[::1\] on a development instance; private-use schemes
+    /// never. Append only (never removes an origin); an origin already allowed (exactly or by a
+    /// wildcard) is skipped. Each write is an instance.updated entry in the config changelog. The
+    /// response lists what was added in added_origins. A client a connected integration signs users
+    /// in with gets this automatically.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub add_redirect_origins: Option<bool>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -24441,6 +24579,25 @@ pub struct OAuthClientsUpdateBody {
     /// without the "Sign out?" page. Default false.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// First-party clients only (422 otherwise). When true, the sign-in of the app follows the
+    /// Atlas session it came from: every successful refresh_token grant (and POST
+    /// /oauth2/session/touch) also counts as activity on that Atlas session, sliding its inactivity
+    /// window (never past its absolute expiry, at most one write a minute), and once that session
+    /// has ended (signed out, revoked, inactive or expired) the refresh fails with invalid_grant
+    /// and the grant is revoked, offline_access included. Grants not issued under a browser session
+    /// (device flow, CIBA) are unaffected. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// When true, /oauth2/authorize issues no code to this client for a user whose primary email is
+    /// not proven (a sign-up that skipped verification does not count). The first time, the user is
+    /// sent through the hosted sign-in, which asks them to verify the address with a code, and the
+    /// authorization then continues; if they come back still unverified, or under prompt=none, or
+    /// when the account has no email, the application has no email provider, or the client uses its
+    /// own login_url, the redirect carries error=access_denied with an error_description saying
+    /// why. Only new authorizations are checked (existing refresh tokens keep working). Default
+    /// false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// https URL of your own sign-in page; /oauth2/authorize then redirects there with a
     /// login_challenge. null clears (update).
     #[serde(
@@ -24560,6 +24717,11 @@ impl OAuthClientsUpdateBody {
         self.claims_redirect_uris = Some(v.into());
         self
     }
+    /// Set `add_redirect_origins`.
+    pub fn with_add_redirect_origins(mut self, v: impl Into<bool>) -> Self {
+        self.add_redirect_origins = Some(v.into());
+        self
+    }
     /// Set `backchannel_logout_uri`.
     pub fn with_backchannel_logout_uri(mut self, v: impl Into<String>) -> Self {
         self.backchannel_logout_uri = Some(Some(v.into()));
@@ -24593,6 +24755,16 @@ impl OAuthClientsUpdateBody {
     /// Set `skip_logout_confirmation`.
     pub fn with_skip_logout_confirmation(mut self, v: impl Into<bool>) -> Self {
         self.skip_logout_confirmation = Some(v.into());
+        self
+    }
+    /// Set `refresh_touches_session`.
+    pub fn with_refresh_touches_session(mut self, v: impl Into<bool>) -> Self {
+        self.refresh_touches_session = Some(v.into());
+        self
+    }
+    /// Set `require_verified_email`.
+    pub fn with_require_verified_email(mut self, v: impl Into<bool>) -> Self {
+        self.require_verified_email = Some(v.into());
         self
     }
     /// Set `login_url`.
@@ -24792,6 +24964,39 @@ impl OAuthClientsUpdateBodyTokenLifetimes {
     /// Send `device_code_ttl_seconds: null` to clear it.
     pub fn clear_device_code_ttl_seconds(mut self) -> Self {
         self.device_code_ttl_seconds = Some(None);
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+/// The request body of `POST /v1/oauth_clients/{id}/logout`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsLogoutBody {
+    /// The `sid` claim of the id_token Atlas issued to this client: the Atlas session to sign out.
+    #[serde(default)]
+    pub sid: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl OAuthClientsLogoutBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new(sid: impl Into<String>) -> Self {
+        Self {
+            sid: sid.into(),
+            ..Default::default()
+        }
+    }
+    /// Set `sid`.
+    pub fn with_sid(mut self, v: impl Into<String>) -> Self {
+        self.sid = v.into();
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -46303,8 +46508,9 @@ pub struct AuthConfig {
     #[serde(rename = "signInAfterReset", default)]
     pub sign_in_after_reset: bool,
     /// public: anyone may sign up. waitlist: unknown addresses join a waitlist (403 WAITLISTED)
-    /// until approved. restricted: invitation-only — only invited or waitlist-approved addresses
-    /// may sign up (403 SIGN_UP_RESTRICTED otherwise).
+    /// until approved. restricted: invite-only — only an address with a pending, unexpired
+    /// invitation (POST /v1/invitations or an organization invitation) or an approved waitlist
+    /// entry may sign up (403 SIGN_UP_RESTRICTED otherwise).
     ///
     /// Known values: `public`, `waitlist`, `restricted`.
     #[serde(rename = "signUpMode", default)]
@@ -49046,6 +49252,12 @@ pub struct InstanceSetCaptchaSecretResponse {
     pub provider: String,
     #[serde(default)]
     pub set: Value,
+    /// true when site_key was sent and auth_config.captcha now runs this provider.
+    #[serde(default)]
+    pub switched: bool,
+    /// The stored auth_config.captcha after a switch (present only when switched).
+    #[serde(default, skip_serializing_if = "Map::is_empty")]
+    pub captcha: Map<String, Value>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -49135,13 +49347,17 @@ pub struct InstanceGetBeforeUserCreateHookResponse {
     /// How long a sign-up waits for the hook (500-5000, default 3000).
     #[serde(default)]
     pub timeout_ms: i64,
+    /// When true, a timeout, error or unusable answer refuses the sign-up (403 SIGN_UP_DENIED)
+    /// instead of letting it continue without your answer. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fail_closed: Option<bool>,
     /// The outcome of the last REAL call (a sign-up); "Test hook" calls do not change it. Null
     /// until the first real sign-up reaches the hook. Every call, tests included, is in GET
     /// …/before_user_create/calls.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_call: Option<InstanceGetBeforeUserCreateHookResponseLastCall>,
     /// Real calls in the last 24 hours (on GET only). A failed or timed-out call let the sign-up
-    /// through without your answer (no external_id).
+    /// through without your answer (no external_id), unless fail_closed refused it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recent: Option<InstanceGetBeforeUserCreateHookResponseRecent>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -49160,9 +49376,10 @@ pub struct InstanceGetBeforeUserCreateHookResponse {
 pub struct InstanceGetBeforeUserCreateHookResponseLastCall {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<i64>,
-    /// Known values: `ok`, `timeout`, `error`, `invalid_response`.
+    /// Known values: `ok`, `denied`, `timeout`, `error`, `invalid_response`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    /// Why it failed; for denied, the reason your hook gave.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -49172,17 +49389,20 @@ pub struct InstanceGetBeforeUserCreateHookResponseLastCall {
 }
 
 /// Real calls in the last 24 hours (on GET only). A failed or timed-out call let the sign-up
-/// through without your answer (no external_id).
+/// through without your answer (no external_id), unless fail_closed refused it.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceGetBeforeUserCreateHookResponseRecent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calls_24h: Option<i64>,
-    /// Calls that timed out, errored or answered something unusable.
+    /// Calls that timed out, errored or answered something unusable (denials are not failures).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failed_24h: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeouts_24h: Option<i64>,
+    /// Sign-ups your hook denied.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub denied_24h: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub p95_latency_ms: Option<i64>,
     /// Epoch-ms.
@@ -49212,13 +49432,17 @@ pub struct InstanceUpdateBeforeUserCreateHookResponse {
     /// How long a sign-up waits for the hook (500-5000, default 3000).
     #[serde(default)]
     pub timeout_ms: i64,
+    /// When true, a timeout, error or unusable answer refuses the sign-up (403 SIGN_UP_DENIED)
+    /// instead of letting it continue without your answer. Default false.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fail_closed: Option<bool>,
     /// The outcome of the last REAL call (a sign-up); "Test hook" calls do not change it. Null
     /// until the first real sign-up reaches the hook. Every call, tests included, is in GET
     /// …/before_user_create/calls.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_call: Option<InstanceUpdateBeforeUserCreateHookResponseLastCall>,
     /// Real calls in the last 24 hours (on GET only). A failed or timed-out call let the sign-up
-    /// through without your answer (no external_id).
+    /// through without your answer (no external_id), unless fail_closed refused it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recent: Option<InstanceUpdateBeforeUserCreateHookResponseRecent>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -49237,9 +49461,10 @@ pub struct InstanceUpdateBeforeUserCreateHookResponse {
 pub struct InstanceUpdateBeforeUserCreateHookResponseLastCall {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub at: Option<i64>,
-    /// Known values: `ok`, `timeout`, `error`, `invalid_response`.
+    /// Known values: `ok`, `denied`, `timeout`, `error`, `invalid_response`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<String>,
+    /// Why it failed; for denied, the reason your hook gave.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     /// Fields this version of the crate does not know about, kept verbatim.
@@ -49249,17 +49474,20 @@ pub struct InstanceUpdateBeforeUserCreateHookResponseLastCall {
 }
 
 /// Real calls in the last 24 hours (on GET only). A failed or timed-out call let the sign-up
-/// through without your answer (no external_id).
+/// through without your answer (no external_id), unless fail_closed refused it.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceUpdateBeforeUserCreateHookResponseRecent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calls_24h: Option<i64>,
-    /// Calls that timed out, errored or answered something unusable.
+    /// Calls that timed out, errored or answered something unusable (denials are not failures).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failed_24h: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeouts_24h: Option<i64>,
+    /// Sign-ups your hook denied.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub denied_24h: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub p95_latency_ms: Option<i64>,
     /// Epoch-ms.
@@ -49305,7 +49533,7 @@ pub struct InstanceListBeforeUserCreateCallsResponseDataItem {
     /// A "Test hook" call, not a sign-up.
     #[serde(default)]
     pub test: bool,
-    /// Known values: `ok`, `timeout`, `error`, `invalid_response`.
+    /// Known values: `ok`, `denied`, `timeout`, `error`, `invalid_response`.
     #[serde(default)]
     pub status: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -49315,7 +49543,7 @@ pub struct InstanceListBeforeUserCreateCallsResponseDataItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     /// What your hook answered: the external_id and only the keys of each metadata object (values
-    /// are never kept).
+    /// are never kept). For a denied call: {deny: true, reason}.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub answer: Option<InstanceListBeforeUserCreateCallsResponseDataItemAnswer>,
     /// Epoch-ms.
@@ -49328,10 +49556,14 @@ pub struct InstanceListBeforeUserCreateCallsResponseDataItem {
 }
 
 /// What your hook answered: the external_id and only the keys of each metadata object (values
-/// are never kept).
+/// are never kept). For a denied call: {deny: true, reason}.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceListBeforeUserCreateCallsResponseDataItemAnswer {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deny: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -49367,6 +49599,11 @@ pub struct InstanceTestBeforeUserCreateHookResponse {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceTestBeforeUserCreateHookResponseAnswer {
+    /// Your hook denied the sample sign-up; a real one would get 403 SIGN_UP_DENIED.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deny: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub external_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -49591,6 +49828,10 @@ pub struct OriginMoveWebhookTestsItem {
     /// Always `webhook.test`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_type: Option<String>,
+    /// The exact URL the attempt was POSTed to (the endpoint URL as stored), so a wrong path shows
+    /// here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
     /// Known values: `success`, `failed`.
     #[serde(default)]
     pub status: String,
@@ -50048,6 +50289,101 @@ pub struct InstanceTestPolicySourceResponseDelivery {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `GET /v1/instance/preflight/acks`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceAcksResponse {
+    /// Always `list`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub data: Vec<InstanceAcksResponseDataItem>,
+    #[serde(default)]
+    pub has_more: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceAcksResponseDataItem {
+    /// Always `preflight_ack`.
+    #[serde(default)]
+    pub object: String,
+    /// The preflight code it acknowledges (every finding with this code).
+    #[serde(default)]
+    pub code: String,
+    /// Why the finding is accepted.
+    #[serde(default)]
+    pub reason: String,
+    /// The API key or dashboard user that acknowledged it.
+    #[serde(default)]
+    pub by: Option<String>,
+    /// When it was acknowledged (epoch ms).
+    #[serde(default)]
+    pub at: i64,
+    /// When it lapses (epoch ms); null = until removed.
+    #[serde(default)]
+    pub expires_at: Option<i64>,
+    /// False once expires_at has passed: the finding counts again.
+    #[serde(default)]
+    pub active: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `DELETE /v1/instance/preflight/acks/{code}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceDeleteAcksResponse {
+    /// Always `preflight_ack`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub code: String,
+    #[serde(default)]
+    pub deleted: Value,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `PUT /v1/instance/preflight/acks/{code}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceSetAcksResponse {
+    /// Always `preflight_ack`.
+    #[serde(default)]
+    pub object: String,
+    /// The preflight code it acknowledges (every finding with this code).
+    #[serde(default)]
+    pub code: String,
+    /// Why the finding is accepted.
+    #[serde(default)]
+    pub reason: String,
+    /// The API key or dashboard user that acknowledged it.
+    #[serde(default)]
+    pub by: Option<String>,
+    /// When it was acknowledged (epoch ms).
+    #[serde(default)]
+    pub at: i64,
+    /// When it lapses (epoch ms); null = until removed.
+    #[serde(default)]
+    pub expires_at: Option<i64>,
+    /// False once expires_at has passed: the finding counts again.
+    #[serde(default)]
+    pub active: bool,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `DELETE /v1/instance/proxy_secret`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -50186,12 +50522,12 @@ pub struct InstanceGetReferralsResponse {
     /// Query parameters that carry a referral code, in priority order.
     #[serde(default)]
     pub url_params: Vec<String>,
-    /// The first tracking cookie read under consent; null = never read a cookie. `context_cookies`
-    /// lists every cookie, in the order they are tried.
+    /// Compatibility: the first entry of `context_cookies` (null when there is none). Kept for
+    /// clients written against the single-cookie field; read `context_cookies`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context_cookie: Option<String>,
-    /// First-party tracking cookies read under consent, in the order they are tried (the first one
-    /// present wins). Empty = never read a cookie.
+    /// The canonical field. First-party tracking cookies read under consent, in the order they are
+    /// tried (the first one present wins). Empty = never read a cookie.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub context_cookies: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -50663,12 +50999,12 @@ pub struct InstanceUpdateReferralsResponse {
     /// Query parameters that carry a referral code, in priority order.
     #[serde(default)]
     pub url_params: Vec<String>,
-    /// The first tracking cookie read under consent; null = never read a cookie. `context_cookies`
-    /// lists every cookie, in the order they are tried.
+    /// Compatibility: the first entry of `context_cookies` (null when there is none). Kept for
+    /// clients written against the single-cookie field; read `context_cookies`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context_cookie: Option<String>,
-    /// First-party tracking cookies read under consent, in the order they are tried (the first one
-    /// present wins). Empty = never read a cookie.
+    /// The canonical field. First-party tracking cookies read under consent, in the order they are
+    /// tried (the first one present wins). Empty = never read a cookie.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub context_cookies: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -52600,6 +52936,13 @@ pub struct User {
     pub ban_note: Option<String>,
     #[serde(default)]
     pub locked: bool,
+    /// One account state, the same value as the ID token's account_status: banned (an active ban;
+    /// deactivation by SCIM, directory sync or a workflow is a ban), suspended (a lock, suspension
+    /// directive or sign-in lockout is in force), else active.
+    ///
+    /// Known values: `active`, `suspended`, `banned`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
     /// Epoch-ms; non-null once soft-deleted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deleted_at: Option<i64>,
@@ -55233,6 +55576,11 @@ pub struct OAuthClientsListResponseDataItem {
     pub grant_types: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
+    /// Create and update responses only: the origins this write added to allowed_origins
+    /// (add_redirect_origins, or because a connected integration signs users in with this client).
+    /// \[\] when none were added.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_origins: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
     /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
@@ -55280,6 +55628,13 @@ pub struct OAuthClientsListResponseDataItem {
     /// RP-initiated logout skips the confirmation page (first-party clients only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// A refresh slides the Atlas session the grant came from; once that session has ended the
+    /// refresh fails (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// No authorization code is issued for a user whose primary email is not verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// The `sub` this client sees: the user id, or a per-sector pairwise identifier.
     ///
     /// Known values: `public`, `pairwise`.
@@ -55300,9 +55655,14 @@ pub struct OAuthClientsListResponseDataItem {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsListResponseDataItemTokenLifetimes>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    /// The client secret — returned on create (absent when auth method is `none`); a generated one
+    /// can be fetched once more within 10 minutes (client_secret_reveal).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
+    /// Where and until when the secret can be fetched once more (POST
+    /// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret_reveal: Option<OAuthClientsListResponseDataItemClientSecretReveal>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -55466,6 +55826,22 @@ pub struct OAuthClientsListResponseDataItemTokenLifetimes {
     pub extra: Map<String, Value>,
 }
 
+/// Where and until when the secret can be fetched once more (POST
+/// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsListResponseDataItemClientSecretReveal {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Epoch ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `POST /v1/oauth_clients`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -55492,6 +55868,11 @@ pub struct OAuthClientsCreateResponse {
     pub grant_types: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
+    /// Create and update responses only: the origins this write added to allowed_origins
+    /// (add_redirect_origins, or because a connected integration signs users in with this client).
+    /// \[\] when none were added.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_origins: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
     /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
@@ -55539,6 +55920,13 @@ pub struct OAuthClientsCreateResponse {
     /// RP-initiated logout skips the confirmation page (first-party clients only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// A refresh slides the Atlas session the grant came from; once that session has ended the
+    /// refresh fails (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// No authorization code is issued for a user whose primary email is not verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// The `sub` this client sees: the user id, or a per-sector pairwise identifier.
     ///
     /// Known values: `public`, `pairwise`.
@@ -55559,9 +55947,14 @@ pub struct OAuthClientsCreateResponse {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsCreateResponseTokenLifetimes>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    /// The client secret — returned on create (absent when auth method is `none`); a generated one
+    /// can be fetched once more within 10 minutes (client_secret_reveal).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
+    /// Where and until when the secret can be fetched once more (POST
+    /// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret_reveal: Option<OAuthClientsCreateResponseClientSecretReveal>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -55725,6 +56118,22 @@ pub struct OAuthClientsCreateResponseTokenLifetimes {
     pub extra: Map<String, Value>,
 }
 
+/// Where and until when the secret can be fetched once more (POST
+/// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsCreateResponseClientSecretReveal {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Epoch ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `POST /v1/oauth_clients/import`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -55772,6 +56181,11 @@ pub struct OAuthClientsImportResponseDataItem {
     pub grant_types: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
+    /// Create and update responses only: the origins this write added to allowed_origins
+    /// (add_redirect_origins, or because a connected integration signs users in with this client).
+    /// \[\] when none were added.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_origins: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
     /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
@@ -55819,6 +56233,13 @@ pub struct OAuthClientsImportResponseDataItem {
     /// RP-initiated logout skips the confirmation page (first-party clients only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// A refresh slides the Atlas session the grant came from; once that session has ended the
+    /// refresh fails (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// No authorization code is issued for a user whose primary email is not verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// The `sub` this client sees: the user id, or a per-sector pairwise identifier.
     ///
     /// Known values: `public`, `pairwise`.
@@ -55839,9 +56260,14 @@ pub struct OAuthClientsImportResponseDataItem {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsImportResponseDataItemTokenLifetimes>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    /// The client secret — returned on create (absent when auth method is `none`); a generated one
+    /// can be fetched once more within 10 minutes (client_secret_reveal).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
+    /// Where and until when the secret can be fetched once more (POST
+    /// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret_reveal: Option<OAuthClientsImportResponseDataItemClientSecretReveal>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -56005,6 +56431,22 @@ pub struct OAuthClientsImportResponseDataItemTokenLifetimes {
     pub extra: Map<String, Value>,
 }
 
+/// Where and until when the secret can be fetched once more (POST
+/// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsImportResponseDataItemClientSecretReveal {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Epoch ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `GET /v1/oauth_clients/{clientId}/grants`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -56114,6 +56556,11 @@ pub struct OAuthClientsGetResponse {
     pub grant_types: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
+    /// Create and update responses only: the origins this write added to allowed_origins
+    /// (add_redirect_origins, or because a connected integration signs users in with this client).
+    /// \[\] when none were added.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_origins: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
     /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
@@ -56161,6 +56608,13 @@ pub struct OAuthClientsGetResponse {
     /// RP-initiated logout skips the confirmation page (first-party clients only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// A refresh slides the Atlas session the grant came from; once that session has ended the
+    /// refresh fails (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// No authorization code is issued for a user whose primary email is not verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// The `sub` this client sees: the user id, or a per-sector pairwise identifier.
     ///
     /// Known values: `public`, `pairwise`.
@@ -56181,9 +56635,14 @@ pub struct OAuthClientsGetResponse {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsGetResponseTokenLifetimes>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    /// The client secret — returned on create (absent when auth method is `none`); a generated one
+    /// can be fetched once more within 10 minutes (client_secret_reveal).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
+    /// Where and until when the secret can be fetched once more (POST
+    /// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret_reveal: Option<OAuthClientsGetResponseClientSecretReveal>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -56347,6 +56806,22 @@ pub struct OAuthClientsGetResponseTokenLifetimes {
     pub extra: Map<String, Value>,
 }
 
+/// Where and until when the secret can be fetched once more (POST
+/// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsGetResponseClientSecretReveal {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Epoch ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `PATCH /v1/oauth_clients/{id}`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -56373,6 +56848,11 @@ pub struct OAuthClientsUpdateResponse {
     pub grant_types: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
+    /// Create and update responses only: the origins this write added to allowed_origins
+    /// (add_redirect_origins, or because a connected integration signs users in with this client).
+    /// \[\] when none were added.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_origins: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
     /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
@@ -56420,6 +56900,13 @@ pub struct OAuthClientsUpdateResponse {
     /// RP-initiated logout skips the confirmation page (first-party clients only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// A refresh slides the Atlas session the grant came from; once that session has ended the
+    /// refresh fails (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// No authorization code is issued for a user whose primary email is not verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// The `sub` this client sees: the user id, or a per-sector pairwise identifier.
     ///
     /// Known values: `public`, `pairwise`.
@@ -56440,9 +56927,14 @@ pub struct OAuthClientsUpdateResponse {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsUpdateResponseTokenLifetimes>,
-    /// The client secret — returned ONCE on create (absent when auth method is `none`).
+    /// The client secret — returned on create (absent when auth method is `none`); a generated one
+    /// can be fetched once more within 10 minutes (client_secret_reveal).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_secret: Option<String>,
+    /// Where and until when the secret can be fetched once more (POST
+    /// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret_reveal: Option<OAuthClientsUpdateResponseClientSecretReveal>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -56606,6 +57098,22 @@ pub struct OAuthClientsUpdateResponseTokenLifetimes {
     pub extra: Map<String, Value>,
 }
 
+/// Where and until when the secret can be fetched once more (POST
+/// /v1/oauth_clients/{id}/secret/reveal). Absent when you chose the secret yourself.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsUpdateResponseClientSecretReveal {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Epoch ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The `BackchannelLogoutDeliveryList` object.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -56727,6 +57235,36 @@ pub struct BackchannelLogoutTest {
     pub extra: Map<String, Value>,
 }
 
+/// The response of `POST /v1/oauth_clients/{id}/logout`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsLogoutResponse {
+    /// Always `oauth_client_logout`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub client_id: String,
+    #[serde(default)]
+    pub sid: String,
+    /// `revoked`: this call ended the Atlas session. `already_ended`: it had already ended (signed
+    /// out, revoked, inactive or expired).
+    ///
+    /// Known values: `revoked`, `already_ended`.
+    #[serde(default)]
+    pub session: String,
+    /// This client's refresh grants under the sid that were revoked (offline_access included).
+    #[serde(default)]
+    pub grants_revoked: i64,
+    /// Back-channel logouts queued, to this client and to every other app signed in through the
+    /// session (sent now, retried on failure).
+    #[serde(default)]
+    pub backchannel_logouts: i64,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
 /// The response of `PUT /v1/oauth_clients/{id}/organization_access`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
@@ -56824,6 +57362,11 @@ pub struct OAuthClientsRotateSecretResponse {
     pub grant_types: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_endpoint_auth_method: Option<String>,
+    /// Create and update responses only: the origins this write added to allowed_origins
+    /// (add_redirect_origins, or because a connected integration signs users in with this client).
+    /// \[\] when none were added.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_origins: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secret_prefix: Option<String>,
     /// After a rotation with overlap: when the previous secret stops working (epoch ms). Null when
@@ -56871,6 +57414,13 @@ pub struct OAuthClientsRotateSecretResponse {
     /// RP-initiated logout skips the confirmation page (first-party clients only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_logout_confirmation: Option<bool>,
+    /// A refresh slides the Atlas session the grant came from; once that session has ended the
+    /// refresh fails (first-party clients only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_touches_session: Option<bool>,
+    /// No authorization code is issued for a user whose primary email is not verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_verified_email: Option<bool>,
     /// The `sub` this client sees: the user id, or a per-sector pairwise identifier.
     ///
     /// Known values: `public`, `pairwise`.
@@ -56891,9 +57441,14 @@ pub struct OAuthClientsRotateSecretResponse {
     /// This client's token lifetime overrides (seconds); null = inherited.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_lifetimes: Option<OAuthClientsRotateSecretResponseTokenLifetimes>,
-    /// The new client secret. Returned exactly once.
+    /// The new client secret. Returned here, and once more within 10 minutes through
+    /// client_secret_reveal.
     #[serde(default)]
     pub client_secret: String,
+    /// Where and until when the secret can be fetched once more (POST
+    /// /v1/oauth_clients/{id}/secret/reveal).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret_reveal: Option<OAuthClientsRotateSecretResponseClientSecretReveal>,
     /// Created (epoch ms).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
@@ -57056,6 +57611,61 @@ pub struct OAuthClientsRotateSecretResponseTokenLifetimes {
     /// Default 600.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub device_code_ttl_seconds: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Where and until when the secret can be fetched once more (POST
+/// /v1/oauth_clients/{id}/secret/reveal).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRotateSecretResponseClientSecretReveal {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Epoch ms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `POST /v1/oauth_clients/{id}/secret/reveal`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct OAuthClientsRevealResponse {
+    /// Always `oauth_client_secret`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// The secret the latest create or rotate generated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret_prefix: Option<String>,
+    /// When this secret stops authenticating (epoch ms); null = never.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_secret_expires_at: Option<i64>,
+    /// Dry run only: whether the reveal can still be used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available: Option<bool>,
+    /// Dry run only: when the window closes (epoch ms).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    /// With an `X-Secret-Recipient`: `client_secret` sealed to it (then `client_secret` is absent).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sealed_client_secret: Option<String>,
+    /// With an `X-Secret-Recipient`: the fields that arrived sealed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets_sealed: Option<SecretsSealed>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -60799,6 +61409,32 @@ pub struct PreflightFinding {
     /// Only with include_suppressed=true: why it does not apply.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suppressed_reason: Option<String>,
+    /// Present when the code is acknowledged (PUT /v1/instance/preflight/acks/{code}): a known,
+    /// accepted warning or info finding that no longer counts. Never on an error.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acknowledged: Option<PreflightFindingAcknowledged>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// Present when the code is acknowledged (PUT /v1/instance/preflight/acks/{code}): a known,
+/// accepted warning or info finding that no longer counts. Never on an error.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct PreflightFindingAcknowledged {
+    #[serde(default)]
+    pub reason: String,
+    /// The API key or dashboard user that acknowledged it.
+    #[serde(default)]
+    pub by: Option<String>,
+    /// Epoch ms.
+    #[serde(default)]
+    pub at: i64,
+    /// Epoch ms; null = until removed.
+    #[serde(default)]
+    pub expires_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

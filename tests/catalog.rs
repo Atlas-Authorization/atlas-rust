@@ -2623,6 +2623,30 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance().acks(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/preflight/acks?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.instance().delete_acks("p0_code").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/preflight/acks/p0_code".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .set_acks("p0_code", &types::InstanceSetAcksBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/instance/preflight/acks/p0_code".into(),
+        B::Obj,
+        false,
+    ));
     c.instance().delete_proxy_secret().await.unwrap();
     expected.push((
         HttpMethod::Delete,
@@ -3614,6 +3638,20 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.oauth_clients()
+        .logout(
+            "p0_id",
+            &types::OAuthClientsLogoutBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/oauth_clients/p0_id/logout".into(),
+        B::Obj,
+        true,
+    ));
+    c.oauth_clients()
         .set_organization_access(
             "p0_id",
             &types::OAuthClientsSetOrganizationAccessBody::default(),
@@ -3645,6 +3683,16 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/oauth_clients/p0_id/rotate_secret".into(),
         B::Obj,
+        true,
+    ));
+    c.oauth_clients()
+        .reveal("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/oauth_clients/p0_id/secret/reveal".into(),
+        B::None,
         true,
     ));
     c.oauth_clients()
@@ -6417,4 +6465,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 721 operations, 692 typed; 721 calls.
+// 726 operations, 697 typed; 726 calls.

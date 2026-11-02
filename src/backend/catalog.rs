@@ -5198,7 +5198,13 @@ impl Instance<'_> {
     /// never read back). Captcha always runs on your own provider keys, so store the secret first:
     /// `provider` names the provider it belongs to (default: the configured
     /// auth_config.captcha.provider), so it can be stored before the captcha is turned on. Without
-    /// a provider in the body or the config, the call is refused.
+    /// a provider in the body or the config, the call is refused. Key-only switch: send `site_key`
+    /// too and the same call sets auth_config.captcha.provider and siteKey in one atomic write, so
+    /// moving from the built-in atlas captcha to Turnstile is { provider: "turnstile", secret,
+    /// site_key } (the same CAPTCHA_KEYS_REQUIRED and validation checks as PATCH /v1/instance
+    /// apply; `switched: true` and the stored `captcha` come back). Flows or actions that name
+    /// their own provider keep it. The two-step path (this call, then PATCH /v1/instance) still
+    /// works.
     ///
     /// Takes [`types::InstanceSetCaptchaSecretBody`]. Returns [`types::InstanceSetCaptchaSecretResponse`].
     pub async fn set_captcha_secret(
@@ -5393,8 +5399,10 @@ impl Instance<'_> {
     /// `PATCH /v1/instance/hooks/before_user_create` — Update the before_user_create hook. Only the
     /// fields you send change; null clears. The hook is called (signed like a webhook) after the
     /// user id is assigned and before user.created, the referral call and any session. It may
-    /// answer {external_id, public_metadata, private_metadata, unsafe_metadata}. A slow or failing
-    /// hook never blocks the sign-up.
+    /// answer {external_id, public_metadata, private_metadata, unsafe_metadata}, or deny the
+    /// sign-up with {"deny": true, "reason": "..."} or HTTP 403: the person gets 403 SIGN_UP_DENIED
+    /// with your reason, no user is kept and no user.created is sent. A slow or failing hook does
+    /// not block the sign-up unless fail_closed is true.
     ///
     /// Takes [`types::InstanceUpdateBeforeUserCreateHookBody`]. Returns [`types::InstanceUpdateBeforeUserCreateHookResponse`].
     pub async fn update_before_user_create_hook(
@@ -5738,6 +5746,60 @@ impl Instance<'_> {
                 None,
                 None,
             )
+            .await
+    }
+    /// `GET /v1/instance/preflight/acks` — Every preflight acknowledgement on the instance, lapsed
+    /// ones included (active: false). An acknowledgement marks every finding with its code as known
+    /// and accepted.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::InstanceAcksResponse`].
+    pub async fn acks(&self, query: &Query) -> Result<types::InstanceAcksResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/preflight/acks",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/preflight/acks/{code}` — Remove an acknowledgement: the findings with
+    /// this code count again. 404 when the code has none. A config-changelog entry
+    /// (preflight_ack.removed).
+    ///
+    /// Returns [`types::InstanceDeleteAcksResponse`].
+    pub async fn delete_acks(
+        &self,
+        code: &str,
+    ) -> Result<types::InstanceDeleteAcksResponse, BackendError> {
+        let path = format!("/v1/instance/preflight/acks/{}", seg(code));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/instance/preflight/acks/{code}` — Acknowledge a preflight finding you know about
+    /// and accept, with a reason: GET /v1/instance/preflight still lists every finding with this
+    /// code, marked acknowledged: { reason, by, at, expires_at }, and it no longer counts as
+    /// something to fix (the dashboard and atlas preflight --fail-on warning skip it). Replaces any
+    /// earlier acknowledgement of the code. expires_at (epoch ms or ISO 8601, in the future; omit
+    /// or null for no expiry) makes it lapse, after which the finding counts again. A code that can
+    /// be an error-severity finding is refused with 422 VALIDATION_FAILED (param code, meta.reason
+    /// error_severity_not_acknowledgeable): errors are fixed, never acknowledged. An unknown code
+    /// is 400. Each change is a config-changelog entry (preflight_ack.saved). dry_run=true
+    /// validates without saving.
+    ///
+    /// Takes [`types::InstanceSetAcksBody`]. Returns [`types::InstanceSetAcksResponse`].
+    pub async fn set_acks(
+        &self,
+        code: &str,
+        body: &types::InstanceSetAcksBody,
+    ) -> Result<types::InstanceSetAcksResponse, BackendError> {
+        let path = format!("/v1/instance/preflight/acks/{}", seg(code));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
     /// `DELETE /v1/instance/proxy_secret` — Remove the trusted reverse proxy secret (current and
@@ -6203,8 +6265,10 @@ impl Instance<'_> {
 }
 
 impl Invitations<'_> {
-    /// `POST /v1/invitations/bulk` — Bulk-create instance invitations (≤100). Per-entry
-    /// validation/dedup; returns created + errors.
+    /// `POST /v1/invitations/bulk` — Bulk-create instance invitations (≤100). Each entry takes
+    /// email_address, public_metadata, expires_at or expires_in_days as on POST /v1/invitations.
+    /// Per-entry validation/dedup; returns created + errors. Fires invitation.created per created
+    /// entry.
     ///
     /// Takes [`types::InvitationsBulkCreateBody`]. Returns [`types::InvitationsBulkCreateResponse`].
     pub async fn bulk_create(
@@ -7662,9 +7726,17 @@ impl OAuthClients<'_> {
             .await
     }
     /// `POST /v1/oauth_clients` — Register an OAuth client (confidential or public PKCE). A
-    /// confidential client's secret is revealed exactly once. Idempotent create: `external_ref`
-    /// returns the existing object on a repeat (200, `idempotent_replay: true`, no secret
-    /// re-shown); `metadata` tags it (filter lists with ?metadata\[key\]=value).
+    /// confidential client's secret is in the response; a generated one can be fetched once more
+    /// within 10 minutes with POST /v1/oauth_clients/{id}/secret/reveal (`client_secret_reveal`
+    /// gives the path and deadline). Send `client_secret` to choose the secret yourself (32-256
+    /// random printable characters), so a provisioning script can re-run safely.
+    /// `require_verified_email: true` makes /oauth2/authorize refuse users whose primary email is
+    /// not verified. Idempotent create: `external_ref` returns the existing object on a repeat
+    /// (200, `idempotent_replay: true`, no secret re-shown); `metadata` tags it (filter lists with
+    /// ?metadata\[key\]=value). `add_redirect_origins: true` also adds the redirect URIs' origins
+    /// to allowed_origins (append only; listed in added_origins); a client that a connected
+    /// integration signs users in with (its oauth_client_id, or tagged metadata
+    /// product=&lt;integration id&gt;) gets them automatically.
     ///
     /// Takes [`types::OAuthClientsCreateBody`]. Returns [`types::OAuthClientsCreateResponse`].
     pub async fn create(
@@ -7774,7 +7846,9 @@ impl OAuthClients<'_> {
             .await
     }
     /// `PATCH /v1/oauth_clients/{id}` — Update an OAuth client's registration (name, redirect_uris,
-    /// scopes). The secret is immutable here. Accepts `metadata` (replaces the provisioning tags).
+    /// scopes). The secret is immutable here. Accepts `metadata` (replaces the provisioning tags)
+    /// and `add_redirect_origins` (adds the redirect URIs' origins to allowed_origins, append only;
+    /// listed in added_origins, automatic for an integration's sign-in client).
     ///
     /// Takes [`types::OAuthClientsUpdateBody`]. Returns [`types::OAuthClientsUpdateResponse`].
     pub async fn update(
@@ -7830,6 +7904,39 @@ impl OAuthClients<'_> {
             .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
+    /// `POST /v1/oauth_clients/{id}/logout` — Sign a user out of this app and of Atlas in one
+    /// server-side call. The path takes the client id (`oac_...`) or its public `client_id`. Body
+    /// `sid` = the `sid` claim of the id_token Atlas issued to this client. Revokes every refresh
+    /// grant this client holds under the sid (offline_access included) and forgets its
+    /// ID-token-only sign-in; revokes the Atlas session itself exactly like POST
+    /// /v1/sessions/{id}/revoke (session.revoked webhook, back-channel logout to every other app
+    /// signed in through it); and sends this client a back-channel logout so its other servers hear
+    /// it. Afterwards the Atlas cookie in the browser points at a dead session, so no redirect to
+    /// /oauth2/logout is needed (it remains available when you want a post_logout_redirect_uri).
+    /// Needs BOTH `oauth_clients:write` and `sessions:write` on the key. 404 when the client or the
+    /// session is not in this instance; 403 when that session never signed in to this client (use
+    /// POST /v1/sessions/{id}/revoke for any session). A session that had already ended answers
+    /// `session: "already_ended"` and still has the grants of this client under it revoked.
+    /// Supports `?dry_run=true`.
+    ///
+    /// Takes [`types::OAuthClientsLogoutBody`]. Returns [`types::OAuthClientsLogoutResponse`].
+    pub async fn logout(
+        &self,
+        id: &str,
+        body: &types::OAuthClientsLogoutBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::OAuthClientsLogoutResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/logout", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
     /// `PUT /v1/oauth_clients/{id}/organization_access` — Set who may use an application. `open`
     /// (default): any organization. `restricted`: only organizations granted access (and, when a
     /// grant lists roles, members holding them); a sign-in outside an entitled organization is
@@ -7863,11 +7970,12 @@ impl OAuthClients<'_> {
             .await
     }
     /// `POST /v1/oauth_clients/{id}/rotate_secret` — Rotate a confidential client's secret; the new
-    /// one is revealed exactly once. The previous secret keeps working for `overlap_seconds`
-    /// (default 86400 = 24 hours, at most 604800 = 7 days) so you can deploy the new one without
-    /// downtime; pass `overlap_seconds: 0` to revoke it now (for example after a leak).
-    /// `previous_secret_expires_at` says when the old secret stops working (epoch ms), or null when
-    /// it already has. 409 for a public client.
+    /// one is in the response and can be fetched once more within 10 minutes with POST
+    /// /v1/oauth_clients/{id}/secret/reveal. The previous secret keeps working for
+    /// `overlap_seconds` (default 86400 = 24 hours, at most 604800 = 7 days) so you can deploy the
+    /// new one without downtime; pass `overlap_seconds: 0` to revoke it now (for example after a
+    /// leak). `previous_secret_expires_at` says when the old secret stops working (epoch ms), or
+    /// null when it already has. 409 for a public client.
     ///
     /// Takes [`types::OAuthClientsRotateSecretBody`]. Returns [`types::OAuthClientsRotateSecretResponse`].
     pub async fn rotate_secret_with(
@@ -7899,6 +8007,28 @@ impl OAuthClients<'_> {
             idempotency_key,
         )
         .await
+    }
+    /// `POST /v1/oauth_clients/{id}/secret/reveal` — Show a confidential client's secret once more:
+    /// for a script that crashed between the create (or rotate) response and saving the secret.
+    /// Works once, within 10 minutes of the POST /v1/oauth_clients or POST
+    /// /v1/oauth_clients/{id}/rotate_secret that generated it, and only while that secret is still
+    /// the client's current one. The secret is kept encrypted for that window only and is cleared
+    /// by this call, so a second call, a call after the window, a secret you chose yourself, or one
+    /// rotated away since is 410 and the answer is to rotate. Audited (oauth_client.secret_revealed
+    /// / oauth_client.secret_reveal_refused). An operator token needs a recent MFA. With
+    /// `?dry_run=true` nothing is consumed: the response says whether the reveal is still available
+    /// and until when. Unknown client is 404.
+    ///
+    /// Returns [`types::OAuthClientsRevealResponse`].
+    pub async fn reveal(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::OAuthClientsRevealResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/secret/reveal", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
     }
     /// `GET /v1/oauth_clients/{id}/token_exchange_profiles` — List the custom subject_token_type
     /// URIs an OAuth client may present to the token-exchange grant.
@@ -11849,13 +11979,16 @@ impl ImportExport<'_> {
     /// `POST /v1/user_imports` — Bulk-create users from an array, deduping by verified email,
     /// through the same path sign-up uses. Plaintext passwords are Argon2id-hashed; Argon2id,
     /// bcrypt, PBKDF2/scrypt (Django, passlib), Firebase scrypt (with
-    /// password_hash_config.firebase) and Better Auth scrypt hashes are imported verbatim. A hash
-    /// that does not describe itself is imported by naming it: password_hash_algorithm (scrypt,
-    /// pbkdf2, md5, sha1, sha256, sha512, their _salted forms, hmac_sha256, bcrypt, …) with
-    /// password_hash_params (scrypt n or log_n / r / p / key_length; pbkdf2 digest / iterations /
-    /// key_length; md5 and sha* salt_position prefix|suffix; encoding and salt_encoding
-    /// hex|base64|base64url|utf8) and password_salt; the hash may be the bare digest or
-    /// `&lt;salt&gt;$&lt;hash&gt;` / `&lt;name&gt;$&lt;salt&gt;$&lt;hash&gt;` (e.g.
+    /// password_hash_config.firebase), Better Auth scrypt and Node crypto.scrypt
+    /// `scrypt$N$r$p$salt$key` hashes are imported verbatim (a Node string with an all-digit salt
+    /// is also a valid Django one and must be named: password_hash_algorithm scrypt_node or
+    /// scrypt_django; scrypt_node takes salt_encoding, default utf8 = the salt text as written). A
+    /// hash that does not describe itself is imported by naming it: password_hash_algorithm
+    /// (scrypt, pbkdf2, md5, sha1, sha256, sha512, their _salted forms, hmac_sha256, bcrypt, …)
+    /// with password_hash_params (scrypt n or log_n / r / p / key_length; pbkdf2 digest /
+    /// iterations / key_length; md5 and sha* salt_position prefix|suffix; encoding and
+    /// salt_encoding hex|base64|base64url|utf8) and password_salt; the hash may be the bare digest
+    /// or `&lt;salt&gt;$&lt;hash&gt;` / `&lt;name&gt;$&lt;salt&gt;$&lt;hash&gt;` (e.g.
     /// `scrypt$&lt;salt&gt;$&lt;hash&gt;` with the parameters given separately). Every imported
     /// hash is checked with a constant-time compare and upgraded to Argon2id on the first
     /// successful sign-in; a format that cannot be checked is rejected per row

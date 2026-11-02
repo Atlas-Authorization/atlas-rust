@@ -2,6 +2,14 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.29.0 — 2026-11-02
+
+### Added
+
+- **Back-channel sign-out from your backend.** `oauth_clients().logout(id, &OAuthClientsLogoutBody::new(sid), idempotency_key)` (`POST /v1/oauth_clients/{id}/logout`) signs the user out of your app and of Atlas in one call; `OAuthClientsLogoutResponse` carries `session` (`revoked` / `already_ended`), `grants_revoked` and `backchannel_logouts`.
+- OAuth clients: `refresh_touches_session` (first-party; a refresh keeps the Atlas session alive and fails once it has ended) and the write-only `add_redirect_origins` on `OAuthClientsCreateBody` / `OAuthClientsUpdateBody`; responses carry `refresh_touches_session` and, on writes, `added_origins`.
+- `InstanceSetCaptchaSecretBody::site_key` (`with_site_key`): storing the secret and switching `auth_config.captcha` to that provider happen in one atomic write; the response has `switched` and `captcha`.
+
 ## 0.28.0 — 2026-11-01
 
 ### Added
