@@ -325,6 +325,7 @@ KEEP_OPTIONAL = {
 
 # Exact (METHOD, template-path) -> method name overrides.
 OVR = {
+    ('GET', '/v1/workflows/{id}/runs/{runId}'): 'get_run',
     ('GET', '/v1/administrative_units/{id}/members'): 'list_members',
     ('POST', '/v1/administrative_units/{id}/members'): 'create_member',
     ('GET', '/v1/app_catalog/custom_presets'): 'list_custom_presets',

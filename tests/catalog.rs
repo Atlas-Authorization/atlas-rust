@@ -6353,7 +6353,7 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.workflows().runs("p0_id", "p1_run_id").await.unwrap();
+    c.workflows().get_run("p0_id", "p1_run_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
         "/v1/workflows/p0_id/runs/p1_run_id".into(),

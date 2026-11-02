@@ -505,7 +505,7 @@ pub struct PartnerLink {
 
 /// `/v1/partner_links`. Reached via [`BackendClient::partner_links`].
 pub struct PartnerLinks<'a> {
-    client: &'a BackendClient,
+    pub(super) client: &'a BackendClient,
 }
 
 impl PartnerLinks<'_> {

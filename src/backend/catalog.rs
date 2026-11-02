@@ -13068,7 +13068,11 @@ impl Workflows<'_> {
     /// status, attempt, detail and output.
     ///
     /// Returns [`types::WorkflowRun`].
-    pub async fn runs(&self, id: &str, run_id: &str) -> Result<types::WorkflowRun, BackendError> {
+    pub async fn get_run(
+        &self,
+        id: &str,
+        run_id: &str,
+    ) -> Result<types::WorkflowRun, BackendError> {
         let path = format!("/v1/workflows/{}/runs/{}", seg(id), seg(run_id));
         self.client
             .request(HttpMethod::Get, &path, &[], None, None)
