@@ -10202,3 +10202,32 @@ impl BackendClient {
         McpGateways { client: self }
     }
 }
+
+impl super::Opa<'_> {
+    /// `POST /v1/opa/v1/data/{path}` — OPA Data API over Atlas: POST `{ "input": ... }` to a
+    /// decision path such as `atlas/abac/allow`, `atlas/abac/decision` or
+    /// `atlas/fga/{store}/allow`. `path` is the decision path; each `/`-separated
+    /// part is encoded on its own, so the slashes stay path separators.
+    pub async fn data(
+        &self,
+        path: &str,
+        body: &Value,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let sub = path
+            .trim_matches('/')
+            .split('/')
+            .map(seg)
+            .collect::<Vec<_>>()
+            .join("/");
+        self.client
+            .request(
+                HttpMethod::Post,
+                &format!("/v1/opa/v1/data/{}", sub),
+                &[],
+                Some(body.clone()),
+                idempotency_key,
+            )
+            .await
+    }
+}

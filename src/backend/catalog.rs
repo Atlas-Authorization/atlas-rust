@@ -33,8 +33,10 @@ use super::resources::{body_of, seg};
 use super::types;
 #[allow(unused_imports)]
 use super::{
-    ApiKeys, AtlasIdApps, AtlasIdPublisherApi, Billing, Instance, Invitations,
-    MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PlatformApi, Sessions, Users,
+    Abac, AccessPolicies, Agents, ApiKeys, AppCatalog, AtlasIdApps, AtlasIdPublisherApi,
+    AuthzDecisions, Billing, Connections, DesktopMfa, Devices, Iga, Instance, Invitations,
+    McpGateways, MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PartnerLinks,
+    PlatformApi, Sessions, Ssf, Users, Vc, Workflows,
 };
 
 /// The community Actions gallery: browse, install and update Action templates. Reached via [`BackendClient::action_gallery`].
@@ -57,6 +59,16 @@ pub struct ActorTokens<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Administrative units: scoped delegated administration. Reached via [`BackendClient::administrative_units`].
+pub struct AdministrativeUnits<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Access reviews for AI agents. Reached via [`BackendClient::agent_access_reviews`].
+pub struct AgentAccessReviews<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Sign-up allowlist. Reached via [`BackendClient::allowlist_identifiers`].
 pub struct AllowlistIdentifiers<'a> {
     pub(super) client: &'a BackendClient,
@@ -74,6 +86,21 @@ pub struct AttackProtection<'a> {
 
 /// The instance audit log. Reached via [`BackendClient::audit_logs`].
 pub struct AuditLogs<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Audit log retention. Reached via [`BackendClient::audit_retention`].
+pub struct AuditRetention<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Authenticator policies. Reached via [`BackendClient::authenticator_policies`].
+pub struct AuthenticatorPolicies<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// External policy decision points. Reached via [`BackendClient::authz_pdps`].
+pub struct AuthzPdps<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -102,13 +129,33 @@ pub struct Captcha<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Chat integrations (approvals and alerts in chat). Reached via [`BackendClient::chat_integrations`].
+pub struct ChatIntegrations<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Cloud access targets. Reached via [`BackendClient::cloud_access`].
+pub struct CloudAccess<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The configuration change log. Reached via [`BackendClient::config_changelog`].
 pub struct ConfigChangelog<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Connection actions. Reached via [`BackendClient::connection_actions`].
+pub struct ConnectionActions<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Connectors (custom OAuth providers) and the community directory. Reached via [`BackendClient::connectors`].
 pub struct Connectors<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Incident containments. Reached via [`BackendClient::containments`].
+pub struct Containments<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -119,6 +166,21 @@ pub struct CustomOAuthProviders<'a> {
 
 /// Data subject (privacy) requests. Reached via [`BackendClient::data_subject_requests`].
 pub struct DataSubjectRequests<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Device assurance policies. Reached via [`BackendClient::device_assurance_policies`].
+pub struct DeviceAssurancePolicies<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Device management integrations. Reached via [`BackendClient::device_integrations`].
+pub struct DeviceIntegrations<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Device single sign-on registrations. Reached via [`BackendClient::device_sso`].
+pub struct DeviceSso<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -144,6 +206,11 @@ pub struct EmailTemplates<'a> {
 
 /// The event log. Reached via [`BackendClient::events`].
 pub struct Events<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Federation. Reached via [`BackendClient::federation`].
+pub struct Federation<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -207,6 +274,21 @@ pub struct McpConnector<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The MCP server registry. Reached via [`BackendClient::mcp_registry`].
+pub struct McpRegistry<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Messaging suppressions. Reached via [`BackendClient::messaging`].
+pub struct Messaging<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Quarantined MFA factors. Reached via [`BackendClient::mfa_factor_quarantines`].
+pub struct MfaFactorQuarantines<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The Better Auth session bridge: exchange a returning user's Better Auth session for an Atlas session during the migration window. Reached via [`BackendClient::better_auth_bridge`].
 pub struct BetterAuthBridgeApi<'a> {
     pub(super) client: &'a BackendClient,
@@ -214,6 +296,11 @@ pub struct BetterAuthBridgeApi<'a> {
 
 /// Network ACLs. Reached via [`BackendClient::network_acls`].
 pub struct NetworkAcls<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// OAuth application types. Reached via [`BackendClient::oauth_application_types`].
+pub struct OAuthApplicationTypes<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -227,6 +314,11 @@ pub struct OAuthInitialAccessTokens<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// The OPA-compatible bundle, status, decision-log and data API. Reached via [`BackendClient::opa`].
+pub struct Opa<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// The OpenFGA-compatible API. Reached via [`BackendClient::openfga`].
 pub struct OpenFga<'a> {
     pub(super) client: &'a BackendClient,
@@ -234,6 +326,11 @@ pub struct OpenFga<'a> {
 
 /// Organization LDAP connections. Reached via [`BackendClient::org_ldap_connections`].
 pub struct OrgLdapConnections<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Organization connections. Reached via [`BackendClient::organization_connections`].
+pub struct OrganizationConnections<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -252,6 +349,16 @@ pub struct Policies<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Provisioning previews. Reached via [`BackendClient::provisioning`].
+pub struct Provisioning<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Provisioning connectors. Reached via [`BackendClient::provisioning_connectors`].
+pub struct ProvisioningConnectors<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// RADIUS clients. Reached via [`BackendClient::radius_clients`].
 pub struct RadiusClients<'a> {
     pub(super) client: &'a BackendClient,
@@ -264,6 +371,11 @@ pub struct RateLimitPolicy<'a> {
 
 /// Redirect URLs. Reached via [`BackendClient::redirect_urls`].
 pub struct RedirectUrls<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Refresh tokens. Reached via [`BackendClient::refresh_tokens`].
+pub struct RefreshTokens<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -282,13 +394,28 @@ pub struct RiskEvents<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Risky users. Reached via [`BackendClient::risky_users`].
+pub struct RiskyUsers<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Roles. Reached via [`BackendClient::roles`].
 pub struct Roles<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Atlas as a SAML identity provider: service providers. Reached via [`BackendClient::saml_idp`].
+pub struct SamlIdp<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Outbound SCIM provisioning targets. Reached via [`BackendClient::scim_provisioning_targets`].
 pub struct ScimProvisioningTargets<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// SCIM resource types. Reached via [`BackendClient::scim_resource_types`].
+pub struct ScimResourceTypes<'a> {
     pub(super) client: &'a BackendClient,
 }
 
@@ -322,6 +449,11 @@ pub struct SsoOnboarding<'a> {
     pub(super) client: &'a BackendClient,
 }
 
+/// Telemetry export. Reached via [`BackendClient::telemetry_export`].
+pub struct TelemetryExport<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
 /// Test-mode helpers. Reached via [`BackendClient::testing`].
 pub struct Testing<'a> {
     pub(super) client: &'a BackendClient,
@@ -345,6 +477,170 @@ pub struct ImportExport<'a> {
 /// The waitlist. Reached via [`BackendClient::waitlist`].
 pub struct Waitlist<'a> {
     pub(super) client: &'a BackendClient,
+}
+
+/// Workflow approvals. Reached via [`BackendClient::workflow_approvals`].
+pub struct WorkflowApprovals<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Workflow templates. Reached via [`BackendClient::workflow_templates`].
+pub struct WorkflowTemplates<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// Workflow triggers. Reached via [`BackendClient::workflow_triggers`].
+pub struct WorkflowTriggers<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+/// WS-Federation connections. Reached via [`BackendClient::wsfed_connections`].
+pub struct WsFedConnections<'a> {
+    pub(super) client: &'a BackendClient,
+}
+
+impl Abac<'_> {
+    /// `POST /v1/abac/authorize_token` — Decide for the principal an access token stands for. The
+    /// token is verified first (an active Atlas session token, or a token from a trusted issuer);
+    /// its claims map to the principal and parents per the token mapping. An invalid token is a
+    /// 401, not a deny.
+    ///
+    /// Takes [`types::AbacAuthorizeTokenBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn authorize_token(
+        &self,
+        body: &types::AbacAuthorizeTokenBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/abac/authorize_token",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/abac/cedar/export` — Convert Cedar policy text to the Cedar JSON policy format
+    /// (annotations, decimal and ip extension calls included).
+    ///
+    /// Takes [`types::AbacExportBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn export(
+        &self,
+        body: &types::AbacExportBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/abac/cedar/export",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/abac/cedar/import` — Convert Cedar JSON policies to policy text. With `name`, also
+    /// create the policy from them.
+    ///
+    /// Takes [`types::AbacImportBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn import(
+        &self,
+        body: &types::AbacImportBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/abac/cedar/import",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/abac/token_mapping` — How access-token claims become a policy principal and its
+    /// parents, and which extra token issuers are trusted.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn token_mapping(&self) -> Result<Value, BackendError> {
+        self.client
+            .request(HttpMethod::Get, "/v1/abac/token_mapping", &[], None, None)
+            .await
+    }
+    /// `PUT /v1/abac/token_mapping` — Set the claim mapping used by `authorize_token`: the
+    /// principal type and id claim, claims that become parent entities (org, role, groups), claims
+    /// copied as attributes, and trusted issuers with their JWKS URLs.
+    ///
+    /// Takes [`types::AbacSetTokenMappingBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn set_token_mapping(
+        &self,
+        body: &types::AbacSetTokenMappingBody,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/abac/token_mapping",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/abac_policies/{id}/cedar_json` — The current version of a stored policy as Cedar
+    /// JSON.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn cedar_json(&self, id: &str) -> Result<Value, BackendError> {
+        let path = format!("/v1/abac_policies/{}/cedar_json", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+}
+
+impl AccessPolicies<'_> {
+    /// `POST /v1/access_policies/impact` — Impact preview: replay a draft policy (`draft`:
+    /// conditions, grants, stages, targets) against the sampled sign-ins of the last `days` (1-30,
+    /// default 7) and get how many would have been allowed, stepped up or blocked, plus the
+    /// affected users. Nothing is stored or enforced.
+    ///
+    /// Takes [`types::AccessPoliciesImpactBody`]. Returns [`types::AccessPolicyImpact`].
+    pub async fn impact(
+        &self,
+        body: &types::AccessPoliciesImpactBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AccessPolicyImpact, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/access_policies/impact",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/access_policies/insights` — Report-only insights: how often `report_only` policies
+    /// would have blocked or stepped up a request in the last `days`, per policy and per day.
+    ///
+    /// Query parameters: `days`.
+    ///
+    /// Returns [`types::AccessPolicyInsights`].
+    pub async fn insights(
+        &self,
+        query: &Query,
+    ) -> Result<types::AccessPolicyInsights, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/access_policies/insights",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
 }
 
 impl ActionGallery<'_> {
@@ -733,6 +1029,289 @@ impl ActorTokens<'_> {
     }
 }
 
+impl AdministrativeUnits<'_> {
+    /// `GET /v1/administrative_units` — List administrative units: named sets of users that a
+    /// scoped organization administrator may manage.
+    ///
+    /// Query parameters: `organization_id`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AdministrativeUnitsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::AdministrativeUnitsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/administrative_units",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/administrative_units` — Create an administrative unit. Without a `filter` it is
+    /// static and you list its members; with one it is dynamic and its members are whoever match.
+    ///
+    /// Takes [`types::AdministrativeUnitsCreateBody`]. Returns [`types::AdministrativeUnitsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::AdministrativeUnitsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AdministrativeUnitsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/administrative_units",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/administrative_units/{id}` — Delete a unit. A membership scope that named it
+    /// stops reaching those people.
+    ///
+    /// Returns [`types::AdministrativeUnitsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::AdministrativeUnitsDeleteResponse, BackendError> {
+        let path = format!("/v1/administrative_units/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/administrative_units/{id}` — Read one unit by id or key.
+    ///
+    /// Returns [`types::AdministrativeUnitsGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+    ) -> Result<types::AdministrativeUnitsGetResponse, BackendError> {
+        let path = format!("/v1/administrative_units/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/administrative_units/{id}` — Change a unit's name, description or filter.
+    ///
+    /// Takes [`types::AdministrativeUnitsUpdateBody`]. Returns [`types::AdministrativeUnitsUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::AdministrativeUnitsUpdateBody,
+    ) -> Result<types::AdministrativeUnitsUpdateResponse, BackendError> {
+        let path = format!("/v1/administrative_units/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/administrative_units/{id}/members` — The listed members of a static unit (409 for a
+    /// dynamic unit).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AdministrativeUnitsListMembersResponse`].
+    pub async fn list_members(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::AdministrativeUnitsListMembersResponse, BackendError> {
+        let path = format!("/v1/administrative_units/{}/members", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/administrative_units/{id}/members` — Add and remove people on a static unit.
+    ///
+    /// Takes [`types::AdministrativeUnitsCreateMemberBody`]. Returns [`types::AdministrativeUnitsCreateMemberResponse`].
+    pub async fn create_member(
+        &self,
+        id: &str,
+        body: &types::AdministrativeUnitsCreateMemberBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AdministrativeUnitsCreateMemberResponse, BackendError> {
+        let path = format!("/v1/administrative_units/{}/members", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl AgentAccessReviews<'_> {
+    /// `GET /v1/agent_access_reviews` — The agent access reviews, newest first.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AgentAccessReviewsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::AgentAccessReviewsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/agent_access_reviews",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/agent_access_reviews` — Start an access review of agents' live grants: one item
+    /// per grant, assigned to the agent's sponsor (else its owner), who certifies or revokes it.
+    ///
+    /// Takes [`types::AgentAccessReviewsCreateBody`]. Returns [`types::AgentAccessReviewsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::AgentAccessReviewsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AgentAccessReviewsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/agent_access_reviews",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/agent_access_reviews/{id}` — One review with its items; filter by decision or
+    /// reviewer.
+    ///
+    /// Query parameters: `decision`, `reviewer_user_id`.
+    ///
+    /// Returns [`types::AgentAccessReviewsGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::AgentAccessReviewsGetResponse, BackendError> {
+        let path = format!("/v1/agent_access_reviews/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/agent_access_reviews/{id}/close` — Close a review; no further decisions are
+    /// accepted.
+    ///
+    /// Returns [`types::AgentAccessReviewsCloseResponse`].
+    pub async fn close(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AgentAccessReviewsCloseResponse, BackendError> {
+        let path = format!("/v1/agent_access_reviews/{}/close", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/agent_access_reviews/{id}/items/{itemId}/decide` — Certify or revoke one item. A
+    /// revoke ends that grant immediately.
+    ///
+    /// Takes [`types::AgentAccessReviewsDecideBody`]. Returns [`types::AgentAccessReviewsDecideResponse`].
+    pub async fn decide(
+        &self,
+        id: &str,
+        item_id: &str,
+        body: &types::AgentAccessReviewsDecideBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AgentAccessReviewsDecideResponse, BackendError> {
+        let path = format!(
+            "/v1/agent_access_reviews/{}/items/{}/decide",
+            seg(id),
+            seg(item_id)
+        );
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl Agents<'_> {
+    /// `GET /v1/agents/{id}/activity` — Everything an agent did, newest first: audit entries about
+    /// it and entries it caused (gateway tool calls with their outcome, connection tokens and
+    /// actions, access decisions). Defaults to the last 30 days.
+    ///
+    /// Query parameters: `since`, `before`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AgentsActivityResponse`].
+    pub async fn activity(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::AgentsActivityResponse, BackendError> {
+        let path = format!("/v1/agents/{}/activity", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `GET /v1/agents/{id}/lifecycle` — An agent's sponsor, backup sponsor and expiry.
+    ///
+    /// Returns [`types::AgentsLifecycleResponse`].
+    pub async fn lifecycle(
+        &self,
+        id: &str,
+    ) -> Result<types::AgentsLifecycleResponse, BackendError> {
+        let path = format!("/v1/agents/{}/lifecycle", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/agents/{id}/lifecycle` — Set an agent's sponsor, backup sponsor and expiry (omitted
+    /// fields keep their value; null clears). Emits agent.sponsor_changed. When the sponsor's
+    /// account is gone, banned or locked the backup is promoted automatically; at the expiry the
+    /// agent's grants are revoked and the agent is revoked, after an agent.expiring warning 14 days
+    /// ahead.
+    ///
+    /// Takes [`types::AgentsSetLifecycleBody`]. Returns [`types::AgentsSetLifecycleResponse`].
+    pub async fn set_lifecycle(
+        &self,
+        id: &str,
+        body: &types::AgentsSetLifecycleBody,
+    ) -> Result<types::AgentsSetLifecycleResponse, BackendError> {
+        let path = format!("/v1/agents/{}/lifecycle", seg(id));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/agents/{id}/renew` — Extend an agent's registration by extend_days (1 to 365) from
+    /// its current expiry (or now, when that has passed). A revoked agent cannot be renewed.
+    ///
+    /// Takes [`types::AgentsRenewBody`]. Returns [`types::AgentsRenewResponse`].
+    pub async fn renew(
+        &self,
+        id: &str,
+        body: &types::AgentsRenewBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AgentsRenewResponse, BackendError> {
+        let path = format!("/v1/agents/{}/renew", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
 impl AllowlistIdentifiers<'_> {
     /// `GET /v1/allowlist_identifiers` — List allowlist identifiers (emails, @domains, phones)
     /// permitted in allow-list-only mode.
@@ -845,6 +1424,140 @@ impl ApiKeys<'_> {
         let path = format!("/v1/api_keys/{}/usage", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl AppCatalog<'_> {
+    /// `GET /v1/app_catalog/custom_presets` — List this instance's private SAML presets, in the
+    /// portable form POST /v1/app_catalog/custom_presets accepts, so a preset can be moved between
+    /// environments.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AppCatalogListCustomPresetsResponse`].
+    pub async fn list_custom_presets(
+        &self,
+        query: &Query,
+    ) -> Result<types::AppCatalogListCustomPresetsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/app_catalog/custom_presets",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/app_catalog/custom_presets` — Save a private SAML preset for apps that are not in
+    /// the catalog (an id, name, entityIdTemplate and acsUrlTemplate using {param} placeholders,
+    /// params with a kind of slug, host, https_url or entity, and an attribute map). It then
+    /// appears in GET /v1/app_catalog (custom: true, never verified) and installs like any preset.
+    /// Saving an existing id replaces it.
+    ///
+    /// Takes [`types::AppCatalogCreateCustomPresetBody`]. Returns nothing (`204 No Content`).
+    pub async fn create_custom_preset(
+        &self,
+        body: &types::AppCatalogCreateCustomPresetBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/app_catalog/custom_presets",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/app_catalog/custom_presets/{id}` — Delete a private preset. Apps already
+    /// installed from it keep working.
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete_custom_presets(&self, id: &str) -> Result<(), BackendError> {
+        let path = format!("/v1/app_catalog/custom_presets/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/app_catalog/requests` — The queue of apps people asked for, most wanted first.
+    /// Filter with status (open, building, available, declined).
+    ///
+    /// Query parameters: `status`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AppCatalogListRequestsResponse`].
+    pub async fn list_requests(
+        &self,
+        query: &Query,
+    ) -> Result<types::AppCatalogListRequestsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/app_catalog/requests",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/app_catalog/requests` — Ask for an app that is not in the catalog (name, protocol,
+    /// docs_url, note). Asking again for an app already open counts as the requester’s vote (once)
+    /// instead of a duplicate (200); a new request is 201; an app already in the catalog is 409.
+    ///
+    /// Takes [`types::AppCatalogCreateRequestBody`]. Returns nothing (`204 No Content`).
+    pub async fn create_request(
+        &self,
+        body: &types::AppCatalogCreateRequestBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/app_catalog/requests",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/app_catalog/requests/{id}` — Remove an app catalog request.
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete_requests(&self, id: &str) -> Result<(), BackendError> {
+        let path = format!("/v1/app_catalog/requests/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/app_catalog/requests/{id}` — Move a request along: status open, building,
+    /// available or declined, and a note.
+    ///
+    /// Takes [`types::AppCatalogUpdateRequestsBody`]. Returns nothing (`204 No Content`).
+    pub async fn update_requests(
+        &self,
+        id: &str,
+        body: &types::AppCatalogUpdateRequestsBody,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/app_catalog/requests/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/app_catalog/requests/{id}/vote` — Add one vote to an open or in-progress app
+    /// request (409 when it is available or declined, 404 when unknown). One vote per person or
+    /// key: a repeat vote changes nothing.
+    ///
+    /// Returns [`types::AppCatalogVoteResponse`].
+    pub async fn vote(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AppCatalogVoteResponse, BackendError> {
+        let path = format!("/v1/app_catalog/requests/{}/vote", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
             .await
     }
 }
@@ -986,6 +1699,191 @@ impl AuditLogs<'_> {
                 None,
                 None,
             )
+            .await
+    }
+}
+
+impl AuditRetention<'_> {
+    /// `GET /v1/audit_retention` — How long the instance audit log is kept: the effective days,
+    /// whether it is configured, and the allowed range (30 to 3,650; the default is 365).
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn list(&self, query: &Query) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/audit_retention",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/audit_retention` — Set audit log retention in days (`null` returns to the default).
+    /// Entries older than the retention are deleted by an hourly sweep, so shortening it needs
+    /// `confirm_deletion: true`.
+    ///
+    /// Takes [`types::AuditRetentionSetBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn set(&self, body: &types::AuditRetentionSetBody) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/audit_retention",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+}
+
+impl AuthenticatorPolicies<'_> {
+    /// `GET /v1/authenticator_policies` — List the group-targeted authenticator policies.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AuthenticatorPoliciesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::AuthenticatorPoliciesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/authenticator_policies",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/authenticator_policies` — Create an authenticator policy for a group:
+    /// `required_factors` (members must pass a second factor, or enrol one), `grace_until` (members
+    /// with no factor may still sign in until then), and a `passkey` profile (user verification,
+    /// attestation, attachment, AAGUID allow / block lists) applied when members register passkeys.
+    /// Policies only add protection to the instance settings; several policies combine to the
+    /// strictest result.
+    ///
+    /// Takes [`types::AuthenticatorPoliciesCreateBody`]. Returns [`types::AuthenticatorPoliciesCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::AuthenticatorPoliciesCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AuthenticatorPoliciesCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/authenticator_policies",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/authenticator_policies/effective/{user_id}` — The combined authenticator rules that
+    /// apply to one user through their groups.
+    ///
+    /// Returns [`types::AuthenticatorPoliciesEffectiveResponse`].
+    pub async fn effective(
+        &self,
+        user_id: &str,
+    ) -> Result<types::AuthenticatorPoliciesEffectiveResponse, BackendError> {
+        let path = format!("/v1/authenticator_policies/effective/{}", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `DELETE /v1/authenticator_policies/{id}` — Delete an authenticator policy.
+    ///
+    /// Returns [`types::AuthenticatorPoliciesDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::AuthenticatorPoliciesDeleteResponse, BackendError> {
+        let path = format!("/v1/authenticator_policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/authenticator_policies/{id}` — Read one authenticator policy.
+    ///
+    /// Returns [`types::AuthenticatorPoliciesGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+    ) -> Result<types::AuthenticatorPoliciesGetResponse, BackendError> {
+        let path = format!("/v1/authenticator_policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/authenticator_policies/{id}` — Update an authenticator policy.
+    ///
+    /// Takes [`types::AuthenticatorPoliciesUpdateBody`]. Returns [`types::AuthenticatorPoliciesUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::AuthenticatorPoliciesUpdateBody,
+    ) -> Result<types::AuthenticatorPoliciesUpdateResponse, BackendError> {
+        let path = format!("/v1/authenticator_policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl AuthzDecisions<'_> {
+    /// `POST /v1/authz_decisions/ingest` — A local policy decision point ships a batch of up to 500
+    /// of its decisions and checks in with its id and the bundle revision it runs. Decisions are
+    /// sampled and redacted by the instance decision-log settings, exactly like server-side
+    /// decisions; nothing is stored while capture is off.
+    ///
+    /// Takes [`types::AuthzDecisionsIngestBody`]. Returns [`types::AuthzDecisionsIngestResponse`].
+    pub async fn ingest(
+        &self,
+        body: &types::AuthzDecisionsIngestBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::AuthzDecisionsIngestResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/authz_decisions/ingest",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl AuthzPdps<'_> {
+    /// `GET /v1/authz_pdps` — The fleet of local policy decision points that have checked in: the
+    /// bundle revision each is on, when it was last seen and how many decisions it has shipped.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::AuthzPdpsListResponse`].
+    pub async fn list(&self, query: &Query) -> Result<types::AuthzPdpsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/authz_pdps",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/authz_pdps/{id}` — Forget a local policy decision point (it reappears if it
+    /// checks in again).
+    ///
+    /// Returns [`types::AuthzPdpsDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::AuthzPdpsDeleteResponse, BackendError> {
+        let path = format!("/v1/authz_pdps/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }
@@ -1204,11 +2102,11 @@ impl Billing<'_> {
     ///
     /// Query parameters: `limit`, `starting_after`.
     ///
-    /// Returns [`types::BillingCouponsResponse`].
-    pub async fn coupons(
+    /// Returns [`types::BillingListCouponsResponse`].
+    pub async fn list_coupons(
         &self,
         query: &Query,
-    ) -> Result<types::BillingCouponsResponse, BackendError> {
+    ) -> Result<types::BillingListCouponsResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Get,
@@ -1224,12 +2122,12 @@ impl Billing<'_> {
     /// promotion code, so Stripe enforces and applies it; a provider without discount support
     /// refuses with 422.
     ///
-    /// Takes [`types::BillingCouponsBody`]. Returns [`types::BillingCouponsResponse2`].
-    pub async fn coupons(
+    /// Takes [`types::BillingCreateCouponBody`]. Returns [`types::BillingCreateCouponResponse`].
+    pub async fn create_coupon(
         &self,
-        body: &types::BillingCouponsBody,
+        body: &types::BillingCreateCouponBody,
         idempotency_key: Option<&str>,
-    ) -> Result<types::BillingCouponsResponse2, BackendError> {
+    ) -> Result<types::BillingCreateCouponResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -1275,8 +2173,11 @@ impl Billing<'_> {
     }
     /// `GET /v1/billing/coupons/{id}` — Read one discount code.
     ///
-    /// Returns [`types::BillingCouponsResponse3`].
-    pub async fn coupons(&self, id: &str) -> Result<types::BillingCouponsResponse3, BackendError> {
+    /// Returns [`types::BillingGetCouponResponse`].
+    pub async fn get_coupon(
+        &self,
+        id: &str,
+    ) -> Result<types::BillingGetCouponResponse, BackendError> {
         let path = format!("/v1/billing/coupons/{}", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &[], None, None)
@@ -1300,11 +2201,11 @@ impl Billing<'_> {
     ///
     /// Query parameters: `subject_type`, `subject_id`, `limit`, `starting_after`.
     ///
-    /// Returns [`types::BillingCreditsResponse`].
-    pub async fn credits(
+    /// Returns [`types::BillingListCreditsResponse`].
+    pub async fn list_credits(
         &self,
         query: &Query,
-    ) -> Result<types::BillingCreditsResponse, BackendError> {
+    ) -> Result<types::BillingListCreditsResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Get,
@@ -1320,12 +2221,12 @@ impl Billing<'_> {
     /// lands on their balance and is applied to their next invoices; before that it waits for their
     /// first completed checkout.
     ///
-    /// Takes [`types::BillingCreditsBody`]. Returns [`types::BillingCreditsResponse2`].
-    pub async fn credits(
+    /// Takes [`types::BillingPostCreditBody`]. Returns [`types::BillingPostCreditResponse`].
+    pub async fn post_credit(
         &self,
-        body: &types::BillingCreditsBody,
+        body: &types::BillingPostCreditBody,
         idempotency_key: Option<&str>,
-    ) -> Result<types::BillingCreditsResponse2, BackendError> {
+    ) -> Result<types::BillingPostCreditResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -1785,6 +2686,262 @@ impl Captcha<'_> {
     }
 }
 
+impl ChatIntegrations<'_> {
+    /// `GET /v1/chat_integrations` — List chat integrations (Slack workspaces and Teams bots).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ChatIntegrationsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::ChatIntegrationsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/chat_integrations",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/chat_integrations` — Connect a Slack workspace or a Teams bot using your own app.
+    /// Slack credentials are checked with the workspace before saving.
+    ///
+    /// Takes [`types::ChatIntegrationsCreateBody`]. Returns [`types::ChatIntegrationsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::ChatIntegrationsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ChatIntegrationsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/chat_integrations",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/chat_integrations/{id}` — Remove an integration and its stored credentials.
+    ///
+    /// Returns [`types::ChatIntegrationsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::ChatIntegrationsDeleteResponse, BackendError> {
+        let path = format!("/v1/chat_integrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/chat_integrations/{id}` — Read one chat integration.
+    ///
+    /// Returns [`types::ChatIntegrationsGetResponse`].
+    pub async fn get(&self, id: &str) -> Result<types::ChatIntegrationsGetResponse, BackendError> {
+        let path = format!("/v1/chat_integrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/chat_integrations/{id}` — Turn an integration on or off, change its routing,
+    /// settings or credentials. `config.agent_approver_user_ids` lists who may decide agent access
+    /// requests from chat.
+    ///
+    /// Takes [`types::ChatIntegrationsUpdateBody`]. Returns [`types::ChatIntegrationsUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::ChatIntegrationsUpdateBody,
+    ) -> Result<types::ChatIntegrationsUpdateResponse, BackendError> {
+        let path = format!("/v1/chat_integrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/chat_integrations/{id}/interactions` — The latest button clicks and what became of
+    /// them (applied, refused, unlinked, stale).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ChatIntegrationsInteractionsResponse`].
+    pub async fn interactions(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::ChatIntegrationsInteractionsResponse, BackendError> {
+        let path = format!("/v1/chat_integrations/{}/interactions", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/chat_integrations/{id}/test` — Post a harmless test message to the default channel
+    /// or conversation.
+    ///
+    /// Returns [`types::ChatIntegrationsTestResponse`].
+    pub async fn test(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ChatIntegrationsTestResponse, BackendError> {
+        let path = format!("/v1/chat_integrations/{}/test", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `GET /v1/chat_integrations/{id}/user_links` — Chat users linked to Atlas users. A link is
+    /// made automatically on first click when the chat profile email matches a verified email.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ChatIntegrationsListUserLinksResponse`].
+    pub async fn list_user_links(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::ChatIntegrationsListUserLinksResponse, BackendError> {
+        let path = format!("/v1/chat_integrations/{}/user_links", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/chat_integrations/{id}/user_links` — Link a chat user to an Atlas user by hand.
+    ///
+    /// Takes [`types::ChatIntegrationsCreateUserLinkBody`]. Returns [`types::ChatIntegrationsCreateUserLinkResponse`].
+    pub async fn create_user_link(
+        &self,
+        id: &str,
+        body: &types::ChatIntegrationsCreateUserLinkBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ChatIntegrationsCreateUserLinkResponse, BackendError> {
+        let path = format!("/v1/chat_integrations/{}/user_links", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/chat_integrations/{id}/user_links/{linkId}` — Remove the link between a chat
+    /// user and an Atlas user.
+    ///
+    /// Returns [`types::ChatIntegrationsDeleteUserLinksResponse`].
+    pub async fn delete_user_links(
+        &self,
+        id: &str,
+        link_id: &str,
+    ) -> Result<types::ChatIntegrationsDeleteUserLinksResponse, BackendError> {
+        let path = format!(
+            "/v1/chat_integrations/{}/user_links/{}",
+            seg(id),
+            seg(link_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
+impl CloudAccess<'_> {
+    /// `GET /v1/cloud_access/targets` — List the cloud access targets: AWS account and role tiles,
+    /// Google Cloud workforce-pool tiles and Azure trust recipes.
+    ///
+    /// Query parameters: `provider`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::CloudAccessListTargetsResponse`].
+    pub async fn list_targets(
+        &self,
+        query: &Query,
+    ) -> Result<types::CloudAccessListTargetsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/cloud_access/targets",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/cloud_access/targets` — Add a cloud access target. An AWS or Google Cloud target
+    /// becomes a launcher tile that signs people in to that account and role (AWS: the Role,
+    /// RoleSessionName, SessionDuration and PrincipalTag attributes) or workforce pool; assignment
+    /// limits who sees it. Azure stores a federated-credential trust recipe. Config: aws:
+    /// account_id (12 digits), role_name, saml_provider_name, session_duration (900-43200 s),
+    /// session_tags {tag key: user field}, transitive_tag_keys, partition (aws, aws-us-gov,
+    /// aws-cn). gcp: pool_id, provider_id (a Workforce Identity Federation SAML provider). azure:
+    /// app_object_id, subject, credential_name.
+    ///
+    /// Takes [`types::CloudAccessCreateTargetBody`]. Returns [`types::CloudAccessCreateTargetResponse`].
+    pub async fn create_target(
+        &self,
+        body: &types::CloudAccessCreateTargetBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::CloudAccessCreateTargetResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/cloud_access/targets",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/cloud_access/targets/{id}` — Delete a target and its launcher tile.
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete_targets(&self, id: &str) -> Result<(), BackendError> {
+        let path = format!("/v1/cloud_access/targets/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/cloud_access/targets/{id}` — Read one cloud access target with its launch URL and
+    /// assignment.
+    ///
+    /// Returns [`types::CloudAccessGetTargetResponse`].
+    pub async fn get_target(
+        &self,
+        id: &str,
+    ) -> Result<types::CloudAccessGetTargetResponse, BackendError> {
+        let path = format!("/v1/cloud_access/targets/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/cloud_access/targets/{id}` — Change a target's name, config or assignment. The
+    /// provider cannot change.
+    ///
+    /// Takes [`types::CloudAccessUpdateTargetsBody`]. Returns [`types::CloudAccessUpdateTargetsResponse`].
+    pub async fn update_targets(
+        &self,
+        id: &str,
+        body: &types::CloudAccessUpdateTargetsBody,
+    ) -> Result<types::CloudAccessUpdateTargetsResponse, BackendError> {
+        let path = format!("/v1/cloud_access/targets/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/cloud_access/targets/{id}/setup` — What to configure on the cloud side for this
+    /// target, with ready-to-run snippets: the AWS CLI command and role trust policy, the gcloud
+    /// command for the workforce pool provider, or the Azure federated credential.
+    ///
+    /// Returns [`types::CloudAccessSetupResponse`].
+    pub async fn setup(&self, id: &str) -> Result<types::CloudAccessSetupResponse, BackendError> {
+        let path = format!("/v1/cloud_access/targets/{}/setup", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+}
+
 impl ConfigChangelog<'_> {
     /// `GET /v1/config_changelog` — Config change history for this instance — who changed which
     /// config, when, with one `changes\[\]` schema on every entry: the per-field before/after where
@@ -1812,6 +2969,243 @@ impl ConfigChangelog<'_> {
                 None,
                 None,
             )
+            .await
+    }
+}
+
+impl ConnectionActions<'_> {
+    /// `GET /v1/connection_actions` — The action catalog: typed operations per provider (GitHub,
+    /// Slack, Notion, HubSpot, Google and more), first-party and your own definitions.
+    ///
+    /// Query parameters: `provider`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ConnectionActionsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::ConnectionActionsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/connection_actions",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/connection_actions/{provider}/{name}` — Delete a custom action definition (a
+    /// first-party action of the same name comes back).
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete(&self, provider: &str, name: &str) -> Result<(), BackendError> {
+        let path = format!("/v1/connection_actions/{}/{}", seg(provider), seg(name));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/connection_actions/{provider}/{name}` — One action with its input schema.
+    ///
+    /// Returns [`types::ConnectionActionsGetResponse`].
+    pub async fn get(
+        &self,
+        provider: &str,
+        name: &str,
+    ) -> Result<types::ConnectionActionsGetResponse, BackendError> {
+        let path = format!("/v1/connection_actions/{}/{}", seg(provider), seg(name));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/connection_actions/{provider}/{name}` — Define or replace a custom action: data
+    /// only (an input schema, a request template, a response mapping), never code. A definition
+    /// with a first-party action's name replaces it for this instance.
+    ///
+    /// Takes [`types::ConnectionActionsUpsertBody`]. Returns [`types::ConnectionActionsUpsertResponse`].
+    pub async fn upsert(
+        &self,
+        provider: &str,
+        name: &str,
+        body: &types::ConnectionActionsUpsertBody,
+    ) -> Result<types::ConnectionActionsUpsertResponse, BackendError> {
+        let path = format!("/v1/connection_actions/{}/{}", seg(provider), seg(name));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl Connections<'_> {
+    /// `GET /v1/connections/{id}/actions` — The actions available on a connection (its provider's
+    /// catalog).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ConnectionsListActionsResponse`].
+    pub async fn list_actions(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::ConnectionsListActionsResponse, BackendError> {
+        let path = format!("/v1/connections/{}/actions", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/connections/{id}/actions/{name}` — Run an action on a connection: the input is
+    /// validated against the action's schema, the connection's granted scopes are checked, and the
+    /// call goes through the relay (host allow-list, credential, one refresh, retry on 429).
+    /// `dry_run` returns the request without sending it; `all_pages` walks the action's pagination.
+    /// The audit log records the action, provider and status, never the input.
+    ///
+    /// Takes [`types::ConnectionsRunActionBody`]. Returns [`types::ConnectionsRunActionResponse`].
+    pub async fn run_action(
+        &self,
+        id: &str,
+        name: &str,
+        body: &types::ConnectionsRunActionBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ConnectionsRunActionResponse, BackendError> {
+        let path = format!("/v1/connections/{}/actions/{}", seg(id), seg(name));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/connections/{id}/scoped_tokens` — Mint a scoped relay token: a signed credential
+    /// for ONE connection that only works through POST /v1/connection_relay/scoped, for the listed
+    /// HTTP methods and https URL prefixes, and expires within the hour. It narrows what a caller
+    /// can do with the connection without touching the stored provider token (which stays in the
+    /// vault).
+    ///
+    /// Takes [`types::ConnectionsScopedTokensBody`]. Returns [`types::ConnectionsScopedTokensResponse`].
+    pub async fn scoped_tokens(
+        &self,
+        id: &str,
+        body: &types::ConnectionsScopedTokensBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ConnectionsScopedTokensResponse, BackendError> {
+        let path = format!("/v1/connections/{}/scoped_tokens", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/connections/{id}/token/downscope` — A short-lived access token limited to a subset
+    /// of the scopes the connection was granted, to hand to a less-trusted caller (an agent, a
+    /// plugin). The provider mints it from the stored refresh token with the scope narrowed; the
+    /// connection itself is unchanged. 422 `invalid_scope` when a scope was not granted; 422
+    /// `downscope_unsupported` when the provider cannot issue a narrower token (Microsoft identity
+    /// platform v2.0 can).
+    ///
+    /// Takes [`types::ConnectionsDownscopeBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn downscope(
+        &self,
+        id: &str,
+        body: &types::ConnectionsDownscopeBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!("/v1/connections/{}/token/downscope", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/connections/{id}/triggers` — The triggers of a connection.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ConnectionsListTriggersResponse`].
+    pub async fn list_triggers(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::ConnectionsListTriggersResponse, BackendError> {
+        let path = format!("/v1/connections/{}/triggers", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/connections/{id}/triggers` — Subscribe to provider events. webhook: Atlas creates
+    /// a verified ingress endpoint and, for providers whose API allows it (GitHub), registers the
+    /// webhook there (filter: owner, repo); verified deliveries are forwarded to target_url. Other
+    /// providers get an ingress_url to paste into the provider and need `scheme`. poll: a read-only
+    /// catalog action runs on an interval and each new item becomes a `connection.trigger_fired`
+    /// event.
+    ///
+    /// Takes [`types::ConnectionsCreateTriggerBody`]. Returns [`types::ConnectionsCreateTriggerResponse`].
+    pub async fn create_trigger(
+        &self,
+        id: &str,
+        body: &types::ConnectionsCreateTriggerBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ConnectionsCreateTriggerResponse, BackendError> {
+        let path = format!("/v1/connections/{}/triggers", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/connections/{id}/triggers/{triggerId}` — Remove a trigger: the provider webhook
+    /// is deleted first when Atlas registered it (`provider_unregistered` says what happened; the
+    /// connection must allow DELETE for that), then the ingress endpoint.
+    ///
+    /// Returns [`types::ConnectionsDeleteTriggersResponse`].
+    pub async fn delete_triggers(
+        &self,
+        id: &str,
+        trigger_id: &str,
+    ) -> Result<types::ConnectionsDeleteTriggersResponse, BackendError> {
+        let path = format!("/v1/connections/{}/triggers/{}", seg(id), seg(trigger_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/connections/{id}/triggers/{triggerId}` — Read one trigger of a connection.
+    ///
+    /// Returns [`types::ConnectionsGetTriggerResponse`].
+    pub async fn get_trigger(
+        &self,
+        id: &str,
+        trigger_id: &str,
+    ) -> Result<types::ConnectionsGetTriggerResponse, BackendError> {
+        let path = format!("/v1/connections/{}/triggers/{}", seg(id), seg(trigger_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/connections/{id}/triggers/{triggerId}` — Pause or resume a trigger.
+    ///
+    /// Takes [`types::ConnectionsUpdateTriggersBody`]. Returns [`types::ConnectionsUpdateTriggersResponse`].
+    pub async fn update_triggers(
+        &self,
+        id: &str,
+        trigger_id: &str,
+        body: &types::ConnectionsUpdateTriggersBody,
+    ) -> Result<types::ConnectionsUpdateTriggersResponse, BackendError> {
+        let path = format!("/v1/connections/{}/triggers/{}", seg(id), seg(trigger_id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
 }
@@ -1946,6 +3340,28 @@ impl Connectors<'_> {
         let path = format!("/v1/connectors/{}/reviews", seg(slug));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl Containments<'_> {
+    /// `GET /v1/containments` — Containment records, newest first.
+    ///
+    /// Query parameters: `user_id`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ContainmentsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::ContainmentsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/containments",
+                &query.as_pairs(),
+                None,
+                None,
+            )
             .await
     }
 }
@@ -2271,6 +3687,322 @@ impl DataSubjectRequests<'_> {
     }
 }
 
+impl DesktopMfa<'_> {
+    /// `GET /v1/desktop_mfa/devices/{id}/passkeys` — List the passkeys registered through a
+    /// workstation.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::DesktopMfaPasskeysResponse`].
+    pub async fn passkeys(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::DesktopMfaPasskeysResponse, BackendError> {
+        let path = format!("/v1/desktop_mfa/devices/{}/passkeys", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `DELETE /v1/desktop_mfa/devices/{id}/passkeys/{passkeyId}` — Remove a passkey registered
+    /// through a workstation. It stops answering the passkey factor at once.
+    ///
+    /// Returns [`types::DesktopMfaDeletePasskeysResponse`].
+    pub async fn delete_passkeys(
+        &self,
+        id: &str,
+        passkey_id: &str,
+    ) -> Result<types::DesktopMfaDeletePasskeysResponse, BackendError> {
+        let path = format!(
+            "/v1/desktop_mfa/devices/{}/passkeys/{}",
+            seg(id),
+            seg(passkey_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
+impl DeviceAssurancePolicies<'_> {
+    /// `GET /v1/device_assurance_policies` — List the device assurance policies.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::DeviceAssurancePoliciesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::DeviceAssurancePoliciesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/device_assurance_policies",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/device_assurance_policies` — Create a device assurance policy: per-platform
+    /// minimum OS version (or "newest major minus N"), disk encryption, screen lock, secure
+    /// hardware, jailbreak/root, firewall and EDR checks, and a grace period. A device must pass
+    /// every enabled policy for its platform; its `compliant` flag, and so the `deviceTrust`
+    /// access-policy condition, follows the verdict. Existing devices are re-evaluated.
+    ///
+    /// Takes [`types::DeviceAssurancePoliciesCreateBody`]. Returns [`types::DeviceAssurancePoliciesCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::DeviceAssurancePoliciesCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::DeviceAssurancePoliciesCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/device_assurance_policies",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/device_assurance_policies/evaluate` — Re-evaluate every device against the current
+    /// assurance policies.
+    ///
+    /// Returns [`types::DeviceAssurancePoliciesEvaluateResponse`].
+    pub async fn evaluate(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::DeviceAssurancePoliciesEvaluateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/device_assurance_policies/evaluate",
+                &[],
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/device_assurance_policies/{id}` — Delete a device assurance policy. Devices are
+    /// re-evaluated.
+    ///
+    /// Returns [`types::DeviceAssurancePoliciesDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::DeviceAssurancePoliciesDeleteResponse, BackendError> {
+        let path = format!("/v1/device_assurance_policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/device_assurance_policies/{id}` — Read one device assurance policy.
+    ///
+    /// Returns [`types::DeviceAssurancePoliciesGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+    ) -> Result<types::DeviceAssurancePoliciesGetResponse, BackendError> {
+        let path = format!("/v1/device_assurance_policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/device_assurance_policies/{id}` — Update a device assurance policy. Devices are
+    /// re-evaluated.
+    ///
+    /// Takes [`types::DeviceAssurancePoliciesUpdateBody`]. Returns [`types::DeviceAssurancePoliciesUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::DeviceAssurancePoliciesUpdateBody,
+    ) -> Result<types::DeviceAssurancePoliciesUpdateResponse, BackendError> {
+        let path = format!("/v1/device_assurance_policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl DeviceIntegrations<'_> {
+    /// `GET /v1/device_integrations` — List the device pull integrations. Credentials are never
+    /// returned.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::DeviceIntegrationsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::DeviceIntegrationsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/device_integrations",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/device_integrations` — Connect a device source that Atlas pulls on a schedule:
+    /// Microsoft Intune (Graph, `tenantId` + app client credentials with
+    /// DeviceManagementManagedDevices.Read.All), Jamf Pro (`baseUrl` + API client), CrowdStrike
+    /// Falcon (`cloud` + API client with Zero Trust Assessment and Hosts read; `minZtaScore`,
+    /// `userEmailDomain`), Fleet (`baseUrl` + API token) or Google Chrome / ChromeOS (service
+    /// account with domain-wide delegation). Credentials are write-only.
+    ///
+    /// Takes [`types::DeviceIntegrationsCreateBody`]. Returns [`types::DeviceIntegrationsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::DeviceIntegrationsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::DeviceIntegrationsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/device_integrations",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/device_integrations/{id}` — Delete a device integration. Devices already pulled
+    /// stay in the registry.
+    ///
+    /// Returns [`types::DeviceIntegrationsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::DeviceIntegrationsDeleteResponse, BackendError> {
+        let path = format!("/v1/device_integrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/device_integrations/{id}` — Read one device integration and its last sync result.
+    ///
+    /// Returns [`types::DeviceIntegrationsGetResponse`].
+    pub async fn get(
+        &self,
+        id: &str,
+    ) -> Result<types::DeviceIntegrationsGetResponse, BackendError> {
+        let path = format!("/v1/device_integrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/device_integrations/{id}` — Change a device integration (name, config,
+    /// credentials, interval, paused or active).
+    ///
+    /// Takes [`types::DeviceIntegrationsUpdateBody`]. Returns [`types::DeviceIntegrationsUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::DeviceIntegrationsUpdateBody,
+    ) -> Result<types::DeviceIntegrationsUpdateResponse, BackendError> {
+        let path = format!("/v1/device_integrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/device_integrations/{id}/sync` — Pull the integration now.
+    ///
+    /// Returns [`types::DeviceIntegrationsSyncResponse`].
+    pub async fn sync(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::DeviceIntegrationsSyncResponse, BackendError> {
+        let path = format!("/v1/device_integrations/{}/sync", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+}
+
+impl DeviceSso<'_> {
+    /// `GET /v1/device_sso/registrations` — List devices registered for device-bound SSO,
+    /// optionally for one `user_id`.
+    ///
+    /// Query parameters: `user_id`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::DeviceSsoListRegistrationsResponse`].
+    pub async fn list_registrations(
+        &self,
+        query: &Query,
+    ) -> Result<types::DeviceSsoListRegistrationsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/device_sso/registrations",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/device_sso/registrations/{id}` — Delete a device registration and its sessions.
+    ///
+    /// Returns [`types::DeviceSsoDeleteRegistrationsResponse`].
+    pub async fn delete_registrations(
+        &self,
+        id: &str,
+    ) -> Result<types::DeviceSsoDeleteRegistrationsResponse, BackendError> {
+        let path = format!("/v1/device_sso/registrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/device_sso/registrations/{id}` — Read one device registration.
+    ///
+    /// Returns [`types::DeviceSsoGetRegistrationResponse`].
+    pub async fn get_registration(
+        &self,
+        id: &str,
+    ) -> Result<types::DeviceSsoGetRegistrationResponse, BackendError> {
+        let path = format!("/v1/device_sso/registrations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/device_sso/registrations/{id}/revoke` — Revoke a device registration. Every
+    /// refresh token it holds stops working at once and its next call is refused.
+    ///
+    /// Returns [`types::DeviceSsoRevokeResponse`].
+    pub async fn revoke(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::DeviceSsoRevokeResponse, BackendError> {
+        let path = format!("/v1/device_sso/registrations/{}/revoke", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+}
+
+impl Devices<'_> {
+    /// `GET /v1/devices/{id}/compliance_history` — The compliance transitions of one device, newest
+    /// first.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::DevicesComplianceHistoryResponse`].
+    pub async fn compliance_history(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::DevicesComplianceHistoryResponse, BackendError> {
+        let path = format!("/v1/devices/{}/compliance_history", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+}
+
 impl Diagnostics<'_> {
     /// `GET /v1/diagnostics/login_readiness` — End-to-end login-readiness probe for a given
     /// `origin` (CORS, cookie domain, email claim, JWKS), reporting the observed effective runtime
@@ -2452,6 +4184,46 @@ impl Events<'_> {
     pub async fn list(&self, query: &Query) -> Result<types::EventsListResponse, BackendError> {
         self.client
             .request(HttpMethod::Get, "/v1/events", &query.as_pairs(), None, None)
+            .await
+    }
+}
+
+impl Federation<'_> {
+    /// `GET /v1/federation` — The OpenID Federation configuration of this instance: entity
+    /// identifier, authority hints, trust anchors, subordinates and registration modes.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::FederationListResponse`].
+    pub async fn list(&self, query: &Query) -> Result<types::FederationListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/federation",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/federation/resolve` — Resolve and validate the trust chain of an entity against
+    /// the configured trust anchors and return the resolved metadata, or why the chain is invalid.
+    /// Nothing is registered.
+    ///
+    /// Takes [`types::FederationResolveBody`]. Returns nothing (`204 No Content`).
+    pub async fn resolve(
+        &self,
+        body: &types::FederationResolveBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/federation/resolve",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
             .await
     }
 }
@@ -2774,11 +4546,17 @@ impl Fga<'_> {
     /// which (object type, relation, user type) answers are precomputed, their status, the revision
     /// they were built at and when a tuple expiry will next invalidate them.
     ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
     /// Returns the response JSON (the API documents it as open-ended).
-    pub async fn materializations(&self, id: &str) -> Result<Value, BackendError> {
+    pub async fn list_materializations(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<Value, BackendError> {
         let path = format!("/v1/fga/stores/{}/materializations", seg(id));
         self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
     /// `POST /v1/fga/stores/{id}/materializations` — Precompute list-objects for every user of
@@ -2788,11 +4566,11 @@ impl Fga<'_> {
     /// plain `type:id` user with no request context or contextual tuples; otherwise list-objects is
     /// answered live. A model that uses conditions cannot be materialized.
     ///
-    /// Takes [`types::FgaMaterializationsBody`]. Returns the response JSON (the API documents it as open-ended).
-    pub async fn materializations(
+    /// Takes [`types::FgaCreateMaterializationBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn create_materialization(
         &self,
         id: &str,
-        body: &types::FgaMaterializationsBody,
+        body: &types::FgaCreateMaterializationBody,
         idempotency_key: Option<&str>,
     ) -> Result<Value, BackendError> {
         let path = format!("/v1/fga/stores/{}/materializations", seg(id));
@@ -2870,11 +4648,11 @@ impl Fga<'_> {
     /// version id or the latest), suite tuples and tests with check, list_objects and list_users
     /// assertions. Returns per-test results and relation coverage. The store tuples are never read.
     ///
-    /// Takes [`types::FgaTestsBody`]. Returns the response JSON (the API documents it as open-ended).
-    pub async fn tests(
+    /// Takes [`types::FgaRunStoreTestsBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn run_store_tests(
         &self,
         id: &str,
-        body: &types::FgaTestsBody,
+        body: &types::FgaRunStoreTestsBody,
         idempotency_key: Option<&str>,
     ) -> Result<Value, BackendError> {
         let path = format!("/v1/fga/stores/{}/tests", seg(id));
@@ -2925,10 +4703,10 @@ impl Fga<'_> {
     /// `POST /v1/fga/tests` — Run an FGA test suite with no store: the model comes from `dsl` or
     /// `modules`. Returns per-test results and relation coverage. For CI.
     ///
-    /// Takes [`types::FgaTestsBody2`]. Returns the response JSON (the API documents it as open-ended).
-    pub async fn tests(
+    /// Takes [`types::FgaRunTestsBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn run_tests(
         &self,
-        body: &types::FgaTestsBody2,
+        body: &types::FgaRunTestsBody,
         idempotency_key: Option<&str>,
     ) -> Result<Value, BackendError> {
         self.client
@@ -3019,6 +4797,314 @@ impl Fraud<'_> {
                 &[],
                 body_of(body)?,
                 None,
+            )
+            .await
+    }
+}
+
+impl Iga<'_> {
+    /// `GET /v1/iga/activations` — The activation history, newest first, with each activation's
+    /// live status.
+    ///
+    /// Query parameters: `user_id`, `entitlement`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::IgaListActivationsResponse`].
+    pub async fn list_activations(
+        &self,
+        query: &Query,
+    ) -> Result<types::IgaListActivationsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/iga/activations",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/iga/activations` — Activate eligible access for a person as an administrator (the
+    /// MFA the entitlement asks for is waived and the activation is marked `admin`). Justification,
+    /// ticket and duration limits still apply. With `require_approval` the entitlement's approval
+    /// steps run first and the status is `pending_approval`.
+    ///
+    /// Takes [`types::IgaCreateActivationBody`]. Returns [`types::IgaCreateActivationResponse`].
+    pub async fn create_activation(
+        &self,
+        body: &types::IgaCreateActivationBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaCreateActivationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/iga/activations",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/iga/activations/{id}/end` — End an activation now: closes the grant, or cancels
+    /// the pending approval.
+    ///
+    /// Returns [`types::IgaEndResponse`].
+    pub async fn end(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaEndResponse, BackendError> {
+        let path = format!("/v1/iga/activations/{}/end", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `GET /v1/iga/bundles` — List access bundles (packages of entitlements requested together).
+    ///
+    /// Query parameters: `catalog`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::IgaListBundlesResponse`].
+    pub async fn list_bundles(
+        &self,
+        query: &Query,
+    ) -> Result<types::IgaListBundlesResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/iga/bundles",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/iga/bundles` — Create a bundle: several catalog entitlements, request form fields,
+    /// and a policy (who may ask, guest expiry).
+    ///
+    /// Takes [`types::IgaCreateBundleBody`]. Returns [`types::IgaCreateBundleResponse`].
+    pub async fn create_bundle(
+        &self,
+        body: &types::IgaCreateBundleBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaCreateBundleResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/iga/bundles",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/iga/bundles/{id}` — Delete a bundle (access already granted stays).
+    ///
+    /// Returns [`types::IgaDeleteBundlesResponse`].
+    pub async fn delete_bundles(
+        &self,
+        id: &str,
+    ) -> Result<types::IgaDeleteBundlesResponse, BackendError> {
+        let path = format!("/v1/iga/bundles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/iga/bundles/{id}` — Read one bundle by id or key.
+    ///
+    /// Returns [`types::IgaGetBundleResponse`].
+    pub async fn get_bundle(&self, id: &str) -> Result<types::IgaGetBundleResponse, BackendError> {
+        let path = format!("/v1/iga/bundles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/iga/bundles/{id}` — Change an access bundle, its entitlements, form fields or
+    /// policy.
+    ///
+    /// Takes [`types::IgaUpdateBundlesBody`]. Returns [`types::IgaUpdateBundlesResponse`].
+    pub async fn update_bundles(
+        &self,
+        id: &str,
+        body: &types::IgaUpdateBundlesBody,
+    ) -> Result<types::IgaUpdateBundlesResponse, BackendError> {
+        let path = format!("/v1/iga/bundles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/iga/bundles/{id}/request` — Request every entitlement of a bundle for a person.
+    /// Each one follows its own approval steps and separation-of-duties rules; the response says
+    /// which were requested, skipped (already held or pending) or failed.
+    ///
+    /// Takes [`types::IgaRequestBody`]. Returns [`types::IgaRequestResponse`].
+    pub async fn request(
+        &self,
+        id: &str,
+        body: &types::IgaRequestBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaRequestResponse, BackendError> {
+        let path = format!("/v1/iga/bundles/{}/request", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/iga/campaign_templates` — Ready-made access reviews: inactive users, guest and
+    /// contractor access, and a quarterly two-stage review.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::IgaCampaignTemplatesResponse`].
+    pub async fn campaign_templates(
+        &self,
+        query: &Query,
+    ) -> Result<types::IgaCampaignTemplatesResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/iga/campaign_templates",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/iga/campaigns/from_template` — Create a campaign from a template. `parameters`
+    /// fill the template (inactive_days; company_domains).
+    ///
+    /// Takes [`types::IgaFromTemplateBody`]. Returns [`types::IgaFromTemplateResponse`].
+    pub async fn from_template(
+        &self,
+        body: &types::IgaFromTemplateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaFromTemplateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/iga/campaigns/from_template",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/iga/campaigns/{id}/recommendations` — The open review items with advice for the
+    /// reviewer: revoke (no sign-in for 90 days, or none since the access was granted), review
+    /// (held by few of the manager's other reports) or certify. Advice only.
+    ///
+    /// Query parameters: `reviewer_user_id`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::IgaRecommendationsResponse`].
+    pub async fn recommendations(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::IgaRecommendationsResponse, BackendError> {
+        let path = format!("/v1/iga/campaigns/{}/recommendations", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/iga/campaigns/{id}/run_now` — Start a copy of a recurring campaign now, outside
+    /// its schedule.
+    ///
+    /// Returns [`types::IgaRunNowResponse`].
+    pub async fn run_now(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaRunNowResponse, BackendError> {
+        let path = format!("/v1/iga/campaigns/{}/run_now", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/iga/campaigns/{id}/stop_recurrence` — Stop a recurring campaign. Copies already
+    /// started are unaffected.
+    ///
+    /// Returns [`types::IgaStopRecurrenceResponse`].
+    pub async fn stop_recurrence(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaStopRecurrenceResponse, BackendError> {
+        let path = format!("/v1/iga/campaigns/{}/stop_recurrence", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `GET /v1/iga/eligibilities` — People who may activate an entitlement (eligible assignments).
+    ///
+    /// Query parameters: `user_id`, `entitlement`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::IgaListEligibilitiesResponse`].
+    pub async fn list_eligibilities(
+        &self,
+        query: &Query,
+    ) -> Result<types::IgaListEligibilitiesResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/iga/eligibilities",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/iga/eligibilities` — Make a person eligible for an entitlement: they hold nothing
+    /// until they activate it. The entitlement needs `activation_rules`. `expires_at` ends the
+    /// eligibility.
+    ///
+    /// Takes [`types::IgaCreateEligibilityBody`]. Returns [`types::IgaCreateEligibilityResponse`].
+    pub async fn create_eligibility(
+        &self,
+        body: &types::IgaCreateEligibilityBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaCreateEligibilityResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/iga/eligibilities",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/iga/eligibilities/{id}` — Remove an eligibility. Access already activated stays
+    /// until it ends.
+    ///
+    /// Returns [`types::IgaDeleteEligibilitiesResponse`].
+    pub async fn delete_eligibilities(
+        &self,
+        id: &str,
+    ) -> Result<types::IgaDeleteEligibilitiesResponse, BackendError> {
+        let path = format!("/v1/iga/eligibilities/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/iga/entitlements/import` — Add catalog entitlements (not requestable, no approval
+    /// steps) for the groups or app roles that exist but are not in the catalog yet.
+    ///
+    /// Takes [`types::IgaImportBody`]. Returns [`types::IgaImportResponse`].
+    pub async fn import(
+        &self,
+        body: &types::IgaImportBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::IgaImportResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/iga/entitlements/import",
+                &[],
+                body_of(body)?,
+                idempotency_key,
             )
             .await
     }
@@ -3176,7 +5262,7 @@ impl Instance<'_> {
     /// keeps working before Atlas fails closed.
     ///
     /// Returns the response JSON (the API documents it as open-ended).
-    pub async fn data_key_provider(&self) -> Result<Value, BackendError> {
+    pub async fn get_data_key_provider(&self) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Get,
@@ -3196,7 +5282,7 @@ impl Instance<'_> {
     /// CUSTOMER_KEY_UNAVAILABLE within five minutes; nothing falls back to a platform key.
     ///
     /// Returns the response JSON (the API documents it as open-ended).
-    pub async fn data_key_provider(
+    pub async fn enable_data_key_provider(
         &self,
         idempotency_key: Option<&str>,
     ) -> Result<Value, BackendError> {
@@ -3272,7 +5358,10 @@ impl Instance<'_> {
     /// it; earlier versions stay until a re-encryption sweep reports none left on them.
     ///
     /// Returns the response JSON (the API documents it as open-ended).
-    pub async fn rotate(&self, idempotency_key: Option<&str>) -> Result<Value, BackendError> {
+    pub async fn rotate_data_key(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -3490,10 +5579,10 @@ impl Instance<'_> {
     /// public key stays published for `grace_period_seconds` (default 24 h) so tokens it signed
     /// keep verifying.
     ///
-    /// Takes [`types::InstanceRotateBody`]. Returns nothing (`204 No Content`).
-    pub async fn rotate(
+    /// Takes [`types::InstanceRotateOpKeyBody`]. Returns nothing (`204 No Content`).
+    pub async fn rotate_op_key(
         &self,
-        body: &types::InstanceRotateBody,
+        body: &types::InstanceRotateOpKeyBody,
         idempotency_key: Option<&str>,
     ) -> Result<(), BackendError> {
         self.client
@@ -3905,11 +5994,11 @@ impl Instance<'_> {
     ///
     /// Query parameters: `limit`, `starting_after`.
     ///
-    /// Returns [`types::InstanceSecretKeysResponse`].
-    pub async fn secret_keys(
+    /// Returns [`types::InstanceListSecretKeysResponse`].
+    pub async fn list_secret_keys(
         &self,
         query: &Query,
-    ) -> Result<types::InstanceSecretKeysResponse, BackendError> {
+    ) -> Result<types::InstanceListSecretKeysResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Get,
@@ -3935,12 +6024,12 @@ impl Instance<'_> {
     /// "name": "DSAR executor", "scopes": \["privacy:execute", "privacy:grants:revoke"\],
     /// "expires_at": "2027-04-01" }.
     ///
-    /// Takes [`types::InstanceSecretKeysBody`]. Returns [`types::InstanceSecretKeysResponse2`].
-    pub async fn secret_keys(
+    /// Takes [`types::InstanceCreateSecretKeyBody`]. Returns [`types::InstanceCreateSecretKeyResponse`].
+    pub async fn create_secret_key(
         &self,
-        body: &types::InstanceSecretKeysBody,
+        body: &types::InstanceCreateSecretKeyBody,
         idempotency_key: Option<&str>,
-    ) -> Result<types::InstanceSecretKeysResponse2, BackendError> {
+    ) -> Result<types::InstanceCreateSecretKeyResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -4833,6 +6922,366 @@ impl McpConnector<'_> {
     }
 }
 
+impl McpGateways<'_> {
+    /// `GET /v1/mcp_gateways/{id}/packs` — The tool packs of a gateway: named tool sets assigned to
+    /// agents, organizations or groups.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::McpGatewaysListPacksResponse`].
+    pub async fn list_packs(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::McpGatewaysListPacksResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/packs", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/mcp_gateways/{id}/packs` — Create a tool pack. With the gateway's `packs_enforced`
+    /// on, a caller sees and may call only the tools of packs assigned to them.
+    ///
+    /// Takes [`types::McpGatewaysCreatePackBody`]. Returns [`types::McpGatewaysCreatePackResponse`].
+    pub async fn create_pack(
+        &self,
+        id: &str,
+        body: &types::McpGatewaysCreatePackBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpGatewaysCreatePackResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/packs", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/mcp_gateways/{id}/packs/{packId}` — Delete a tool pack from an MCP gateway.
+    ///
+    /// Returns [`types::McpGatewaysDeletePacksResponse`].
+    pub async fn delete_packs(
+        &self,
+        id: &str,
+        pack_id: &str,
+    ) -> Result<types::McpGatewaysDeletePacksResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/packs/{}", seg(id), seg(pack_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/mcp_gateways/{id}/packs/{packId}` — Read one tool pack of an MCP gateway.
+    ///
+    /// Returns [`types::McpGatewaysGetPackResponse`].
+    pub async fn get_pack(
+        &self,
+        id: &str,
+        pack_id: &str,
+    ) -> Result<types::McpGatewaysGetPackResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/packs/{}", seg(id), seg(pack_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/mcp_gateways/{id}/packs/{packId}` — Change a tool pack; omitted fields keep their
+    /// value.
+    ///
+    /// Takes [`types::McpGatewaysUpdatePacksBody`]. Returns [`types::McpGatewaysUpdatePacksResponse`].
+    pub async fn update_packs(
+        &self,
+        id: &str,
+        pack_id: &str,
+        body: &types::McpGatewaysUpdatePacksBody,
+    ) -> Result<types::McpGatewaysUpdatePacksResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/packs/{}", seg(id), seg(pack_id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/mcp_gateways/{id}/pins` — The pinned tool definitions of a gateway with
+    /// `guard.pin_tools` on: each tool's description and schema is hashed when first seen; a
+    /// changed definition is blocked (status changed) until approved.
+    ///
+    /// Query parameters: `status`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::McpGatewaysPinsResponse`].
+    pub async fn pins(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::McpGatewaysPinsResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/pins", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `DELETE /v1/mcp_gateways/{id}/pins/{tool}` — Forget a pin; the next tools/list pins whatever
+    /// the upstream serves then.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete_pins(&self, id: &str, tool: &str) -> Result<Value, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/pins/{}", seg(id), seg(tool));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/mcp_gateways/{id}/pins/{tool}/approve` — Accept the definition the upstream serves
+    /// now for a tool whose definition changed. Unblocks the tool.
+    ///
+    /// Returns [`types::McpGatewaysApproveResponse`].
+    pub async fn approve(
+        &self,
+        id: &str,
+        tool: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpGatewaysApproveResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/pins/{}/approve", seg(id), seg(tool));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `GET /v1/mcp_gateways/{id}/upstreams` — The upstreams of a gateway: MCP servers and
+    /// OpenAPI-described APIs, each exposed under its namespace.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::McpGatewaysListUpstreamsResponse`].
+    pub async fn list_upstreams(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::McpGatewaysListUpstreamsResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/upstreams", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/mcp_gateways/{id}/upstreams` — Add an upstream. An mcp upstream's tools are
+    /// re-served as `&lt;namespace&gt;__&lt;tool&gt;`; an openapi upstream turns each operation of
+    /// the document into a tool and calls the API itself (through a connection's relay when
+    /// auth_kind is connection). At most 20 per gateway.
+    ///
+    /// Takes [`types::McpGatewaysCreateUpstreamBody`]. Returns [`types::McpGatewaysCreateUpstreamResponse`].
+    pub async fn create_upstream(
+        &self,
+        id: &str,
+        body: &types::McpGatewaysCreateUpstreamBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpGatewaysCreateUpstreamResponse, BackendError> {
+        let path = format!("/v1/mcp_gateways/{}/upstreams", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/mcp_gateways/{id}/upstreams/{upstreamId}` — Remove an upstream and its tools
+    /// from the gateway.
+    ///
+    /// Returns [`types::McpGatewaysDeleteUpstreamsResponse`].
+    pub async fn delete_upstreams(
+        &self,
+        id: &str,
+        upstream_id: &str,
+    ) -> Result<types::McpGatewaysDeleteUpstreamsResponse, BackendError> {
+        let path = format!(
+            "/v1/mcp_gateways/{}/upstreams/{}",
+            seg(id),
+            seg(upstream_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/mcp_gateways/{id}/upstreams/{upstreamId}` — Read one upstream of an MCP gateway.
+    ///
+    /// Returns [`types::McpGatewaysGetUpstreamResponse`].
+    pub async fn get_upstream(
+        &self,
+        id: &str,
+        upstream_id: &str,
+    ) -> Result<types::McpGatewaysGetUpstreamResponse, BackendError> {
+        let path = format!(
+            "/v1/mcp_gateways/{}/upstreams/{}",
+            seg(id),
+            seg(upstream_id)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/mcp_gateways/{id}/upstreams/{upstreamId}` — Change an upstream. Omitted fields
+    /// keep their value; sending `openapi` recompiles the tools.
+    ///
+    /// Takes [`types::McpGatewaysUpdateUpstreamsBody`]. Returns [`types::McpGatewaysUpdateUpstreamsResponse`].
+    pub async fn update_upstreams(
+        &self,
+        id: &str,
+        upstream_id: &str,
+        body: &types::McpGatewaysUpdateUpstreamsBody,
+    ) -> Result<types::McpGatewaysUpdateUpstreamsResponse, BackendError> {
+        let path = format!(
+            "/v1/mcp_gateways/{}/upstreams/{}",
+            seg(id),
+            seg(upstream_id)
+        );
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `POST /v1/mcp_gateways/{id}/upstreams/{upstreamId}/test` — Reach the upstream with its own
+    /// auth and list the tools it would add to the gateway. Never fails the request: `ok` is false
+    /// with an `error` instead.
+    ///
+    /// Returns [`types::McpGatewaysTestResponse`].
+    pub async fn test(
+        &self,
+        id: &str,
+        upstream_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpGatewaysTestResponse, BackendError> {
+        let path = format!(
+            "/v1/mcp_gateways/{}/upstreams/{}/test",
+            seg(id),
+            seg(upstream_id)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+}
+
+impl McpRegistry<'_> {
+    /// `GET /v1/mcp_registry` — The instance registry of upstream MCP servers: approved ones, and
+    /// requests waiting for review. A gateway with `registry_only` accepts only approved URLs.
+    ///
+    /// Query parameters: `status`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::McpRegistryListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::McpRegistryListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/mcp_registry",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/mcp_registry` — Add a server to the registry as approved (default), or file it as
+    /// pending for review.
+    ///
+    /// Takes [`types::McpRegistryCreateBody`]. Returns [`types::McpRegistryCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::McpRegistryCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpRegistryCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/mcp_registry",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/mcp_registry/{id}` — Remove a registry entry.
+    ///
+    /// Returns [`types::McpRegistryDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::McpRegistryDeleteResponse, BackendError> {
+        let path = format!("/v1/mcp_registry/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/mcp_registry/{id}/decide` — Approve or reject a registry entry.
+    ///
+    /// Takes [`types::McpRegistryDecideBody`]. Returns [`types::McpRegistryDecideResponse`].
+    pub async fn decide(
+        &self,
+        id: &str,
+        body: &types::McpRegistryDecideBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpRegistryDecideResponse, BackendError> {
+        let path = format!("/v1/mcp_registry/{}/decide", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl Messaging<'_> {
+    /// `GET /v1/messaging/suppressions` — The email suppression list, or one address with `email`.
+    ///
+    /// Query parameters: `email`, `after`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::MessagingListSuppressionsResponse`].
+    pub async fn list_suppressions(
+        &self,
+        query: &Query,
+    ) -> Result<types::MessagingListSuppressionsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/messaging/suppressions",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/messaging/suppressions` — Add one or many addresses (a bounce or complaint webhook
+    /// forwarder can post here). Existing entries are updated.
+    ///
+    /// Takes [`types::MessagingCreateSuppressionBody`]. Returns [`types::MessagingCreateSuppressionResponse`].
+    pub async fn create_suppression(
+        &self,
+        body: &types::MessagingCreateSuppressionBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::MessagingCreateSuppressionResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/messaging/suppressions",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/messaging/suppressions/{email}` — Remove an address from the suppression list.
+    ///
+    /// Returns [`types::MessagingDeleteSuppressionsResponse`].
+    pub async fn delete_suppressions(
+        &self,
+        email: &str,
+    ) -> Result<types::MessagingDeleteSuppressionsResponse, BackendError> {
+        let path = format!("/v1/messaging/suppressions/{}", seg(email));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
 impl MessagingProvidersApi<'_> {
     /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
     /// mode (the provider and its key stay). To remove the provider, DELETE
@@ -4997,6 +7446,43 @@ impl MessagingProvidersApi<'_> {
     }
 }
 
+impl MfaFactorQuarantines<'_> {
+    /// `GET /v1/mfa_factor_quarantines` — Second factors held in quarantine because they were
+    /// enrolled while the account looked compromised.
+    ///
+    /// Query parameters: `user_id`, `active`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::MfaFactorQuarantinesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::MfaFactorQuarantinesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/mfa_factor_quarantines",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/mfa_factor_quarantines/{id}/release` — Release a quarantined factor so it can
+    /// complete sign-ins.
+    ///
+    /// Returns [`types::MfaFactorQuarantinesReleaseResponse`].
+    pub async fn release(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::MfaFactorQuarantinesReleaseResponse, BackendError> {
+        let path = format!("/v1/mfa_factor_quarantines/{}/release", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+}
+
 impl BetterAuthBridgeApi<'_> {
     /// `DELETE /v1/migrations/better_auth/bridge` — Remove the Better Auth session-bridge settings
     /// (the bridge is off and the stored secret is deleted).
@@ -5125,6 +7611,30 @@ impl NetworkAcls<'_> {
         let path = format!("/v1/network_acls/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl OAuthApplicationTypes<'_> {
+    /// `GET /v1/oauth_application_types` — The application types `application_type` accepts when
+    /// creating an OAuth client (web, spa, native, device, mcp), with the defaults each applies to
+    /// the fields you leave out.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::OAuthApplicationTypesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::OAuthApplicationTypesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/oauth_application_types",
+                &query.as_pairs(),
+                None,
+                None,
+            )
             .await
     }
 }
@@ -5395,12 +7905,12 @@ impl OAuthClients<'_> {
     ///
     /// Query parameters: `limit`, `starting_after`.
     ///
-    /// Returns [`types::OAuthClientsTokenExchangeProfilesResponse`].
-    pub async fn token_exchange_profiles(
+    /// Returns [`types::OAuthClientsListTokenExchangeProfilesResponse`].
+    pub async fn list_token_exchange_profiles(
         &self,
         id: &str,
         query: &Query,
-    ) -> Result<types::OAuthClientsTokenExchangeProfilesResponse, BackendError> {
+    ) -> Result<types::OAuthClientsListTokenExchangeProfilesResponse, BackendError> {
         let path = format!("/v1/oauth_clients/{}/token_exchange_profiles", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
@@ -5411,11 +7921,11 @@ impl OAuthClients<'_> {
     /// client. An exchange with it runs your `custom_token_exchange` Action, which validates the
     /// token and names the user to issue tokens for.
     ///
-    /// Takes [`types::OAuthClientsTokenExchangeProfilesBody`]. Returns nothing (`204 No Content`).
-    pub async fn token_exchange_profiles(
+    /// Takes [`types::OAuthClientsCreateTokenExchangeProfileBody`]. Returns nothing (`204 No Content`).
+    pub async fn create_token_exchange_profile(
         &self,
         id: &str,
-        body: &types::OAuthClientsTokenExchangeProfilesBody,
+        body: &types::OAuthClientsCreateTokenExchangeProfileBody,
         idempotency_key: Option<&str>,
     ) -> Result<(), BackendError> {
         let path = format!("/v1/oauth_clients/{}/token_exchange_profiles", seg(id));
@@ -5523,6 +8033,59 @@ impl OAuthInitialAccessTokens<'_> {
         let path = format!("/v1/oauth_initial_access_tokens/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
+impl Opa<'_> {
+    /// `GET /v1/opa/bundles/{store}` — An OPA bundle (gzipped tarball with .manifest and data.json)
+    /// holding the store's model and unexpired tuples under data.atlas.fga.{store id}, for Rego you
+    /// write over Atlas data. Supports ETag and If-None-Match (304).
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn bundles(&self, store: &str) -> Result<Value, BackendError> {
+        let path = format!("/v1/opa/bundles/{}", seg(store));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/opa/logs` — OPA decision log ingestion: accepts the gzipped JSON array OPA's
+    /// decision_logs plugin posts and records each event in the Atlas decision log (source `opa`),
+    /// sampled and redacted by the instance settings.
+    ///
+    /// Takes a JSON body (the API documents it as open-ended). Returns the response JSON (the API documents it as open-ended).
+    pub async fn logs(
+        &self,
+        body: Value,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/opa/logs",
+                &[],
+                Some(body),
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/opa/status` — Accepts OPA status updates and ignores them, so a default OPA
+    /// configuration does not log errors.
+    ///
+    /// Takes a JSON body (the API documents it as open-ended). Returns the response JSON (the API documents it as open-ended).
+    pub async fn status(
+        &self,
+        body: Value,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/opa/status",
+                &[],
+                Some(body),
+                idempotency_key,
+            )
             .await
     }
 }
@@ -5844,6 +8407,83 @@ impl OrgLdapConnections<'_> {
         let path = format!("/v1/org_ldap_connections/{}/test", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl OrganizationConnections<'_> {
+    /// `GET /v1/organization_connections` — B2B connections between organizations, optionally those
+    /// involving one organization.
+    ///
+    /// Query parameters: `organization_id`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::OrganizationConnectionsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::OrganizationConnectionsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/organization_connections",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/organization_connections` — Invite a partner organization to use an application
+    /// the supplier organization holds. Returns a one-time `token` for the partner's administrator;
+    /// the invitation lasts 14 days.
+    ///
+    /// Takes [`types::OrganizationConnectionsCreateBody`]. Returns [`types::OrganizationConnectionsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::OrganizationConnectionsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::OrganizationConnectionsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/organization_connections",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/organization_connections/{id}` — Revoke a connection (or a pending invitation).
+    /// The partner organization loses access to the application.
+    ///
+    /// Returns [`types::OrganizationConnectionsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::OrganizationConnectionsDeleteResponse, BackendError> {
+        let path = format!("/v1/organization_connections/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/organization_connections/{id}/accept` — Accept an invitation with its token: the
+    /// partner organization gains access to the application. The token works once.
+    ///
+    /// Takes [`types::OrganizationConnectionsAcceptBody`]. Returns [`types::OrganizationConnectionsAcceptResponse`].
+    pub async fn accept(
+        &self,
+        id: &str,
+        body: &types::OrganizationConnectionsAcceptBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::OrganizationConnectionsAcceptResponse, BackendError> {
+        let path = format!("/v1/organization_connections/{}/accept", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
             .await
     }
 }
@@ -6481,6 +9121,125 @@ impl Organizations<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
+            .await
+    }
+}
+
+impl PartnerLinks<'_> {
+    /// `POST /v1/partner_links/outbound/{partner}/request` — Ask a partner for a link on this
+    /// instance's behalf, instead of pasting the credentials it issues: Atlas POSTs `&lt;partner
+    /// base&gt;/v1/partner_link_requests` with `scopes\[\]` (partner-side scopes), `resource` and
+    /// Atlas's own callback. Once the partner's owner approves, the partner delivers the
+    /// credentials to Atlas signed, and they are stored as an outbound link (`source:
+    /// oauth_install`). `base_url` is required for a partner that is not a preset. With an operator
+    /// token, needs multi-factor sign-in within 5 minutes.
+    ///
+    /// Takes [`types::PartnerLinksRequestBody`]. Returns [`types::PartnerLinksRequestResponse`].
+    pub async fn request(
+        &self,
+        partner: &str,
+        body: &types::PartnerLinksRequestBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::PartnerLinksRequestResponse, BackendError> {
+        let path = format!("/v1/partner_links/outbound/{}/request", seg(partner));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/partner_links/requests` — Partner link requests: `?direction=inbound` (default;
+    /// partners asking this instance) or `outbound` (Atlas asking partners), optional
+    /// `?status=pending,delivery_failed`. Never returns a secret.
+    ///
+    /// Query parameters: `direction`, `status`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::PartnerLinksListRequestsResponse`].
+    pub async fn list_requests(
+        &self,
+        query: &Query,
+    ) -> Result<types::PartnerLinksListRequestsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/partner_links/requests",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/partner_links/requests/{id}` — One partner link request.
+    ///
+    /// Returns [`types::PartnerLinksGetRequestResponse`].
+    pub async fn get_request(
+        &self,
+        id: &str,
+    ) -> Result<types::PartnerLinksGetRequestResponse, BackendError> {
+        let path = format!("/v1/partner_links/requests/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/partner_links/requests/{id}/approve` — Approve a partner's link request: Atlas
+    /// creates the link and delivers its client credentials server to server to the partner's
+    /// callback, signed with the request secret (Atlas-Signature). The owner never sees a secret.
+    /// Optional `scopes\[\]` narrows what was requested; `expires_at` (default one year). If the
+    /// callback does not answer 2xx the new link is revoked at once and the request is
+    /// `delivery_failed`; approve again to retry. With an operator token, needs multi-factor
+    /// sign-in within 5 minutes.
+    ///
+    /// Takes [`types::PartnerLinksApproveBody`]. Returns [`types::PartnerLinksApproveResponse`].
+    pub async fn approve(
+        &self,
+        id: &str,
+        body: &types::PartnerLinksApproveBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::PartnerLinksApproveResponse, BackendError> {
+        let path = format!("/v1/partner_links/requests/{}/approve", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/partner_links/requests/{id}/deny` — Deny a partner's link request. The partner's
+    /// callback is told (`partner_link.denied`, signed), best effort.
+    ///
+    /// Returns [`types::PartnerLinksDenyResponse`].
+    pub async fn deny(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::PartnerLinksDenyResponse, BackendError> {
+        let path = format!("/v1/partner_links/requests/{}/deny", seg(id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `PATCH /v1/partner_links/{id}` — Lock a partner link to client certificates (mTLS):
+    /// `cert_fingerprints\[\]` (SHA-256, hex or base64url; at most 5; \[\] removes the lock). With
+    /// a lock, every use of the link (its secret, client_credentials, and tokens minted from it)
+    /// must come with one of these certificates, and the token endpoint accepts the certificate in
+    /// place of the secret. Tokens minted before the change stop working.
+    ///
+    /// Takes [`types::PartnerLinksUpdateBody`]. Returns [`types::PartnerLinksUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::PartnerLinksUpdateBody,
+    ) -> Result<types::PartnerLinksUpdateResponse, BackendError> {
+        let path = format!("/v1/partner_links/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
 }
@@ -7133,6 +9892,55 @@ impl Policies<'_> {
     }
 }
 
+impl Provisioning<'_> {
+    /// `POST /v1/provisioning/preview` — Evaluate an attribute mapping for one user and return each
+    /// attribute's value and the payload a connector would receive. Takes the mapping and lookups,
+    /// or a target_id to use its own, and a real user_id or a made-up sample user. Writes nothing
+    /// and contacts nobody; this is the live preview behind the mapping editor.
+    ///
+    /// Takes [`types::ProvisioningPreviewBody`]. Returns [`types::ProvisioningPreviewResponse`].
+    pub async fn preview(
+        &self,
+        body: &types::ProvisioningPreviewBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::ProvisioningPreviewResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/provisioning/preview",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl ProvisioningConnectors<'_> {
+    /// `GET /v1/provisioning_connectors` — List the outbound provisioning connector kinds (scim,
+    /// google_workspace, microsoft_graph, rest, ad_writeback, sql) with the credentials and
+    /// settings each needs, whether it needs a relay agent, and the functions the mapping
+    /// expression language offers.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ProvisioningConnectorsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::ProvisioningConnectorsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/provisioning_connectors",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+}
+
 impl RadiusClients<'_> {
     /// `GET /v1/radius_clients` — List the RADIUS NAS clients — the VPN/WiFi/firewall devices
     /// allowed to authenticate this instance's users over RADIUS. The per-NAS shared secret is
@@ -7310,6 +10118,49 @@ impl RedirectUrls<'_> {
     }
 }
 
+impl RefreshTokens<'_> {
+    /// `GET /v1/refresh_tokens` — Search the refresh grants OAuth apps hold, by `user_id`,
+    /// `client_id` and `status`. The tokens and their hashes are never returned.
+    ///
+    /// Query parameters: `user_id`, `client_id`, `status`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::RefreshTokensListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::RefreshTokensListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/refresh_tokens",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/refresh_tokens/revoke` — Revoke refresh grants in bulk: by `ids`, or every active
+    /// grant of a `user_id` and / or `client_id`. A request with no filter is refused. Each revoked
+    /// grant ends the sessions minted from it and sends `grant.revoked`.
+    ///
+    /// Takes [`types::RefreshTokensRevokeBody`]. Returns nothing (`204 No Content`).
+    pub async fn revoke(
+        &self,
+        body: &types::RefreshTokensRevokeBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/refresh_tokens/revoke",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
 impl ResourceServers<'_> {
     /// `GET /v1/resource_servers` — List resource servers (machine-to-machine APIs) and their
     /// scopes.
@@ -7480,6 +10331,103 @@ impl RiskEvents<'_> {
     }
 }
 
+impl RiskyUsers<'_> {
+    /// `GET /v1/risky_users` — The risky-user report: users with a standing risk score, filterable
+    /// by state.
+    ///
+    /// Query parameters: `state`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::RiskyUsersListResponse`].
+    pub async fn list(&self, query: &Query) -> Result<types::RiskyUsersListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/risky_users",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/risky_users/{user_id}` — One user's risk state, level, score and reasons.
+    ///
+    /// Returns [`types::RiskyUsersGetResponse`].
+    pub async fn get(&self, user_id: &str) -> Result<types::RiskyUsersGetResponse, BackendError> {
+        let path = format!("/v1/risky_users/{}", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/risky_users/{user_id}/confirm` — Confirm the account as compromised. The user
+    /// reads as high risk to access policies until remediated.
+    ///
+    /// Returns [`types::RiskyUsersConfirmResponse`].
+    pub async fn confirm(
+        &self,
+        user_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::RiskyUsersConfirmResponse, BackendError> {
+        let path = format!("/v1/risky_users/{}/confirm", seg(user_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/risky_users/{user_id}/dismiss` — Dismiss the risk (false alarm). The score resets.
+    ///
+    /// Returns [`types::RiskyUsersDismissResponse`].
+    pub async fn dismiss(
+        &self,
+        user_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::RiskyUsersDismissResponse, BackendError> {
+        let path = format!("/v1/risky_users/{}/dismiss", seg(user_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/risky_users/{user_id}/force_password_change` — Require a new password at the next
+    /// sign-in and end every session.
+    ///
+    /// Returns [`types::RiskyUsersForcePasswordChangeResponse`].
+    pub async fn force_password_change(
+        &self,
+        user_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::RiskyUsersForcePasswordChangeResponse, BackendError> {
+        let path = format!("/v1/risky_users/{}/force_password_change", seg(user_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/risky_users/{user_id}/force_reauth` — End every session so the user signs in, and
+    /// passes MFA, again.
+    ///
+    /// Returns [`types::RiskyUsersForceReauthResponse`].
+    pub async fn force_reauth(
+        &self,
+        user_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::RiskyUsersForceReauthResponse, BackendError> {
+        let path = format!("/v1/risky_users/{}/force_reauth", seg(user_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/risky_users/{user_id}/remediate` — Mark the risk remediated. The score resets.
+    ///
+    /// Returns [`types::RiskyUsersRemediateResponse`].
+    pub async fn remediate(
+        &self,
+        user_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::RiskyUsersRemediateResponse, BackendError> {
+        let path = format!("/v1/risky_users/{}/remediate", seg(user_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+}
+
 impl Roles<'_> {
     /// `GET /v1/roles` — List roles with their permissions and how many members hold each.
     ///
@@ -7542,6 +10490,86 @@ impl Roles<'_> {
         let path = format!("/v1/roles/{}/permissions", seg(id));
         self.client
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
+impl SamlIdp<'_> {
+    /// `GET /v1/saml_idp/service_providers` — List the SAML service providers Atlas issues
+    /// assertions to, with their NameID format, encryption, request-signing, algorithm and logout
+    /// settings.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::SamlIdpListServiceProvidersResponse`].
+    pub async fn list_service_providers(
+        &self,
+        query: &Query,
+    ) -> Result<types::SamlIdpListServiceProvidersResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/saml_idp/service_providers",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/saml_idp/service_providers/import_metadata` — Read a service provider's SAML
+    /// metadata (pasted XML or an https URL) into entity id, ACS URLs, NameID format,
+    /// request-signing and encryption certificates and logout endpoint. With save_as the service
+    /// provider is saved (201); without it nothing is stored.
+    ///
+    /// Takes [`types::SamlIdpImportMetadataBody`]. Returns [`types::SamlIdpImportMetadataResponse`].
+    pub async fn import_metadata(
+        &self,
+        body: &types::SamlIdpImportMetadataBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::SamlIdpImportMetadataResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/saml_idp/service_providers/import_metadata",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/saml_idp/service_providers/{id}` — Read one SAML service provider's settings.
+    ///
+    /// Returns [`types::SamlIdpGetServiceProviderResponse`].
+    pub async fn get_service_provider(
+        &self,
+        id: &str,
+    ) -> Result<types::SamlIdpGetServiceProviderResponse, BackendError> {
+        let path = format!("/v1/saml_idp/service_providers/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/saml_idp/service_providers/{id}` — Change a SAML service provider's NameID format
+    /// (emailAddress, persistent, transient, unspecified), assertion encryption, request-signing
+    /// certificates, signature and digest algorithms, Response signing, assertion lifetime,
+    /// authentication context and single-logout endpoint.
+    ///
+    /// Takes [`types::SamlIdpUpdateServiceProvidersBody`]. Returns [`types::SamlIdpUpdateServiceProvidersResponse`].
+    pub async fn update_service_providers(
+        &self,
+        id: &str,
+        body: &types::SamlIdpUpdateServiceProvidersBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::SamlIdpUpdateServiceProvidersResponse, BackendError> {
+        let path = format!("/v1/saml_idp/service_providers/{}", seg(id));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
             .await
     }
 }
@@ -7731,6 +10759,69 @@ impl ScimProvisioningTargets<'_> {
         let path = format!("/v1/scim_provisioning_targets/{}/test", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+}
+
+impl ScimResourceTypes<'_> {
+    /// `GET /v1/scim_resource_types` — List the custom SCIM resource types this instance serves
+    /// beyond Users and Groups.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ScimResourceTypesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::ScimResourceTypesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/scim_resource_types",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/scim_resource_types` — Define a custom SCIM resource type: a name, an endpoint
+    /// served at /scim/v2/&lt;endpoint&gt;, a schema URN and attribute definitions (type,
+    /// multiValued, required, mutability). Directory tokens then create, read, filter, patch and
+    /// delete resources of it, per organization.
+    ///
+    /// Takes [`types::ScimResourceTypesCreateBody`]. Returns nothing (`204 No Content`).
+    pub async fn create(
+        &self,
+        body: &types::ScimResourceTypesCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/scim_resource_types",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/scim_resource_types/{id}` — Delete a custom SCIM resource type and every
+    /// resource of it.
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete(&self, id: &str) -> Result<(), BackendError> {
+        let path = format!("/v1/scim_resource_types/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/scim_resource_types/{id}` — Read one custom SCIM resource type.
+    ///
+    /// Returns [`types::ScimResourceTypesGetResponse`].
+    pub async fn get(&self, id: &str) -> Result<types::ScimResourceTypesGetResponse, BackendError> {
+        let path = format!("/v1/scim_resource_types/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
 }
@@ -8092,6 +11183,143 @@ impl SmsTemplates<'_> {
     }
 }
 
+impl Ssf<'_> {
+    /// `POST /v1/ssf/events` — Raise a Shared Signals event for one of your users: the CAEP and
+    /// RISC events Atlas has no flow for (opt-in, opt-out-initiated, opt-out-cancelled,
+    /// opt-out-effective, identifier-recycled, recovery-activated ...). It reaches every stream
+    /// that asked for the event and whose subject rules allow the user. 202.
+    ///
+    /// Takes [`types::SsfEventsBody`]. Returns nothing (`204 No Content`).
+    pub async fn events(
+        &self,
+        body: &types::SsfEventsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/ssf/events",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/ssf/status` — SSF 1.0 stream status endpoint: the status (enabled, paused,
+    /// disabled) of the stream named by the `stream_id` query parameter.
+    ///
+    /// Query parameters: `stream_id`.
+    ///
+    /// Returns [`types::SsfGetStatusResponse`].
+    pub async fn get_status(
+        &self,
+        query: &Query,
+    ) -> Result<types::SsfGetStatusResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/ssf/status",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/ssf/status` — SSF 1.0 stream status endpoint: set the status of the stream named
+    /// by `stream_id`.
+    ///
+    /// Takes [`types::SsfUpdateStatusBody`]. Returns nothing (`204 No Content`).
+    pub async fn update_status(
+        &self,
+        body: &types::SsfUpdateStatusBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/ssf/status",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/ssf/streams/{id}/subjects` — The subjects a receiver added to or removed from a
+    /// stream, with the stream's `default_subjects` (ALL or NONE).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::SsfSubjectsResponse`].
+    pub async fn subjects(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::SsfSubjectsResponse, BackendError> {
+        let path = format!("/v1/ssf/streams/{}/subjects", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/ssf/subjects/add` — SSF 1.0 add subject: start (or, on an ALL stream, resume)
+    /// events for one subject on a stream. Subject formats: iss_sub (this issuer), email,
+    /// phone_number, opaque, account, did, uri. 200 with an empty body.
+    ///
+    /// Takes [`types::SsfAddBody`]. Returns nothing (`204 No Content`).
+    pub async fn add(
+        &self,
+        body: &types::SsfAddBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/ssf/subjects/add",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/ssf/subjects/remove` — SSF 1.0 remove subject: stop events for one subject on a
+    /// stream (on an ALL stream), or drop an earlier add (on a NONE stream). 204.
+    ///
+    /// Takes [`types::SsfRemoveBody`]. Returns nothing (`204 No Content`).
+    pub async fn remove(
+        &self,
+        body: &types::SsfRemoveBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/ssf/subjects/remove",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/ssf/verify` — SSF 1.0 verification endpoint: queue a verification event carrying
+    /// `state` for the stream named by `stream_id`. 204.
+    ///
+    /// Takes [`types::SsfVerifyBody`]. Returns nothing (`204 No Content`).
+    pub async fn verify(
+        &self,
+        body: &types::SsfVerifyBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/ssf/verify",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
 impl SsoConnections<'_> {
     /// `GET /v1/sso_connections` — List enterprise SSO connections (OIDC / SAML /
     /// DiscourseConnect). Never the client secret. Optional `?organization_id=` filters to one
@@ -8419,6 +11647,67 @@ impl SsoOnboarding<'_> {
         let path = format!("/v1/sso_onboarding_tickets/{}/revoke", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+}
+
+impl TelemetryExport<'_> {
+    /// `GET /v1/telemetry_export` — The instance's OTLP export settings for MCP gateway and
+    /// connection relay calls.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::TelemetryExportListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::TelemetryExportListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/telemetry_export",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/telemetry_export` — Configure OTLP/HTTP export of gateway tool calls and relay
+    /// calls as spans and metrics (atlas.calls, atlas.call.duration) to your collector. The
+    /// endpoint must be https and public; headers (for example an API token) are sealed and never
+    /// returned. Delivery is batched and best effort.
+    ///
+    /// Takes [`types::TelemetryExportSetBody`]. Returns [`types::TelemetryExportSetResponse`].
+    pub async fn set(
+        &self,
+        body: &types::TelemetryExportSetBody,
+    ) -> Result<types::TelemetryExportSetResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/telemetry_export",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/telemetry_export/test` — Send one test span to the configured collector now.
+    /// Answers ok or the collector's error; never fails the request.
+    ///
+    /// Returns [`types::TelemetryExportTestResponse`].
+    pub async fn test(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::TelemetryExportTestResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/telemetry_export/test",
+                &[],
+                None,
+                idempotency_key,
+            )
             .await
     }
 }
@@ -9381,12 +12670,12 @@ impl Users<'_> {
     ///
     /// Query parameters: `limit`, `starting_after`.
     ///
-    /// Returns [`types::UsersTemporaryAccessResponse`].
-    pub async fn temporary_access(
+    /// Returns [`types::UsersListTemporaryAccessResponse`].
+    pub async fn list_temporary_access(
         &self,
         user_id: &str,
         query: &Query,
-    ) -> Result<types::UsersTemporaryAccessResponse, BackendError> {
+    ) -> Result<types::UsersListTemporaryAccessResponse, BackendError> {
         let path = format!("/v1/users/{}/temporary_access", seg(user_id));
         self.client
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
@@ -9398,13 +12687,13 @@ impl Users<'_> {
     /// false) makes them register a passkey or second factor. Optionally bound to an IP. The code
     /// is shown once.
     ///
-    /// Takes [`types::UsersTemporaryAccessBody`]. Returns [`types::UsersTemporaryAccessResponse2`].
-    pub async fn temporary_access(
+    /// Takes [`types::UsersIssueTemporaryAccessBody`]. Returns [`types::UsersIssueTemporaryAccessResponse`].
+    pub async fn issue_temporary_access(
         &self,
         user_id: &str,
-        body: &types::UsersTemporaryAccessBody,
+        body: &types::UsersIssueTemporaryAccessBody,
         idempotency_key: Option<&str>,
-    ) -> Result<types::UsersTemporaryAccessResponse2, BackendError> {
+    ) -> Result<types::UsersIssueTemporaryAccessResponse, BackendError> {
         let path = format!("/v1/users/{}/temporary_access", seg(user_id));
         self.client
             .request(
@@ -9431,6 +12720,84 @@ impl Users<'_> {
         );
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
+impl Vc<'_> {
+    /// `GET /v1/vc/deferred` — List deferred issuances waiting for an operator decision.
+    ///
+    /// Query parameters: `status`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::VcDeferredResponse`].
+    pub async fn deferred(&self, query: &Query) -> Result<types::VcDeferredResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/vc/deferred",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/vc/deferred/{id}/approve` — Approve a deferred issuance; the wallet receives the
+    /// credential at the deferred credential endpoint.
+    ///
+    /// Takes [`types::VcApproveBody`]. Returns nothing (`204 No Content`).
+    pub async fn approve(
+        &self,
+        id: &str,
+        body: &types::VcApproveBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/vc/deferred/{}/approve", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/vc/deferred/{id}/deny` — Deny a deferred issuance; the wallet is told issuance was
+    /// refused.
+    ///
+    /// Takes [`types::VcDenyBody`]. Returns nothing (`204 No Content`).
+    pub async fn deny(
+        &self,
+        id: &str,
+        body: &types::VcDenyBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/vc/deferred/{}/deny", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/vc/presentation_requests/{id}/dc_api_request` — The OpenID4VP request for the
+    /// Digital Credentials API (navigator.credentials.get), for a presentation request with
+    /// expected_origins.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `and any filter the route documents`.
+    ///
+    /// Returns [`types::VcDcApiRequestResponse`].
+    pub async fn dc_api_request(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::VcDcApiRequestResponse, BackendError> {
+        let path = format!("/v1/vc/presentation_requests/{}/dc_api_request", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
 }
@@ -9520,6 +12887,286 @@ impl Waitlist<'_> {
     }
 }
 
+impl WorkflowApprovals<'_> {
+    /// `GET /v1/workflow_approvals` — Approvals that workflow `approval` steps have asked for,
+    /// newest first.
+    ///
+    /// Query parameters: `status`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::WorkflowApprovalsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::WorkflowApprovalsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/workflow_approvals",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/workflow_approvals/{id}/decide` — Approve or deny a workflow approval. The run
+    /// resumes at once. A secret-key caller may decide for anyone; pass `user_id` to record who
+    /// decided.
+    ///
+    /// Takes [`types::WorkflowApprovalsDecideBody`]. Returns [`types::WorkflowApprovalsDecideResponse`].
+    pub async fn decide(
+        &self,
+        id: &str,
+        body: &types::WorkflowApprovalsDecideBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::WorkflowApprovalsDecideResponse, BackendError> {
+        let path = format!("/v1/workflow_approvals/{}/decide", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+}
+
+impl WorkflowTemplates<'_> {
+    /// `GET /v1/workflow_templates` — Starter workflows (joiner, mover, leaver, inactive user,
+    /// expiring guest) with the parameters each needs.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::WorkflowTemplatesListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::WorkflowTemplatesListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/workflow_templates",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+}
+
+impl WorkflowTriggers<'_> {
+    /// `GET /v1/workflow_triggers` — The events a workflow can start on (`trigger.type =
+    /// webhook_event`): each name, what it means, which fields its data carries (usable as
+    /// `event.&lt;field&gt;` in a trigger filter or a step) and which part of the product emits it.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::WorkflowTriggersListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::WorkflowTriggersListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/workflow_triggers",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+}
+
+impl Workflows<'_> {
+    /// `POST /v1/workflows/from_template` — Create a workflow from a starter template. It is
+    /// created disabled unless `enabled` is true, so you can look it over first.
+    ///
+    /// Takes [`types::WorkflowsFromTemplateBody`]. Returns [`types::Workflow`].
+    pub async fn from_template(
+        &self,
+        body: &types::WorkflowsFromTemplateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::Workflow, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/workflows/from_template",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/workflows/{id}/invoke` — Start a workflow whose trigger is `manual` with an
+    /// `input` object (read as `input.*` in steps). Runs until it finishes or parks on a wait,
+    /// retry or approval; the returned run says which.
+    ///
+    /// Takes [`types::WorkflowsInvokeBody`]. Returns [`types::WorkflowRun`].
+    pub async fn invoke(
+        &self,
+        id: &str,
+        body: &types::WorkflowsInvokeBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::WorkflowRun, BackendError> {
+        let path = format!("/v1/workflows/{}/invoke", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/workflows/{id}/kv` — The workflow's key-value table (what `kv` steps read and
+    /// write).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::WorkflowsKvResponse`].
+    pub async fn kv(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::WorkflowsKvResponse, BackendError> {
+        let path = format!("/v1/workflows/{}/kv", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `DELETE /v1/workflows/{id}/kv/{key}` — Delete a key from the workflow key-value table.
+    ///
+    /// Returns [`types::WorkflowsDeleteKvResponse`].
+    pub async fn delete_kv(
+        &self,
+        id: &str,
+        key: &str,
+    ) -> Result<types::WorkflowsDeleteKvResponse, BackendError> {
+        let path = format!("/v1/workflows/{}/kv/{}", seg(id), seg(key));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/workflows/{id}/kv/{key}` — Set a key in the workflow key-value table.
+    ///
+    /// Takes [`types::WorkflowsSetKvBody`]. Returns [`types::WorkflowsSetKvResponse`].
+    pub async fn set_kv(
+        &self,
+        id: &str,
+        key: &str,
+        body: &types::WorkflowsSetKvBody,
+    ) -> Result<types::WorkflowsSetKvResponse, BackendError> {
+        let path = format!("/v1/workflows/{}/kv/{}", seg(id), seg(key));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/workflows/{id}/runs/{runId}` — One run with its per-step log: each step's path,
+    /// status, attempt, detail and output.
+    ///
+    /// Returns [`types::WorkflowRun`].
+    pub async fn runs(&self, id: &str, run_id: &str) -> Result<types::WorkflowRun, BackendError> {
+        let path = format!("/v1/workflows/{}/runs/{}", seg(id), seg(run_id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/workflows/{id}/runs/{runId}/resume` — Retry a failed run from the step that
+    /// failed, keeping its variables and earlier outputs.
+    ///
+    /// Returns [`types::WorkflowRun`].
+    pub async fn resume(
+        &self,
+        id: &str,
+        run_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::WorkflowRun, BackendError> {
+        let path = format!("/v1/workflows/{}/runs/{}/resume", seg(id), seg(run_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+}
+
+impl WsFedConnections<'_> {
+    /// `GET /v1/wsfed_connections` — List WS-Federation relying-party connections (sign people in
+    /// through AD FS or another WS-Federation provider).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::WsFedConnectionsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::WsFedConnectionsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/wsfed_connections",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/wsfed_connections` — Add a WS-Federation connection. Give the provider's
+    /// federation metadata (metadata_url or metadata_xml) or its issuer, passive endpoint and
+    /// signing certificates, and the realm. Sign-in starts at POST /v1/client/sign_ins/wsfed.
+    ///
+    /// Takes [`types::WsFedConnectionsCreateBody`]. Returns [`types::WsFedConnectionsCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::WsFedConnectionsCreateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::WsFedConnectionsCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/wsfed_connections",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/wsfed_connections/{id}` — Delete a WS-Federation connection.
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete(&self, id: &str) -> Result<(), BackendError> {
+        let path = format!("/v1/wsfed_connections/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/wsfed_connections/{id}` — Read one WS-Federation connection with the reply URL to
+    /// enter at the provider.
+    ///
+    /// Returns [`types::WsFedConnectionsGetResponse`].
+    pub async fn get(&self, id: &str) -> Result<types::WsFedConnectionsGetResponse, BackendError> {
+        let path = format!("/v1/wsfed_connections/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/wsfed_connections/{id}` — Change a WS-Federation connection; sending metadata
+    /// refreshes the certificates after a provider rollover.
+    ///
+    /// Takes [`types::WsFedConnectionsUpdateBody`]. Returns [`types::WsFedConnectionsUpdateResponse`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::WsFedConnectionsUpdateBody,
+    ) -> Result<types::WsFedConnectionsUpdateResponse, BackendError> {
+        let path = format!("/v1/wsfed_connections/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+}
+
 impl BackendClient {
     /// The community Actions gallery: browse, install and update Action templates.
     pub fn action_gallery(&self) -> ActionGallery<'_> {
@@ -9537,6 +13184,14 @@ impl BackendClient {
     pub fn actor_tokens(&self) -> ActorTokens<'_> {
         ActorTokens { client: self }
     }
+    /// Administrative units: scoped delegated administration.
+    pub fn administrative_units(&self) -> AdministrativeUnits<'_> {
+        AdministrativeUnits { client: self }
+    }
+    /// Access reviews for AI agents.
+    pub fn agent_access_reviews(&self) -> AgentAccessReviews<'_> {
+        AgentAccessReviews { client: self }
+    }
     /// Sign-up allowlist.
     pub fn allowlist_identifiers(&self) -> AllowlistIdentifiers<'_> {
         AllowlistIdentifiers { client: self }
@@ -9552,6 +13207,18 @@ impl BackendClient {
     /// The instance audit log.
     pub fn audit_logs(&self) -> AuditLogs<'_> {
         AuditLogs { client: self }
+    }
+    /// Audit log retention.
+    pub fn audit_retention(&self) -> AuditRetention<'_> {
+        AuditRetention { client: self }
+    }
+    /// Authenticator policies.
+    pub fn authenticator_policies(&self) -> AuthenticatorPolicies<'_> {
+        AuthenticatorPolicies { client: self }
+    }
+    /// External policy decision points.
+    pub fn authz_pdps(&self) -> AuthzPdps<'_> {
+        AuthzPdps { client: self }
     }
     /// Migrate from Better Auth: import a sealed bundle made by the Better Auth exporter.
     pub fn better_auth_imports(&self) -> BetterAuthImports<'_> {
@@ -9573,13 +13240,29 @@ impl BackendClient {
     pub fn captcha(&self) -> Captcha<'_> {
         Captcha { client: self }
     }
+    /// Chat integrations (approvals and alerts in chat).
+    pub fn chat_integrations(&self) -> ChatIntegrations<'_> {
+        ChatIntegrations { client: self }
+    }
+    /// Cloud access targets.
+    pub fn cloud_access(&self) -> CloudAccess<'_> {
+        CloudAccess { client: self }
+    }
     /// The configuration change log.
     pub fn config_changelog(&self) -> ConfigChangelog<'_> {
         ConfigChangelog { client: self }
     }
+    /// Connection actions.
+    pub fn connection_actions(&self) -> ConnectionActions<'_> {
+        ConnectionActions { client: self }
+    }
     /// Connectors (custom OAuth providers) and the community directory.
     pub fn connectors(&self) -> Connectors<'_> {
         Connectors { client: self }
+    }
+    /// Incident containments.
+    pub fn containments(&self) -> Containments<'_> {
+        Containments { client: self }
     }
     /// Custom OAuth / OIDC providers: your own upstream identity providers, with Atlas as the relying party.
     pub fn custom_oauth_providers(&self) -> CustomOAuthProviders<'_> {
@@ -9588,6 +13271,18 @@ impl BackendClient {
     /// Data subject (privacy) requests.
     pub fn data_subject_requests(&self) -> DataSubjectRequests<'_> {
         DataSubjectRequests { client: self }
+    }
+    /// Device assurance policies.
+    pub fn device_assurance_policies(&self) -> DeviceAssurancePolicies<'_> {
+        DeviceAssurancePolicies { client: self }
+    }
+    /// Device management integrations.
+    pub fn device_integrations(&self) -> DeviceIntegrations<'_> {
+        DeviceIntegrations { client: self }
+    }
+    /// Device single sign-on registrations.
+    pub fn device_sso(&self) -> DeviceSso<'_> {
+        DeviceSso { client: self }
     }
     /// Diagnostics.
     pub fn diagnostics(&self) -> Diagnostics<'_> {
@@ -9608,6 +13303,10 @@ impl BackendClient {
     /// The event log.
     pub fn events(&self) -> Events<'_> {
         Events { client: self }
+    }
+    /// Federation.
+    pub fn federation(&self) -> Federation<'_> {
+        Federation { client: self }
     }
     /// Fine-grained authorization (FGA) stores.
     pub fn fga(&self) -> Fga<'_> {
@@ -9657,6 +13356,18 @@ impl BackendClient {
     pub fn mcp_connector(&self) -> McpConnector<'_> {
         McpConnector { client: self }
     }
+    /// The MCP server registry.
+    pub fn mcp_registry(&self) -> McpRegistry<'_> {
+        McpRegistry { client: self }
+    }
+    /// Messaging suppressions.
+    pub fn messaging(&self) -> Messaging<'_> {
+        Messaging { client: self }
+    }
+    /// Quarantined MFA factors.
+    pub fn mfa_factor_quarantines(&self) -> MfaFactorQuarantines<'_> {
+        MfaFactorQuarantines { client: self }
+    }
     /// The Better Auth session bridge: exchange a returning user's Better Auth session for an Atlas session during the migration window.
     pub fn better_auth_bridge(&self) -> BetterAuthBridgeApi<'_> {
         BetterAuthBridgeApi { client: self }
@@ -9664,6 +13375,10 @@ impl BackendClient {
     /// Network ACLs.
     pub fn network_acls(&self) -> NetworkAcls<'_> {
         NetworkAcls { client: self }
+    }
+    /// OAuth application types.
+    pub fn oauth_application_types(&self) -> OAuthApplicationTypes<'_> {
+        OAuthApplicationTypes { client: self }
     }
     /// OAuth clients (Atlas as an OAuth provider).
     pub fn oauth_clients(&self) -> OAuthClients<'_> {
@@ -9673,6 +13388,10 @@ impl BackendClient {
     pub fn oauth_initial_access_tokens(&self) -> OAuthInitialAccessTokens<'_> {
         OAuthInitialAccessTokens { client: self }
     }
+    /// The OPA-compatible bundle, status, decision-log and data API.
+    pub fn opa(&self) -> Opa<'_> {
+        Opa { client: self }
+    }
     /// The OpenFGA-compatible API.
     pub fn openfga(&self) -> OpenFga<'_> {
         OpenFga { client: self }
@@ -9680,6 +13399,10 @@ impl BackendClient {
     /// Organization LDAP connections.
     pub fn org_ldap_connections(&self) -> OrgLdapConnections<'_> {
         OrgLdapConnections { client: self }
+    }
+    /// Organization connections.
+    pub fn organization_connections(&self) -> OrganizationConnections<'_> {
+        OrganizationConnections { client: self }
     }
     /// Proof-carrying authority controls.
     pub fn pca(&self) -> Pca<'_> {
@@ -9693,6 +13416,14 @@ impl BackendClient {
     pub fn policies(&self) -> Policies<'_> {
         Policies { client: self }
     }
+    /// Provisioning previews.
+    pub fn provisioning(&self) -> Provisioning<'_> {
+        Provisioning { client: self }
+    }
+    /// Provisioning connectors.
+    pub fn provisioning_connectors(&self) -> ProvisioningConnectors<'_> {
+        ProvisioningConnectors { client: self }
+    }
     /// RADIUS clients.
     pub fn radius_clients(&self) -> RadiusClients<'_> {
         RadiusClients { client: self }
@@ -9704,6 +13435,10 @@ impl BackendClient {
     /// Redirect URLs.
     pub fn redirect_urls(&self) -> RedirectUrls<'_> {
         RedirectUrls { client: self }
+    }
+    /// Refresh tokens.
+    pub fn refresh_tokens(&self) -> RefreshTokens<'_> {
+        RefreshTokens { client: self }
     }
     /// Resource servers (APIs).
     pub fn resource_servers(&self) -> ResourceServers<'_> {
@@ -9717,13 +13452,25 @@ impl BackendClient {
     pub fn risk_events(&self) -> RiskEvents<'_> {
         RiskEvents { client: self }
     }
+    /// Risky users.
+    pub fn risky_users(&self) -> RiskyUsers<'_> {
+        RiskyUsers { client: self }
+    }
     /// Roles.
     pub fn roles(&self) -> Roles<'_> {
         Roles { client: self }
     }
+    /// Atlas as a SAML identity provider: service providers.
+    pub fn saml_idp(&self) -> SamlIdp<'_> {
+        SamlIdp { client: self }
+    }
     /// Outbound SCIM provisioning targets.
     pub fn scim_provisioning_targets(&self) -> ScimProvisioningTargets<'_> {
         ScimProvisioningTargets { client: self }
+    }
+    /// SCIM resource types.
+    pub fn scim_resource_types(&self) -> ScimResourceTypes<'_> {
+        ScimResourceTypes { client: self }
     }
     /// Inbound SCIM tokens.
     pub fn scim_tokens(&self) -> ScimTokens<'_> {
@@ -9749,6 +13496,10 @@ impl BackendClient {
     pub fn sso_onboarding(&self) -> SsoOnboarding<'_> {
         SsoOnboarding { client: self }
     }
+    /// Telemetry export.
+    pub fn telemetry_export(&self) -> TelemetryExport<'_> {
+        TelemetryExport { client: self }
+    }
     /// Test-mode helpers.
     pub fn testing(&self) -> Testing<'_> {
         Testing { client: self }
@@ -9768,5 +13519,21 @@ impl BackendClient {
     /// The waitlist.
     pub fn waitlist(&self) -> Waitlist<'_> {
         Waitlist { client: self }
+    }
+    /// Workflow approvals.
+    pub fn workflow_approvals(&self) -> WorkflowApprovals<'_> {
+        WorkflowApprovals { client: self }
+    }
+    /// Workflow templates.
+    pub fn workflow_templates(&self) -> WorkflowTemplates<'_> {
+        WorkflowTemplates { client: self }
+    }
+    /// Workflow triggers.
+    pub fn workflow_triggers(&self) -> WorkflowTriggers<'_> {
+        WorkflowTriggers { client: self }
+    }
+    /// WS-Federation connections.
+    pub fn wsfed_connections(&self) -> WsFedConnections<'_> {
+        WsFedConnections { client: self }
     }
 }

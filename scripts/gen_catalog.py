@@ -159,7 +159,7 @@ spec_ops = set()
 for p, pops in d['paths'].items():
     for m, o in pops.items():
         if m in ('get', 'post', 'put', 'patch', 'delete') and o.get('tags', [''])[0] in ('BAPI', 'PLATFORM'):
-            spec_ops.add((m.upper(), re.sub(r'\{[^}]+\}', '{}', p)))
+            spec_ops.add((m.upper(), re.sub(r'\{[^}]+\}|\*$', '{}', p)))  # `*`: hand-written (unencoded sub-path)
 handwritten = set()
 for f in sorted(glob.glob(os.path.join(ROOT, 'src/backend/*.rs'))):
     if os.path.basename(f) in GENERATED:
@@ -183,6 +183,8 @@ EXISTING = {
     'Users': None, 'Organizations': None, 'Instance': None, 'Billing': None, 'ApiKeys': None,
     'Sessions': None, 'Invitations': None, 'OrgSettingsSchemaApi': None,
     'MessagingProvidersApi': None, 'AtlasIdApps': None, 'AtlasIdPublisherApi': None, 'PlatformApi': None,
+    # hand-written in catalog_ext.rs / suite.rs
+    'Abac': None, 'AccessPolicies': None, 'Agents': None, 'AppCatalog': None, 'AuthzDecisions': None, 'Connections': None, 'DesktopMfa': None, 'Devices': None, 'Iga': None, 'McpGateways': None, 'PartnerLinks': None, 'Ssf': None, 'Vc': None, 'Workflows': None,
 }
 
 # prefix -> (Struct, accessor, doc). Longest prefix wins.
@@ -267,6 +269,51 @@ NS = [
     ('/v1/user_imports', 'ImportExport', 'import_export', 'User import and export'),
     ('/v1/waitlist_entries', 'Waitlist', 'waitlist', 'The waitlist'),
     ('/v1/policies', 'Policies', 'policies', 'Policy acceptance: policies, versions and acceptances'),
+    ('/v1/abac_policies', 'Abac', None, None),
+    ('/v1/abac', 'Abac', None, None),
+    ('/v1/access_policies', 'AccessPolicies', None, None),
+    ('/v1/administrative_units', 'AdministrativeUnits', 'administrative_units', 'Administrative units: scoped delegated administration'),
+    ('/v1/agent_access_reviews', 'AgentAccessReviews', 'agent_access_reviews', 'Access reviews for AI agents'),
+    ('/v1/agents', 'Agents', None, None),
+    ('/v1/app_catalog', 'AppCatalog', None, None),
+    ('/v1/audit_retention', 'AuditRetention', 'audit_retention', 'Audit log retention'),
+    ('/v1/authenticator_policies', 'AuthenticatorPolicies', 'authenticator_policies', 'Authenticator policies'),
+    ('/v1/authz_decisions', 'AuthzDecisions', None, None),
+    ('/v1/authz_pdps', 'AuthzPdps', 'authz_pdps', 'External policy decision points'),
+    ('/v1/chat_integrations', 'ChatIntegrations', 'chat_integrations', 'Chat integrations (approvals and alerts in chat)'),
+    ('/v1/cloud_access', 'CloudAccess', 'cloud_access', 'Cloud access targets'),
+    ('/v1/connection_actions', 'ConnectionActions', 'connection_actions', 'Connection actions'),
+    ('/v1/connections', 'Connections', None, None),
+    ('/v1/containments', 'Containments', 'containments', 'Incident containments'),
+    ('/v1/desktop_mfa', 'DesktopMfa', None, None),
+    ('/v1/device_assurance_policies', 'DeviceAssurancePolicies', 'device_assurance_policies', 'Device assurance policies'),
+    ('/v1/device_integrations', 'DeviceIntegrations', 'device_integrations', 'Device management integrations'),
+    ('/v1/device_sso', 'DeviceSso', 'device_sso', 'Device single sign-on registrations'),
+    ('/v1/devices', 'Devices', None, None),
+    ('/v1/federation', 'Federation', 'federation', 'Federation'),
+    ('/v1/iga', 'Iga', None, None),
+    ('/v1/mcp_gateways', 'McpGateways', None, None),
+    ('/v1/mcp_registry', 'McpRegistry', 'mcp_registry', 'The MCP server registry'),
+    ('/v1/messaging', 'Messaging', 'messaging', 'Messaging suppressions'),
+    ('/v1/mfa_factor_quarantines', 'MfaFactorQuarantines', 'mfa_factor_quarantines', 'Quarantined MFA factors'),
+    ('/v1/oauth_application_types', 'OAuthApplicationTypes', 'oauth_application_types', 'OAuth application types'),
+    ('/v1/opa', 'Opa', 'opa', 'The OPA-compatible bundle, status, decision-log and data API'),
+    ('/v1/organization_connections', 'OrganizationConnections', 'organization_connections', 'Organization connections'),
+    ('/v1/partner_links', 'PartnerLinks', None, None),
+    ('/v1/provisioning_connectors', 'ProvisioningConnectors', 'provisioning_connectors', 'Provisioning connectors'),
+    ('/v1/provisioning', 'Provisioning', 'provisioning', 'Provisioning previews'),
+    ('/v1/refresh_tokens', 'RefreshTokens', 'refresh_tokens', 'Refresh tokens'),
+    ('/v1/risky_users', 'RiskyUsers', 'risky_users', 'Risky users'),
+    ('/v1/saml_idp', 'SamlIdp', 'saml_idp', 'Atlas as a SAML identity provider: service providers'),
+    ('/v1/scim_resource_types', 'ScimResourceTypes', 'scim_resource_types', 'SCIM resource types'),
+    ('/v1/ssf', 'Ssf', None, None),
+    ('/v1/telemetry_export', 'TelemetryExport', 'telemetry_export', 'Telemetry export'),
+    ('/v1/vc', 'Vc', None, None),
+    ('/v1/workflow_approvals', 'WorkflowApprovals', 'workflow_approvals', 'Workflow approvals'),
+    ('/v1/workflow_templates', 'WorkflowTemplates', 'workflow_templates', 'Workflow templates'),
+    ('/v1/workflow_triggers', 'WorkflowTriggers', 'workflow_triggers', 'Workflow triggers'),
+    ('/v1/workflows', 'Workflows', None, None),
+    ('/v1/wsfed_connections', 'WsFedConnections', 'wsfed_connections', 'WS-Federation connections'),
 ]
 
 # (struct, json field) pairs that stay Option<T> although the spec now marks
@@ -278,6 +325,64 @@ KEEP_OPTIONAL = {
 
 # Exact (METHOD, template-path) -> method name overrides.
 OVR = {
+    ('GET', '/v1/administrative_units/{id}/members'): 'list_members',
+    ('POST', '/v1/administrative_units/{id}/members'): 'create_member',
+    ('GET', '/v1/app_catalog/custom_presets'): 'list_custom_presets',
+    ('POST', '/v1/app_catalog/custom_presets'): 'create_custom_preset',
+    ('GET', '/v1/app_catalog/requests'): 'list_requests',
+    ('POST', '/v1/app_catalog/requests'): 'create_request',
+    ('GET', '/v1/chat_integrations/{id}/user_links'): 'list_user_links',
+    ('POST', '/v1/chat_integrations/{id}/user_links'): 'create_user_link',
+    ('GET', '/v1/cloud_access/targets'): 'list_targets',
+    ('POST', '/v1/cloud_access/targets'): 'create_target',
+    ('GET', '/v1/cloud_access/targets/{id}'): 'get_target',
+    ('GET', '/v1/connections/{id}/triggers'): 'list_triggers',
+    ('POST', '/v1/connections/{id}/triggers'): 'create_trigger',
+    ('GET', '/v1/connections/{id}/triggers/{triggerId}'): 'get_trigger',
+    ('GET', '/v1/device_sso/registrations'): 'list_registrations',
+    ('GET', '/v1/device_sso/registrations/{id}'): 'get_registration',
+    ('GET', '/v1/iga/activations'): 'list_activations',
+    ('POST', '/v1/iga/activations'): 'create_activation',
+    ('GET', '/v1/iga/bundles'): 'list_bundles',
+    ('POST', '/v1/iga/bundles'): 'create_bundle',
+    ('GET', '/v1/iga/bundles/{id}'): 'get_bundle',
+    ('GET', '/v1/iga/eligibilities'): 'list_eligibilities',
+    ('POST', '/v1/iga/eligibilities'): 'create_eligibility',
+    ('GET', '/v1/mcp_gateways/{id}/packs'): 'list_packs',
+    ('POST', '/v1/mcp_gateways/{id}/packs'): 'create_pack',
+    ('GET', '/v1/mcp_gateways/{id}/packs/{packId}'): 'get_pack',
+    ('GET', '/v1/mcp_gateways/{id}/upstreams'): 'list_upstreams',
+    ('POST', '/v1/mcp_gateways/{id}/upstreams'): 'create_upstream',
+    ('GET', '/v1/mcp_gateways/{id}/upstreams/{upstreamId}'): 'get_upstream',
+    ('GET', '/v1/messaging/suppressions'): 'list_suppressions',
+    ('POST', '/v1/messaging/suppressions'): 'create_suppression',
+    ('GET', '/v1/partner_links/requests'): 'list_requests',
+    ('GET', '/v1/partner_links/requests/{id}'): 'get_request',
+    ('GET', '/v1/saml_idp/service_providers'): 'list_service_providers',
+    ('GET', '/v1/saml_idp/service_providers/{id}'): 'get_service_provider',
+    ('GET', '/v1/connections/{id}/actions'): 'list_actions',
+    ('POST', '/v1/connections/{id}/actions/{name}'): 'run_action',
+    ('GET', '/v1/ssf/status'): 'get_status',
+    ('POST', '/v1/ssf/status'): 'update_status',
+    ('GET', '/v1/billing/coupons'): 'list_coupons',
+    ('POST', '/v1/billing/coupons'): 'create_coupon',
+    ('GET', '/v1/billing/coupons/{id}'): 'get_coupon',
+    ('GET', '/v1/billing/credits'): 'list_credits',
+    ('POST', '/v1/billing/credits'): 'post_credit',
+    ('GET', '/v1/fga/stores/{id}/materializations'): 'list_materializations',
+    ('POST', '/v1/fga/stores/{id}/materializations'): 'create_materialization',
+    ('POST', '/v1/fga/stores/{id}/tests'): 'run_store_tests',
+    ('POST', '/v1/fga/tests'): 'run_tests',
+    ('GET', '/v1/instance/data_key_provider'): 'get_data_key_provider',
+    ('POST', '/v1/instance/data_key_provider'): 'enable_data_key_provider',
+    ('POST', '/v1/instance/data_key_provider/rotate'): 'rotate_data_key',
+    ('POST', '/v1/instance/op_keys/rotate'): 'rotate_op_key',
+    ('GET', '/v1/instance/secret_keys'): 'list_secret_keys',
+    ('POST', '/v1/instance/secret_keys'): 'create_secret_key',
+    ('GET', '/v1/oauth_clients/{id}/token_exchange_profiles'): 'list_token_exchange_profiles',
+    ('POST', '/v1/oauth_clients/{id}/token_exchange_profiles'): 'create_token_exchange_profile',
+    ('GET', '/v1/users/{id}/temporary_access'): 'list_temporary_access',
+    ('POST', '/v1/users/{id}/temporary_access'): 'issue_temporary_access',
     ('GET', '/v1/app_roles/{id}/users'): 'list_users',
     ('GET', '/v1/users/{id}/app_roles'): 'get_app_roles',
     ('POST', '/v1/users/{id}/app_roles'): 'set_app_roles',
@@ -1092,11 +1197,14 @@ DEPRECATED_OPS = {
 }
 
 seen = {}
+collisions = []
 for op in ops:
     k = (op['st'], op['name'])
     if k in seen:
-        print('COLLISION', k, seen[k], op['M'], op['p'], file=sys.stderr)
+        collisions.append(f"COLLISION {k} {seen[k]} {op['M']} {op['p']}")
     seen[k] = (op['M'], op['p'])
+if collisions:
+    sys.exit('\n'.join(collisions) + '\nadd an OVR name for each')
 
 # Resolve request/response types. Requests first so request-only inline
 # structs get their builder setters.
@@ -1224,8 +1332,7 @@ use super::resources::{body_of, seg};
 use super::types;
 #[allow(unused_imports)]
 use super::{
-    ApiKeys, AtlasIdApps, AtlasIdPublisherApi, Billing, Instance, Invitations, MessagingProvidersApi,
-    OrgSettingsSchemaApi, Organizations, PlatformApi, Sessions, Users,
+    Abac, AccessPolicies, Agents, ApiKeys, AppCatalog, AtlasIdApps, AtlasIdPublisherApi, AuthzDecisions, Billing, Connections, DesktopMfa, Devices, Iga, Instance, Invitations, McpGateways, MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PartnerLinks, PlatformApi, Sessions, Ssf, Users, Vc, Workflows,
 };
 ''']
 
@@ -1320,7 +1427,8 @@ ACCESSOR = {'Users': 'users', 'Organizations': 'organizations', 'Instance': 'ins
             'ApiKeys': 'api_keys', 'Sessions': 'sessions', 'Invitations': 'invitations',
             'OrgSettingsSchemaApi': 'org_settings_schema', 'MessagingProvidersApi': 'messaging_providers',
             'AtlasIdApps': 'platform().atlas_id_apps', 'AtlasIdPublisherApi': 'platform().atlas_id_publisher',
-            'PlatformApi': 'platform'}
+            'PlatformApi': 'platform',
+            'Abac': 'abac', 'AccessPolicies': 'access_policies', 'Agents': 'agents', 'AppCatalog': 'app_catalog', 'AuthzDecisions': 'authz_decisions', 'Connections': 'connections', 'DesktopMfa': 'desktop_mfa', 'Devices': 'devices', 'Iga': 'iga', 'McpGateways': 'mcp_gateways', 'PartnerLinks': 'partner_links', 'Ssf': 'ssf', 'Vc': 'vc', 'Workflows': 'workflows'}
 t = ['''// @generated by scripts/gen_catalog.py — do not edit.
 //! Every catalog operation sends the documented method and path (and its query, body, and idempotency
 //! key) through the request core.
