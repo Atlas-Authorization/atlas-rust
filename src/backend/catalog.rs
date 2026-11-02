@@ -1456,12 +1456,12 @@ impl AppCatalog<'_> {
     /// appears in GET /v1/app_catalog (custom: true, never verified) and installs like any preset.
     /// Saving an existing id replaces it.
     ///
-    /// Takes [`types::AppCatalogCreateCustomPresetBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::AppCatalogCreateCustomPresetBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn create_custom_preset(
         &self,
         body: &types::AppCatalogCreateCustomPresetBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -1475,8 +1475,8 @@ impl AppCatalog<'_> {
     /// `DELETE /v1/app_catalog/custom_presets/{id}` — Delete a private preset. Apps already
     /// installed from it keep working.
     ///
-    /// Returns nothing (`204 No Content`).
-    pub async fn delete_custom_presets(&self, id: &str) -> Result<(), BackendError> {
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete_custom_presets(&self, id: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/app_catalog/custom_presets/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
@@ -1506,12 +1506,12 @@ impl AppCatalog<'_> {
     /// docs_url, note). Asking again for an app already open counts as the requester’s vote (once)
     /// instead of a duplicate (200); a new request is 201; an app already in the catalog is 409.
     ///
-    /// Takes [`types::AppCatalogCreateRequestBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::AppCatalogCreateRequestBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn create_request(
         &self,
         body: &types::AppCatalogCreateRequestBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -1524,8 +1524,8 @@ impl AppCatalog<'_> {
     }
     /// `DELETE /v1/app_catalog/requests/{id}` — Remove an app catalog request.
     ///
-    /// Returns nothing (`204 No Content`).
-    pub async fn delete_requests(&self, id: &str) -> Result<(), BackendError> {
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete_requests(&self, id: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/app_catalog/requests/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
@@ -1534,12 +1534,12 @@ impl AppCatalog<'_> {
     /// `PATCH /v1/app_catalog/requests/{id}` — Move a request along: status open, building,
     /// available or declined, and a note.
     ///
-    /// Takes [`types::AppCatalogUpdateRequestsBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::AppCatalogUpdateRequestsBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn update_requests(
         &self,
         id: &str,
         body: &types::AppCatalogUpdateRequestsBody,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         let path = format!("/v1/app_catalog/requests/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
@@ -2895,8 +2895,8 @@ impl CloudAccess<'_> {
     }
     /// `DELETE /v1/cloud_access/targets/{id}` — Delete a target and its launcher tile.
     ///
-    /// Returns nothing (`204 No Content`).
-    pub async fn delete_targets(&self, id: &str) -> Result<(), BackendError> {
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete_targets(&self, id: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/cloud_access/targets/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
@@ -2997,8 +2997,8 @@ impl ConnectionActions<'_> {
     /// `DELETE /v1/connection_actions/{provider}/{name}` — Delete a custom action definition (a
     /// first-party action of the same name comes back).
     ///
-    /// Returns nothing (`204 No Content`).
-    pub async fn delete(&self, provider: &str, name: &str) -> Result<(), BackendError> {
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete(&self, provider: &str, name: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/connection_actions/{}/{}", seg(provider), seg(name));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
@@ -4210,12 +4210,12 @@ impl Federation<'_> {
     /// the configured trust anchors and return the resolved metadata, or why the chain is invalid.
     /// Nothing is registered.
     ///
-    /// Takes [`types::FederationResolveBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::FederationResolveBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn resolve(
         &self,
         body: &types::FederationResolveBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -5579,12 +5579,12 @@ impl Instance<'_> {
     /// public key stays published for `grace_period_seconds` (default 24 h) so tokens it signed
     /// keep verifying.
     ///
-    /// Takes [`types::InstanceRotateOpKeyBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::InstanceRotateOpKeyBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn rotate_op_key(
         &self,
         body: &types::InstanceRotateOpKeyBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -7921,13 +7921,13 @@ impl OAuthClients<'_> {
     /// client. An exchange with it runs your `custom_token_exchange` Action, which validates the
     /// token and names the user to issue tokens for.
     ///
-    /// Takes [`types::OAuthClientsCreateTokenExchangeProfileBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::OAuthClientsCreateTokenExchangeProfileBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn create_token_exchange_profile(
         &self,
         id: &str,
         body: &types::OAuthClientsCreateTokenExchangeProfileBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         let path = format!("/v1/oauth_clients/{}/token_exchange_profiles", seg(id));
         self.client
             .request(
@@ -7942,12 +7942,12 @@ impl OAuthClients<'_> {
     /// `DELETE /v1/oauth_clients/{id}/token_exchange_profiles/{profileId}` — Remove a token
     /// exchange profile.
     ///
-    /// Returns nothing (`204 No Content`).
+    /// Returns the response JSON (the API documents it as open-ended).
     pub async fn delete_token_exchange_profiles(
         &self,
         id: &str,
         profile_id: &str,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         let path = format!(
             "/v1/oauth_clients/{}/token_exchange_profiles/{}",
             seg(id),
@@ -7960,13 +7960,13 @@ impl OAuthClients<'_> {
     /// `PATCH /v1/oauth_clients/{id}/token_exchange_profiles/{profileId}` — Rename or enable /
     /// disable a token exchange profile.
     ///
-    /// Takes [`types::OAuthClientsUpdateTokenExchangeProfilesBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::OAuthClientsUpdateTokenExchangeProfilesBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn update_token_exchange_profiles(
         &self,
         id: &str,
         profile_id: &str,
         body: &types::OAuthClientsUpdateTokenExchangeProfilesBody,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         let path = format!(
             "/v1/oauth_clients/{}/token_exchange_profiles/{}",
             seg(id),
@@ -10143,12 +10143,12 @@ impl RefreshTokens<'_> {
     /// grant of a `user_id` and / or `client_id`. A request with no filter is refused. Each revoked
     /// grant ends the sessions minted from it and sends `grant.revoked`.
     ///
-    /// Takes [`types::RefreshTokensRevokeBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::RefreshTokensRevokeBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn revoke(
         &self,
         body: &types::RefreshTokensRevokeBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -10697,13 +10697,13 @@ impl ScimProvisioningTargets<'_> {
     /// (up to 50), or one with resource_type and resource_id. Each goes through the same sync as
     /// sync_user and sync_group; the result says how each went.
     ///
-    /// Takes [`types::ScimProvisioningTargetsRetryFailedBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::ScimProvisioningTargetsRetryFailedBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn retry_failed(
         &self,
         id: &str,
         body: &types::ScimProvisioningTargetsRetryFailedBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         let path = format!("/v1/scim_provisioning_targets/{}/retry_failed", seg(id));
         self.client
             .request(
@@ -10789,12 +10789,12 @@ impl ScimResourceTypes<'_> {
     /// multiValued, required, mutability). Directory tokens then create, read, filter, patch and
     /// delete resources of it, per organization.
     ///
-    /// Takes [`types::ScimResourceTypesCreateBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::ScimResourceTypesCreateBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn create(
         &self,
         body: &types::ScimResourceTypesCreateBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -10808,8 +10808,8 @@ impl ScimResourceTypes<'_> {
     /// `DELETE /v1/scim_resource_types/{id}` — Delete a custom SCIM resource type and every
     /// resource of it.
     ///
-    /// Returns nothing (`204 No Content`).
-    pub async fn delete(&self, id: &str) -> Result<(), BackendError> {
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete(&self, id: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/scim_resource_types/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
@@ -11189,12 +11189,12 @@ impl Ssf<'_> {
     /// opt-out-effective, identifier-recycled, recovery-activated ...). It reaches every stream
     /// that asked for the event and whose subject rules allow the user. 202.
     ///
-    /// Takes [`types::SsfEventsBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::SsfEventsBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn events(
         &self,
         body: &types::SsfEventsBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -11228,12 +11228,12 @@ impl Ssf<'_> {
     /// `POST /v1/ssf/status` — SSF 1.0 stream status endpoint: set the status of the stream named
     /// by `stream_id`.
     ///
-    /// Takes [`types::SsfUpdateStatusBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::SsfUpdateStatusBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn update_status(
         &self,
         body: &types::SsfUpdateStatusBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -11264,12 +11264,12 @@ impl Ssf<'_> {
     /// events for one subject on a stream. Subject formats: iss_sub (this issuer), email,
     /// phone_number, opaque, account, did, uri. 200 with an empty body.
     ///
-    /// Takes [`types::SsfAddBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::SsfAddBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn add(
         &self,
         body: &types::SsfAddBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -11283,12 +11283,12 @@ impl Ssf<'_> {
     /// `POST /v1/ssf/subjects/remove` — SSF 1.0 remove subject: stop events for one subject on a
     /// stream (on an ALL stream), or drop an earlier add (on a NONE stream). 204.
     ///
-    /// Takes [`types::SsfRemoveBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::SsfRemoveBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn remove(
         &self,
         body: &types::SsfRemoveBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -11302,12 +11302,12 @@ impl Ssf<'_> {
     /// `POST /v1/ssf/verify` — SSF 1.0 verification endpoint: queue a verification event carrying
     /// `state` for the stream named by `stream_id`. 204.
     ///
-    /// Takes [`types::SsfVerifyBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::SsfVerifyBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn verify(
         &self,
         body: &types::SsfVerifyBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         self.client
             .request(
                 HttpMethod::Post,
@@ -12744,13 +12744,13 @@ impl Vc<'_> {
     /// `POST /v1/vc/deferred/{id}/approve` — Approve a deferred issuance; the wallet receives the
     /// credential at the deferred credential endpoint.
     ///
-    /// Takes [`types::VcApproveBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::VcApproveBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn approve(
         &self,
         id: &str,
         body: &types::VcApproveBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         let path = format!("/v1/vc/deferred/{}/approve", seg(id));
         self.client
             .request(
@@ -12765,13 +12765,13 @@ impl Vc<'_> {
     /// `POST /v1/vc/deferred/{id}/deny` — Deny a deferred issuance; the wallet is told issuance was
     /// refused.
     ///
-    /// Takes [`types::VcDenyBody`]. Returns nothing (`204 No Content`).
+    /// Takes [`types::VcDenyBody`]. Returns the response JSON (the API documents it as open-ended).
     pub async fn deny(
         &self,
         id: &str,
         body: &types::VcDenyBody,
         idempotency_key: Option<&str>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<Value, BackendError> {
         let path = format!("/v1/vc/deferred/{}/deny", seg(id));
         self.client
             .request(
@@ -13138,8 +13138,8 @@ impl WsFedConnections<'_> {
     }
     /// `DELETE /v1/wsfed_connections/{id}` — Delete a WS-Federation connection.
     ///
-    /// Returns nothing (`204 No Content`).
-    pub async fn delete(&self, id: &str) -> Result<(), BackendError> {
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete(&self, id: &str) -> Result<Value, BackendError> {
         let path = format!("/v1/wsfed_connections/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)

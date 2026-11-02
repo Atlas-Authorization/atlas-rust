@@ -787,7 +787,8 @@ def json_response(o):
             continue
         content = r.get('content') or {}
         if not content:
-            return 'empty', None
+            # Only a 204 is bodiless; an undocumented 200/201/202 body decodes as untyped JSON.
+            return ('empty', None) if c == '204' else (None, None)
         j = content.get('application/json')
         if j and j.get('schema') is not None:
             return 'json', j['schema']
