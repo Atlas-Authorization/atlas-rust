@@ -50901,6 +50901,12 @@ pub struct InstanceGetReferralsResponseConnection {
     /// with nothing succeeding since). Show it as a banner.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alert: Option<InstanceGetReferralsResponseConnectionAlert>,
+    /// Call kinds the platform refuses (HTTP 401) while a signed ping with the same secret passes:
+    /// the secret is fine, that route does not accept this connection. suppressed: Atlas no longer
+    /// sends that optional sync (for example origins) until the secret or API key is set again. Not
+    /// an alert: deliveries of every other kind continue.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rejected_call_kinds: Vec<InstanceGetReferralsResponseConnectionRejectedCallKindsItem>,
     /// Calls that failed permanently in the last 7 days. A code the platform refused as taken is
     /// not counted: that is the user's input, not a failing connection.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -50993,6 +50999,27 @@ pub struct InstanceGetReferralsResponseConnectionAlert {
     pub at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub call_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceGetReferralsResponseConnectionRejectedCallKindsItem {
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub http_status: Option<i64>,
+    #[serde(default)]
+    pub at: i64,
+    #[serde(default)]
+    pub call_id: String,
+    #[serde(default)]
+    pub suppressed: bool,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -51378,6 +51405,12 @@ pub struct InstanceUpdateReferralsResponseConnection {
     /// with nothing succeeding since). Show it as a banner.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alert: Option<InstanceUpdateReferralsResponseConnectionAlert>,
+    /// Call kinds the platform refuses (HTTP 401) while a signed ping with the same secret passes:
+    /// the secret is fine, that route does not accept this connection. suppressed: Atlas no longer
+    /// sends that optional sync (for example origins) until the secret or API key is set again. Not
+    /// an alert: deliveries of every other kind continue.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rejected_call_kinds: Vec<InstanceUpdateReferralsResponseConnectionRejectedCallKindsItem>,
     /// Calls that failed permanently in the last 7 days. A code the platform refused as taken is
     /// not counted: that is the user's input, not a failing connection.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -51470,6 +51503,27 @@ pub struct InstanceUpdateReferralsResponseConnectionAlert {
     pub at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub call_id: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceUpdateReferralsResponseConnectionRejectedCallKindsItem {
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub http_status: Option<i64>,
+    #[serde(default)]
+    pub at: i64,
+    #[serde(default)]
+    pub call_id: String,
+    #[serde(default)]
+    pub suppressed: bool,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -51831,9 +51885,10 @@ pub struct InstanceListReferralCallsResponseDataItem {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_error: Option<String>,
-    /// Why the last attempt failed: signature_rejected (401, no auto-retry), connection_paused (the
-    /// merchant paused the connection, no auto-retry), rate_limited, timeout, network_error,
-    /// alias_conflict, http_&lt;status&gt;, …
+    /// Why the last attempt failed: signature_rejected (401 and the signed ping fails too, no
+    /// auto-retry), call_kind_rejected (401 on this kind while the signed ping passes: the route
+    /// does not accept this connection), connection_paused (the merchant paused the connection, no
+    /// auto-retry), rate_limited, timeout, network_error, alias_conflict, http_&lt;status&gt;, …
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// Duration of the last attempt.
@@ -51979,9 +52034,10 @@ pub struct InstanceGetReferralCallResponse {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_error: Option<String>,
-    /// Why the last attempt failed: signature_rejected (401, no auto-retry), connection_paused (the
-    /// merchant paused the connection, no auto-retry), rate_limited, timeout, network_error,
-    /// alias_conflict, http_&lt;status&gt;, …
+    /// Why the last attempt failed: signature_rejected (401 and the signed ping fails too, no
+    /// auto-retry), call_kind_rejected (401 on this kind while the signed ping passes: the route
+    /// does not accept this connection), connection_paused (the merchant paused the connection, no
+    /// auto-retry), rate_limited, timeout, network_error, alias_conflict, http_&lt;status&gt;, …
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// Duration of the last attempt.
@@ -52089,9 +52145,10 @@ pub struct InstanceRetryReferralCallResponse {
     pub http_status: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_error: Option<String>,
-    /// Why the last attempt failed: signature_rejected (401, no auto-retry), connection_paused (the
-    /// merchant paused the connection, no auto-retry), rate_limited, timeout, network_error,
-    /// alias_conflict, http_&lt;status&gt;, …
+    /// Why the last attempt failed: signature_rejected (401 and the signed ping fails too, no
+    /// auto-retry), call_kind_rejected (401 on this kind while the signed ping passes: the route
+    /// does not accept this connection), connection_paused (the merchant paused the connection, no
+    /// auto-retry), rate_limited, timeout, network_error, alias_conflict, http_&lt;status&gt;, …
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// Duration of the last attempt.
