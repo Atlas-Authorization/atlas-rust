@@ -5405,12 +5405,16 @@ impl Instance<'_> {
     /// not block the sign-up unless fail_closed is true. The body carries data.user, data.strategy,
     /// data.referral, data.request ({client_id, app_context, login_hint} of the authorize request,
     /// nulls when absent) and data.invitation (the pending instance invitation for the address, or
-    /// null). Turning the hook on, or changing the url or signing_secret of an enabled one, first
-    /// sends the signed test call: unless it returns a valid answer (an answer object, possibly
-    /// empty, or a deny) the change is refused with 409 HOOK_TEST_FAILED (meta: url, status, the
-    /// first 200 bytes of the response body, outcome) and the hook stays as it was. ?force=true (or
-    /// force in the body) skips the test and is audit-logged. A dry run (?dry_run=true) does not
-    /// call the hook.
+    /// null) and data.organization ({id, external_id, role, role_mapped, via: sso | domain} when
+    /// the sign-up comes through an organization SSO connection or a captured auto-join domain,
+    /// else null). Turning the hook on, or changing the url or signing_secret of a fail_closed
+    /// enabled one (or turning fail_closed on for it), first sends the signed test call: unless it
+    /// returns a valid answer (an answer object, possibly empty, or a deny) the change is refused
+    /// with 409 HOOK_TEST_FAILED (meta: url, status, the first 200 bytes of the response body,
+    /// outcome) and the hook stays as it was. ?force=true (or force in the body) skips the test and
+    /// is audit-logged. A dry run (?dry_run=true) makes the same test call and reports
+    /// would_return_status 409 (or 200) without changing anything. An enabled hook that is not
+    /// fail_closed is not re-tested when its url or secret changes.
     ///
     /// Query parameters: `force`.
     ///
@@ -11790,6 +11794,28 @@ impl SsoOnboarding<'_> {
         let path = format!("/v1/sso_onboarding_profiles/{}", seg(id));
         self.client
             .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/sso_onboarding_profiles/{id}` — Update an onboarding profile in place. Only the
+    /// fields sent change; the rest are kept. Same validation as create (an unknown organization,
+    /// connection type or intent is 400). Tickets already issued keep working.
+    ///
+    /// Takes [`types::SsoOnboardingUpdateBody`]. Returns [`types::SsoOnboardingProfile`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::SsoOnboardingUpdateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::SsoOnboardingProfile, BackendError> {
+        let path = format!("/v1/sso_onboarding_profiles/{}", seg(id));
+        self.client
+            .request(
+                HttpMethod::Patch,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
             .await
     }
     /// `POST /v1/sso_onboarding_profiles/{id}/tickets` — Issue a scoped, one-time, expiring

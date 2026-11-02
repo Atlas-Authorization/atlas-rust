@@ -5666,6 +5666,20 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.sso_onboarding()
+        .update(
+            "p0_id",
+            &types::SsoOnboardingUpdateBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/sso_onboarding_profiles/p0_id".into(),
+        B::Obj,
+        true,
+    ));
+    c.sso_onboarding()
         .create_ticket(
             "p0_id",
             &types::SsoOnboardingCreateTicketBody::default(),
@@ -6480,4 +6494,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 728 operations, 699 typed; 728 calls.
+// 729 operations, 700 typed; 729 calls.

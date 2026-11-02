@@ -33686,6 +33686,104 @@ impl SsoOnboardingCreateProfileBody {
     }
 }
 
+/// The request body of `PATCH /v1/sso_onboarding_profiles/{id}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SsoOnboardingUpdateBody {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_connection_types: Option<Vec<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub organization_id: Option<Option<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub company_name: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_scim: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intents: Option<Vec<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "double_option"
+    )]
+    pub return_url: Option<Option<String>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl SsoOnboardingUpdateBody {
+    /// A value with the required fields set and every other field unset.
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Set `name`.
+    pub fn with_name(mut self, v: impl Into<String>) -> Self {
+        self.name = Some(v.into());
+        self
+    }
+    /// Set `allowed_connection_types`.
+    pub fn with_allowed_connection_types(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.allowed_connection_types = Some(v.into());
+        self
+    }
+    /// Set `organization_id`.
+    pub fn with_organization_id(mut self, v: impl Into<String>) -> Self {
+        self.organization_id = Some(Some(v.into()));
+        self
+    }
+    /// Send `organization_id: null` to clear it.
+    pub fn clear_organization_id(mut self) -> Self {
+        self.organization_id = Some(None);
+        self
+    }
+    /// Set `company_name`.
+    pub fn with_company_name(mut self, v: impl Into<String>) -> Self {
+        self.company_name = Some(Some(v.into()));
+        self
+    }
+    /// Send `company_name: null` to clear it.
+    pub fn clear_company_name(mut self) -> Self {
+        self.company_name = Some(None);
+        self
+    }
+    /// Set `allow_scim`.
+    pub fn with_allow_scim(mut self, v: impl Into<bool>) -> Self {
+        self.allow_scim = Some(v.into());
+        self
+    }
+    /// Set `intents`.
+    pub fn with_intents(mut self, v: impl Into<Vec<String>>) -> Self {
+        self.intents = Some(v.into());
+        self
+    }
+    /// Set `return_url`.
+    pub fn with_return_url(mut self, v: impl Into<String>) -> Self {
+        self.return_url = Some(Some(v.into()));
+        self
+    }
+    /// Send `return_url: null` to clear it.
+    pub fn clear_return_url(mut self) -> Self {
+        self.return_url = Some(None);
+        self
+    }
+    /// Set a field this version of the crate does not know about.
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
 /// The request body of `POST /v1/sso_onboarding_profiles/{id}/tickets`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
