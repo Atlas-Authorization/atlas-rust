@@ -20057,6 +20057,11 @@ pub struct InstanceUpdateBeforeUserCreateHookBody {
     /// false (the sign-up continues without your answer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fail_closed: Option<bool>,
+    /// Skip the test call that turning the hook on (or changing the url or signing_secret of an
+    /// enabled one) otherwise makes first. Not stored; audit-logged as forced. Also accepted as
+    /// ?force=true.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub force: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -20101,6 +20106,11 @@ impl InstanceUpdateBeforeUserCreateHookBody {
     /// Set `fail_closed`.
     pub fn with_fail_closed(mut self, v: impl Into<bool>) -> Self {
         self.fail_closed = Some(v.into());
+        self
+    }
+    /// Set `force`.
+    pub fn with_force(mut self, v: impl Into<bool>) -> Self {
+        self.force = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -20597,6 +20607,18 @@ pub struct InstanceUpdateReferralsBody {
     pub include_referral_claims: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub report_linked_atlas_id_signups: Option<bool>,
+    /// What the hosted account page's referrals panel draws: the static code and link (default), or
+    /// the platform's live widget, minted server-side for the signed-in user (needs a platform with
+    /// the widget_token capability; falls back to the static panel on any failure).
+    ///
+    /// Known values: `link`, `widget`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hosted_panel: Option<String>,
+    /// Write-only, not stored. Default true: when this write makes the connection usable (referrals
+    /// switched on, or the connection changed), Atlas reads the referral code of existing users
+    /// without one from the platform, at most 10 per second. false skips that.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backfill_existing_users: Option<bool>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -20821,6 +20843,16 @@ impl InstanceUpdateReferralsBody {
     /// Set `report_linked_atlas_id_signups`.
     pub fn with_report_linked_atlas_id_signups(mut self, v: impl Into<bool>) -> Self {
         self.report_linked_atlas_id_signups = Some(v.into());
+        self
+    }
+    /// Set `hosted_panel`.
+    pub fn with_hosted_panel(mut self, v: impl Into<String>) -> Self {
+        self.hosted_panel = Some(v.into());
+        self
+    }
+    /// Set `backfill_existing_users`.
+    pub fn with_backfill_existing_users(mut self, v: impl Into<bool>) -> Self {
+        self.backfill_existing_users = Some(v.into());
         self
     }
     /// Set a field this version of the crate does not know about.
@@ -50582,9 +50614,17 @@ pub struct InstanceGetReferralsResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub forward_lifecycle: Option<bool>,
     /// Mirror the result into the user's public_metadata.referral {referred_by, partner_id,
-    /// own_code} (default false).
+    /// own_code} (own_code is kept for existing readers), and the user's own code and link into
+    /// public_metadata.&lt;provider id&gt; {code, linkUrl} (for example public_metadata.referalli).
+    /// Skipped, never forced, when the bag would pass the 8 KB metadata limit (default false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mirror_to_public_metadata: Option<bool>,
+    /// What the hosted account page's referrals panel draws: the static code and link, or the
+    /// platform's live widget (default link).
+    ///
+    /// Known values: `link`, `widget`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hosted_panel: Option<String>,
     /// Add the user's own code as a referral_code claim, and their link as referral_link when one
     /// is stored, to session tokens and ID tokens (default false). Both are absent for a user with
     /// no code.
@@ -50645,6 +50685,17 @@ pub struct InstanceGetReferralsResponseCapabilities {
     /// Answers a ping for "Test connection" (org, program, clock).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ping: Option<bool>,
+    /// Answers a read of a user's own referral code and link; Atlas uses it to fill a user's code
+    /// after a sign-in and for existing users when the connection is made.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity: Option<bool>,
+    /// Takes the instance's app origins on its connection, so its browser calls pass CORS with no
+    /// dashboard step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origins: Option<bool>,
+    /// Mints a short-lived token for the platform's live widget (hosted_panel "widget").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget_token: Option<bool>,
     /// Sends Atlas referral changes made after sign-up (two-way sync).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inbound: Option<bool>,
@@ -50943,6 +50994,17 @@ pub struct InstanceGetReferralsResponseProvidersItemCapabilities {
     /// Answers a ping for "Test connection" (org, program, clock).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ping: Option<bool>,
+    /// Answers a read of a user's own referral code and link; Atlas uses it to fill a user's code
+    /// after a sign-in and for existing users when the connection is made.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity: Option<bool>,
+    /// Takes the instance's app origins on its connection, so its browser calls pass CORS with no
+    /// dashboard step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origins: Option<bool>,
+    /// Mints a short-lived token for the platform's live widget (hosted_panel "widget").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget_token: Option<bool>,
     /// Sends Atlas referral changes made after sign-up (two-way sync).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inbound: Option<bool>,
@@ -51059,9 +51121,17 @@ pub struct InstanceUpdateReferralsResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub forward_lifecycle: Option<bool>,
     /// Mirror the result into the user's public_metadata.referral {referred_by, partner_id,
-    /// own_code} (default false).
+    /// own_code} (own_code is kept for existing readers), and the user's own code and link into
+    /// public_metadata.&lt;provider id&gt; {code, linkUrl} (for example public_metadata.referalli).
+    /// Skipped, never forced, when the bag would pass the 8 KB metadata limit (default false).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mirror_to_public_metadata: Option<bool>,
+    /// What the hosted account page's referrals panel draws: the static code and link, or the
+    /// platform's live widget (default link).
+    ///
+    /// Known values: `link`, `widget`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hosted_panel: Option<String>,
     /// Add the user's own code as a referral_code claim, and their link as referral_link when one
     /// is stored, to session tokens and ID tokens (default false). Both are absent for a user with
     /// no code.
@@ -51124,6 +51194,17 @@ pub struct InstanceUpdateReferralsResponseCapabilities {
     /// Answers a ping for "Test connection" (org, program, clock).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ping: Option<bool>,
+    /// Answers a read of a user's own referral code and link; Atlas uses it to fill a user's code
+    /// after a sign-in and for existing users when the connection is made.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity: Option<bool>,
+    /// Takes the instance's app origins on its connection, so its browser calls pass CORS with no
+    /// dashboard step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origins: Option<bool>,
+    /// Mints a short-lived token for the platform's live widget (hosted_panel "widget").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget_token: Option<bool>,
     /// Sends Atlas referral changes made after sign-up (two-way sync).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inbound: Option<bool>,
@@ -51390,6 +51471,17 @@ pub struct InstanceUpdateReferralsResponseProvidersItemCapabilities {
     /// Answers a ping for "Test connection" (org, program, clock).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ping: Option<bool>,
+    /// Answers a read of a user's own referral code and link; Atlas uses it to fill a user's code
+    /// after a sign-in and for existing users when the connection is made.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identity: Option<bool>,
+    /// Takes the instance's app origins on its connection, so its browser calls pass CORS with no
+    /// dashboard step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origins: Option<bool>,
+    /// Mints a short-lived token for the platform's live widget (hosted_panel "widget").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget_token: Option<bool>,
     /// Sends Atlas referral changes made after sign-up (two-way sync).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inbound: Option<bool>,
@@ -52738,6 +52830,27 @@ pub struct InstanceRotateSigningKeyResponse {
     /// configured.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secondary_kid: Option<String>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/instance/storage_declaration`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct InstanceStorageDeclarationResponse {
+    /// Always `storage_declaration`.
+    #[serde(default)]
+    pub object: String,
+    /// Always `Atlas`.
+    #[serde(default)]
+    pub vendor: String,
+    #[serde(default)]
+    pub frontend_api_host: String,
+    /// See GET /v1/storage_declaration for the row shape.
+    #[serde(default)]
+    pub declarations: Vec<Map<String, Value>>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]
@@ -65416,6 +65529,29 @@ pub struct Session {
     /// post_login Action). Null when none.
     #[serde(default)]
     pub custom_data: Option<Map<String, Value>>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// The response of `GET /v1/sessions/{id}/status`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct SessionsStatusResponse {
+    #[serde(default)]
+    pub id: String,
+    /// Known values: `active`, `expired`, `revoked`, `ended`.
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub user_id: String,
+    /// Epoch ms.
+    #[serde(default)]
+    pub expires_at: Option<i64>,
+    /// Epoch ms; absent for a device or CIBA sign-in.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_active_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
     #[serde(flatten)]

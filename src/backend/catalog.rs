@@ -5402,19 +5402,30 @@ impl Instance<'_> {
     /// answer {external_id, public_metadata, private_metadata, unsafe_metadata}, or deny the
     /// sign-up with {"deny": true, "reason": "..."} or HTTP 403: the person gets 403 SIGN_UP_DENIED
     /// with your reason, no user is kept and no user.created is sent. A slow or failing hook does
-    /// not block the sign-up unless fail_closed is true.
+    /// not block the sign-up unless fail_closed is true. The body carries data.user, data.strategy,
+    /// data.referral, data.request ({client_id, app_context, login_hint} of the authorize request,
+    /// nulls when absent) and data.invitation (the pending instance invitation for the address, or
+    /// null). Turning the hook on, or changing the url or signing_secret of an enabled one, first
+    /// sends the signed test call: unless it returns a valid answer (an answer object, possibly
+    /// empty, or a deny) the change is refused with 409 HOOK_TEST_FAILED (meta: url, status, the
+    /// first 200 bytes of the response body, outcome) and the hook stays as it was. ?force=true (or
+    /// force in the body) skips the test and is audit-logged. A dry run (?dry_run=true) does not
+    /// call the hook.
+    ///
+    /// Query parameters: `force`.
     ///
     /// Takes [`types::InstanceUpdateBeforeUserCreateHookBody`]. Returns [`types::InstanceUpdateBeforeUserCreateHookResponse`].
     pub async fn update_before_user_create_hook(
         &self,
         body: &types::InstanceUpdateBeforeUserCreateHookBody,
+        query: &Query,
         idempotency_key: Option<&str>,
     ) -> Result<types::InstanceUpdateBeforeUserCreateHookResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Patch,
                 "/v1/instance/hooks/before_user_create",
-                &[],
+                &query.as_pairs(),
                 body_of(body)?,
                 idempotency_key,
             )
@@ -6238,6 +6249,30 @@ impl Instance<'_> {
                 "/v1/instance/signing_keys/rotate",
                 &[],
                 body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/storage_declaration` — Every cookie and browser-storage key the hosted
+    /// pages set for this instance as a CMP-neutral declaration (name, provider, domain, category,
+    /// type cookie or localStorage, duration, description), with the domain computed from your
+    /// sign-in host and cross-subdomain setting. A consent manager imports it once; no manual rows.
+    /// Needs only cookie_consent:read. Without a key the same list is public: GET
+    /// /v1/storage_declaration on the Frontend API host.
+    ///
+    /// Query parameters: `format`.
+    ///
+    /// Returns [`types::InstanceStorageDeclarationResponse`].
+    pub async fn storage_declaration(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceStorageDeclarationResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/storage_declaration",
+                &query.as_pairs(),
+                None,
                 None,
             )
             .await
@@ -11148,6 +11183,21 @@ impl Sessions<'_> {
         let path = format!("/v1/sessions/{}/custom_data", seg(id));
         self.client
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/sessions/{id}/status` — Cheap session-freshness check for a relying party: `{ id,
+    /// status, user_id, expires_at, last_active_at? }`, where status is active, expired, revoked or
+    /// ended. `:id` is the session id or the `sid` claim of an ID token (a device or CIBA sign-in
+    /// answers from its grant, without last_active_at). Sent with `Cache-Control: private,
+    /// max-age=5` and an ETag; `If-None-Match` answers 304. Another instance session is 404, never
+    /// 403. A banned user session is revoked at once and the back-channel logout is sent in the
+    /// same request.
+    ///
+    /// Returns [`types::SessionsStatusResponse`].
+    pub async fn status(&self, id: &str) -> Result<types::SessionsStatusResponse, BackendError> {
+        let path = format!("/v1/sessions/{}/status", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
     /// `POST /v1/sessions/{id}/tokens/{template}` — Mint a named JWT-template token for a session

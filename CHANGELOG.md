@@ -2,6 +2,14 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.30.0 — 2026-11-02
+
+### Added
+
+- `sessions().status(id)` (`GET /v1/sessions/{id}/status`): whether a session is still active, with `SessionsStatusResponse`.
+- `instance().storage_declaration(...)` (`GET /v1/instance/storage_declaration`): the cookies and storage Atlas sets, for a consent banner or a privacy page.
+- Generated types follow the current API (referral identity fields on users and sign-ups, the hosted referrals panel setting).
+
 ## 0.29.0 — 2026-11-02
 
 ### Added

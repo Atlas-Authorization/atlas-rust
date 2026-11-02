@@ -2464,13 +2464,14 @@ async fn every_catalog_operation_hits_its_route() {
     c.instance()
         .update_before_user_create_hook(
             &types::InstanceUpdateBeforeUserCreateHookBody::default(),
+            &q,
             Some("idem_1"),
         )
         .await
         .unwrap();
     expected.push((
         HttpMethod::Patch,
-        "/v1/instance/hooks/before_user_create".into(),
+        "/v1/instance/hooks/before_user_create?limit=2".into(),
         B::Obj,
         true,
     ));
@@ -2844,6 +2845,13 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/instance/signing_keys/rotate".into(),
         B::Obj,
+        false,
+    ));
+    c.instance().storage_declaration(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/storage_declaration?limit=2".into(),
+        B::None,
         false,
     ));
     c.instance()
@@ -5355,6 +5363,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.sessions().status("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/sessions/p0_id/status".into(),
+        B::None,
+        false,
+    ));
     c.sessions()
         .create_token("p0_id", "p1_template")
         .await
@@ -6465,4 +6480,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 726 operations, 697 typed; 726 calls.
+// 728 operations, 699 typed; 728 calls.
