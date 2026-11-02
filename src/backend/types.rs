@@ -50892,28 +50892,28 @@ pub struct ReferralSecuritySettings {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceGetReferralsResponseConnection {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_test: Option<InstanceGetReferralsResponseConnectionLastTest>,
     /// The last ping ("Test connection") of a provider that answers one.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_ping: Option<InstanceGetReferralsResponseConnectionLastPing>,
     /// Set while delivery is blocked on something only a person can fix (the newest such failure,
     /// with nothing succeeding since). Show it as a banner.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub alert: Option<InstanceGetReferralsResponseConnectionAlert>,
-    /// Call kinds the platform refuses (HTTP 401) while a signed ping with the same secret passes:
-    /// the secret is fine, that route does not accept this connection. suppressed: Atlas no longer
-    /// sends that optional sync (for example origins) until the secret or API key is set again. Not
-    /// an alert: deliveries of every other kind continue.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Always present (\[\] when none). Call kinds the platform refuses (HTTP 401) while a signed
+    /// ping with the same secret passes: the secret is fine, that route does not accept this
+    /// connection. suppressed: Atlas no longer sends that optional sync (for example origins) until
+    /// the secret or API key is set again. Not an alert: deliveries of every other kind continue.
+    #[serde(default)]
     pub rejected_call_kinds: Vec<InstanceGetReferralsResponseConnectionRejectedCallKindsItem>,
     /// Calls that failed permanently in the last 7 days. A code the platform refused as taken is
     /// not counted: that is the user's input, not a failing connection.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub failed_calls_7d: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub retrying_calls: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub failed_calls_7d: i64,
+    #[serde(default)]
+    pub retrying_calls: i64,
+    #[serde(default)]
     pub last_success_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
@@ -51396,28 +51396,28 @@ pub struct InstanceUpdateReferralsResponseOneClickPresetsItem {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct InstanceUpdateReferralsResponseConnection {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_test: Option<InstanceUpdateReferralsResponseConnectionLastTest>,
     /// The last ping ("Test connection") of a provider that answers one.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub last_ping: Option<InstanceUpdateReferralsResponseConnectionLastPing>,
     /// Set while delivery is blocked on something only a person can fix (the newest such failure,
     /// with nothing succeeding since). Show it as a banner.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub alert: Option<InstanceUpdateReferralsResponseConnectionAlert>,
-    /// Call kinds the platform refuses (HTTP 401) while a signed ping with the same secret passes:
-    /// the secret is fine, that route does not accept this connection. suppressed: Atlas no longer
-    /// sends that optional sync (for example origins) until the secret or API key is set again. Not
-    /// an alert: deliveries of every other kind continue.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Always present (\[\] when none). Call kinds the platform refuses (HTTP 401) while a signed
+    /// ping with the same secret passes: the secret is fine, that route does not accept this
+    /// connection. suppressed: Atlas no longer sends that optional sync (for example origins) until
+    /// the secret or API key is set again. Not an alert: deliveries of every other kind continue.
+    #[serde(default)]
     pub rejected_call_kinds: Vec<InstanceUpdateReferralsResponseConnectionRejectedCallKindsItem>,
     /// Calls that failed permanently in the last 7 days. A code the platform refused as taken is
     /// not counted: that is the user's input, not a failing connection.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub failed_calls_7d: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub retrying_calls: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub failed_calls_7d: i64,
+    #[serde(default)]
+    pub retrying_calls: i64,
+    #[serde(default)]
     pub last_success_at: Option<i64>,
     /// Fields this version of the crate does not know about, kept verbatim.
     /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
