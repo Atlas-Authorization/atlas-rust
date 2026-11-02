@@ -1400,11 +1400,17 @@ pub struct WebhookTestResult {
     pub object: String,
     pub delivery_id: String,
     pub event_id: String,
+    /// `webhook.test`.
+    pub event_type: String,
+    /// `success` or `failed`.
     pub status: String,
     pub http_status: Option<i64>,
     pub latency_ms: Option<i64>,
     pub response_snippet: Option<String>,
     pub error: Option<String>,
+    /// Why it failed: `non_2xx`, `redirect`, `timeout`, `tls`, `dns`,
+    /// `connection_refused`, `network`, `url_blocked`; `None` on success.
+    pub error_kind: Option<String>,
     pub signature_header_sent: Option<String>,
     pub will_retry: bool,
     #[serde(flatten)]

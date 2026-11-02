@@ -127,6 +127,10 @@ pub struct CookieConsent {
     /// for your cookie policy (all strictly necessary).
     #[serde(default)]
     pub declared_cookies: Vec<DeclaredCookie>,
+    /// Hosts the hosted pages are served on that your consent manager's site
+    /// is knowingly not registered for.
+    #[serde(default)]
+    pub host_aliases: Vec<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -254,6 +258,11 @@ pub struct SetCookieConsentBody {
     /// `page` (default: the script tag carries the page language) or `browser`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub culture: Option<String>,
+    /// Bare hostnames (at most 10) the hosted pages are served on that the
+    /// consent manager's site is knowingly not registered for. `Some(vec![])`
+    /// clears them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_aliases: Option<Vec<String>>,
 }
 
 /// The `/v1/instance` namespace. Reached via [`BackendClient::instance`].
@@ -275,6 +284,12 @@ impl Instance<'_> {
         self.client
             .request(HttpMethod::Put, "/v1/instance/cookie_consent", &[], body_of(body)?, None)
             .await
+    }
+    /// `PUT /v1/instance/cookie_consent` with only `host_aliases`: declare the
+    /// hosts without resending the whole setting (empty clears them).
+    pub async fn set_cookie_consent_host_aliases(&self, host_aliases: &[&str]) -> Result<CookieConsent, BackendError> {
+        let body = serde_json::json!({ "host_aliases": host_aliases });
+        self.client.request(HttpMethod::Put, "/v1/instance/cookie_consent", &[], Some(body), None).await
     }
     /// `DELETE /v1/instance/cookie_consent` — turn the consent script off.
     pub async fn delete_cookie_consent(&self) -> Result<CookieConsent, BackendError> {
@@ -1209,6 +1224,11 @@ pub struct UpdateWebhookEndpointBody {
     /// Replaces the provisioning tags.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<Value>,
+    /// Create only: your own signing secret instead of a generated one,
+    /// `whsec_` (optionally `atlas_live_` / `atlas_test_` first) plus 32-256
+    /// characters of `A-Za-z0-9+/=_-`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
 }
 
 /// One delivery attempt record.
@@ -1296,6 +1316,10 @@ pub struct RotateWebhookSecretBody {
     /// verifies with a verifier that accepts several signatures (0.13.0+).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub overlap_seconds: Option<u64>,
+    /// Rotate to a secret you chose (`whsec_` plus at least 32 characters,
+    /// different from the current one; 422 otherwise).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
 }
 
 impl RotateWebhookSecretBody {
@@ -1306,6 +1330,11 @@ impl RotateWebhookSecretBody {
     /// Set `overlap_seconds` (`0` stops the previous secret now).
     pub fn with_overlap_seconds(mut self, seconds: u64) -> Self {
         self.overlap_seconds = Some(seconds);
+        self
+    }
+    /// Rotate to this secret instead of a generated one.
+    pub fn with_secret(mut self, secret: impl Into<String>) -> Self {
+        self.secret = Some(secret.into());
         self
     }
 }

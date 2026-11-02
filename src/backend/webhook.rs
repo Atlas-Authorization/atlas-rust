@@ -493,6 +493,20 @@ pub enum EventType {
     UserPolicyAccepted,
     /// A policy version was published.
     PolicyVersionPublished,
+    /// An SSO connection went active (`sso_connection.activated`).
+    SsoConnectionActivated,
+    /// An IT admin finished an SSO onboarding ticket.
+    SsoOnboardingTicketCompleted,
+    /// A SCIM group was created (`scim_group.created`).
+    ScimGroupCreated,
+    /// A SCIM group was updated (`scim_group.updated`).
+    ScimGroupUpdated,
+    /// A SCIM group was deleted (`scim_group.deleted`).
+    ScimGroupDeleted,
+    /// A member was added to a SCIM group.
+    ScimGroupMemberAdded,
+    /// A member was removed from a SCIM group.
+    ScimGroupMemberRemoved,
     /// Any event type not modelled above — carries the raw dotted string.
     Other(String),
 }
@@ -549,6 +563,13 @@ impl From<&str> for EventType {
             "privacy_request.completed" => EventType::PrivacyRequestCompleted,
             "user.deletion_scheduled" => EventType::UserDeletionScheduled,
             "user.deletion_canceled" => EventType::UserDeletionCanceled,
+            "sso_connection.activated" => EventType::SsoConnectionActivated,
+            "sso_onboarding_ticket.completed" => EventType::SsoOnboardingTicketCompleted,
+            "scim_group.created" => EventType::ScimGroupCreated,
+            "scim_group.updated" => EventType::ScimGroupUpdated,
+            "scim_group.deleted" => EventType::ScimGroupDeleted,
+            "scim_group.member_added" => EventType::ScimGroupMemberAdded,
+            "scim_group.member_removed" => EventType::ScimGroupMemberRemoved,
             other => EventType::Other(other.to_string()),
         }
     }
@@ -607,6 +628,13 @@ impl EventType {
             EventType::PrivacyRequestCompleted => "privacy_request.completed",
             EventType::UserDeletionScheduled => "user.deletion_scheduled",
             EventType::UserDeletionCanceled => "user.deletion_canceled",
+            EventType::SsoConnectionActivated => "sso_connection.activated",
+            EventType::SsoOnboardingTicketCompleted => "sso_onboarding_ticket.completed",
+            EventType::ScimGroupCreated => "scim_group.created",
+            EventType::ScimGroupUpdated => "scim_group.updated",
+            EventType::ScimGroupDeleted => "scim_group.deleted",
+            EventType::ScimGroupMemberAdded => "scim_group.member_added",
+            EventType::ScimGroupMemberRemoved => "scim_group.member_removed",
             EventType::Other(s) => s,
         }
     }

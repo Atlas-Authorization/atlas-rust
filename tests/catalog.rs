@@ -93,6 +93,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.action_templates().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/action_templates/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.action_templates().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -108,13 +115,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/action_templates/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.action_templates().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/action_templates/p0_id".into(),
-        B::None,
         false,
     ));
     c.action_templates().publish("p0_id").await.unwrap();
@@ -190,13 +190,6 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.actions().get("p0_id").await.unwrap();
-    expected.push((HttpMethod::Get, "/v1/actions/p0_id".into(), B::None, false));
-    c.actions()
-        .update("p0_id", &types::ActionsUpdateBody::default())
-        .await
-        .unwrap();
-    expected.push((HttpMethod::Patch, "/v1/actions/p0_id".into(), B::Obj, false));
     c.actions().delete("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Delete,
@@ -204,6 +197,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.actions().get("p0_id").await.unwrap();
+    expected.push((HttpMethod::Get, "/v1/actions/p0_id".into(), B::None, false));
+    c.actions()
+        .update("p0_id", &types::ActionsUpdateBody::default())
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Patch, "/v1/actions/p0_id".into(), B::Obj, false));
     c.actions()
         .gallery_update("p0_id", &types::ActionsGalleryUpdateBody::default())
         .await
@@ -270,6 +270,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.api_keys().get_usage("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/api_keys/p0_id/usage".into(),
+        B::None,
+        false,
+    ));
     c.api_keys()
         .record_usage("p0_id", &types::ApiKeysRecordUsageBody::default())
         .await
@@ -278,13 +285,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/api_keys/p0_id/usage".into(),
         B::Obj,
-        false,
-    ));
-    c.api_keys().get_usage("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/api_keys/p0_id/usage".into(),
-        B::None,
         false,
     ));
     c.app_roles().list(&q).await.unwrap();
@@ -299,6 +299,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/app_roles".into(), B::Obj, true));
+    c.app_roles().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/app_roles/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.app_roles().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -314,13 +321,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/app_roles/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.app_roles().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/app_roles/p0_id".into(),
-        B::None,
         false,
     ));
     c.app_roles().list_users("p0_id", &q).await.unwrap();
@@ -354,6 +354,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.better_auth_imports().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/better_auth_imports?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.better_auth_imports()
         .create(
             &types::BetterAuthImportsCreateBody::default(),
@@ -366,13 +373,6 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/better_auth_imports".into(),
         B::Obj,
         true,
-    ));
-    c.better_auth_imports().list(&q).await.unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/better_auth_imports?limit=2".into(),
-        B::None,
-        false,
     ));
     c.better_auth_imports().list_jwks(&q).await.unwrap();
     expected.push((
@@ -402,16 +402,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
-    c.better_auth_imports().get("p0_id").await.unwrap();
+    c.better_auth_imports().delete("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Get,
+        HttpMethod::Delete,
         "/v1/better_auth_imports/p0_id".into(),
         B::None,
         false,
     ));
-    c.better_auth_imports().delete("p0_id").await.unwrap();
+    c.better_auth_imports().get("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Delete,
+        HttpMethod::Get,
         "/v1/better_auth_imports/p0_id".into(),
         B::None,
         false,
@@ -462,6 +462,64 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/billing/check".into(), B::Obj, false));
+    c.billing().coupons(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/billing/coupons?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.billing()
+        .coupons(&types::BillingCouponsBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Post, "/v1/billing/coupons".into(), B::Obj, true));
+    c.billing()
+        .validate(&types::BillingValidateBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/coupons/validate".into(),
+        B::Obj,
+        true,
+    ));
+    c.billing().delete_coupons("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/billing/coupons/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.billing().coupons("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/billing/coupons/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.billing()
+        .update_coupons("p0_id", &types::BillingUpdateCouponsBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/billing/coupons/p0_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.billing().credits(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/billing/credits?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.billing()
+        .credits(&types::BillingCreditsBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Post, "/v1/billing/credits".into(), B::Obj, true));
     c.billing()
         .update_plan("p0_id", &types::BillingUpdatePlanBody::default())
         .await
@@ -486,6 +544,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.billing()
+        .delete_provider("p0_provider", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/billing/providers/p0_provider?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.billing().get_provider("p0_provider").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -501,16 +569,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Put,
         "/v1/billing/providers/p0_provider".into(),
         B::Obj,
-        false,
-    ));
-    c.billing()
-        .delete_provider("p0_provider", &q)
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/billing/providers/p0_provider?limit=2".into(),
-        B::None,
         false,
     ));
     c.billing().test_provider("p0_provider").await.unwrap();
@@ -680,6 +738,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/connectors".into(), B::Obj, false));
+    c.connectors().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/connectors/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.connectors().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -695,13 +760,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/connectors/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.connectors().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/connectors/p0_id".into(),
-        B::None,
         false,
     ));
     c.connectors().publish("p0_id").await.unwrap();
@@ -791,6 +849,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.custom_oauth_providers().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/custom_oauth_providers/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.custom_oauth_providers().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -811,13 +876,6 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/custom_oauth_providers/p0_id".into(),
         B::Obj,
         true,
-    ));
-    c.custom_oauth_providers().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/custom_oauth_providers/p0_id".into(),
-        B::None,
-        false,
     ));
     c.custom_oauth_providers()
         .preview_provider_profile_mapping(
@@ -866,6 +924,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.data_subject_requests().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/data_subject_requests?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.data_subject_requests()
         .create(
             &types::DataSubjectRequestsCreateBody::default(),
@@ -878,13 +943,6 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/data_subject_requests".into(),
         B::Obj,
         true,
-    ));
-    c.data_subject_requests().list(&q).await.unwrap();
-    expected.push((
-        HttpMethod::Get,
-        "/v1/data_subject_requests?limit=2".into(),
-        B::None,
-        false,
     ));
     c.data_subject_requests().get("p0_id").await.unwrap();
     expected.push((
@@ -975,6 +1033,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.email_templates().delete("p0_name").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/email_templates/p0_name".into(),
+        B::None,
+        false,
+    ));
     c.email_templates()
         .upsert("p0_name", &types::EmailTemplatesUpsertBody::default())
         .await
@@ -983,13 +1048,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Put,
         "/v1/email_templates/p0_name".into(),
         B::Obj,
-        false,
-    ));
-    c.email_templates().delete("p0_name").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/email_templates/p0_name".into(),
-        B::None,
         false,
     ));
     c.email_templates()
@@ -1004,6 +1062,23 @@ async fn every_catalog_operation_hits_its_route() {
     ));
     c.events().list(&q).await.unwrap();
     expected.push((HttpMethod::Get, "/v1/events?limit=2".into(), B::None, false));
+    c.fga()
+        .transform(&types::FgaTransformBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fga/models/transform".into(),
+        B::Obj,
+        true,
+    ));
+    c.fga().settings().await.unwrap();
+    expected.push((HttpMethod::Get, "/v1/fga/settings".into(), B::None, false));
+    c.fga()
+        .set_settings(&types::FgaSetSettingsBody::default())
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Put, "/v1/fga/settings".into(), B::Obj, false));
     c.fga().list_stores(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1016,16 +1091,16 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/fga/stores".into(), B::Obj, true));
-    c.fga().get_store("p0_id").await.unwrap();
+    c.fga().delete_store("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Get,
+        HttpMethod::Delete,
         "/v1/fga/stores/p0_id".into(),
         B::None,
         false,
     ));
-    c.fga().delete_store("p0_id").await.unwrap();
+    c.fga().get_store("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Delete,
+        HttpMethod::Get,
         "/v1/fga/stores/p0_id".into(),
         B::None,
         false,
@@ -1065,6 +1140,30 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.fga()
+        .run("p0_id", "p1_mid", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fga/stores/p0_id/authorization-models/p1_mid/assertions/run".into(),
+        B::None,
+        true,
+    ));
+    c.fga().diff("p0_id", "p1_mid", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fga/stores/p0_id/authorization-models/p1_mid/diff?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.fga().graph("p0_id", "p1_mid").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fga/stores/p0_id/authorization-models/p1_mid/graph".into(),
+        B::None,
+        false,
+    ));
+    c.fga()
         .batch_check("p0_id", &types::FgaBatchCheckBody::default())
         .await
         .unwrap();
@@ -1094,6 +1193,23 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.fga().export("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fga/stores/p0_id/export?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.fga()
+        .import("p0_id", &types::FgaImportBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fga/stores/p0_id/import".into(),
+        B::Obj,
+        true,
+    ));
     c.fga()
         .list_objects("p0_id", &types::FgaListObjectsBody::default())
         .await
@@ -1103,6 +1219,47 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/fga/stores/p0_id/list-objects".into(),
         B::Obj,
         false,
+    ));
+    c.fga().materializations("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fga/stores/p0_id/materializations".into(),
+        B::None,
+        false,
+    ));
+    c.fga()
+        .materializations(
+            "p0_id",
+            &types::FgaMaterializationsBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fga/stores/p0_id/materializations".into(),
+        B::Obj,
+        true,
+    ));
+    c.fga()
+        .delete_materializations("p0_id", "p1_mid")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/fga/stores/p0_id/materializations/p1_mid".into(),
+        B::None,
+        false,
+    ));
+    c.fga()
+        .rebuild("p0_id", "p1_mid", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fga/stores/p0_id/materializations/p1_mid/rebuild".into(),
+        B::None,
+        true,
     ));
     c.fga()
         .read("p0_id", &types::FgaReadBody::default())
@@ -1114,6 +1271,30 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.fga().snapshot("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fga/stores/p0_id/snapshot?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.fga()
+        .tests("p0_id", &types::FgaTestsBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fga/stores/p0_id/tests".into(),
+        B::Obj,
+        true,
+    ));
+    c.fga().watch("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fga/stores/p0_id/watch?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.fga()
         .write("p0_id", &types::FgaWriteBody::default(), Some("idem_1"))
         .await
@@ -1123,6 +1304,38 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/fga/stores/p0_id/write".into(),
         B::Obj,
         true,
+    ));
+    c.fga()
+        .tests(&types::FgaTestsBody2::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Post, "/v1/fga/tests".into(), B::Obj, true));
+    c.fraud()
+        .email_risk(&types::FraudEmailRiskBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/fraud/email_risk".into(),
+        B::Obj,
+        true,
+    ));
+    c.fraud().settings().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/fraud/email_risk/settings".into(),
+        B::None,
+        false,
+    ));
+    c.fraud()
+        .set_settings(&types::FraudSetSettingsBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/fraud/email_risk/settings".into(),
+        B::Obj,
+        false,
     ));
     c.fraud()
         .lookup(&types::FraudLookupBody::default())
@@ -1141,6 +1354,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.instance().delete_captcha_secret(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/captcha_secret?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.instance()
         .set_captcha_secret(&types::InstanceSetCaptchaSecretBody::default())
         .await
@@ -1151,19 +1371,70 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.instance().delete_captcha_secret(&q).await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/instance/captcha_secret?limit=2".into(),
-        B::None,
-        false,
-    ));
     c.instance().connections(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
         "/v1/instance/connections?limit=2".into(),
         B::None,
         false,
+    ));
+    c.instance().delete_data_key_provider().await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/data_key_provider".into(),
+        B::None,
+        false,
+    ));
+    c.instance().data_key_provider().await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/data_key_provider".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .data_key_provider(Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/data_key_provider".into(),
+        B::None,
+        true,
+    ));
+    c.instance()
+        .set_data_key_provider(&types::InstanceSetDataKeyProviderBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/instance/data_key_provider".into(),
+        B::Obj,
+        false,
+    ));
+    c.instance().check(Some("idem_1")).await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/data_key_provider/check".into(),
+        B::None,
+        true,
+    ));
+    c.instance()
+        .rewrap(&types::InstanceRewrapBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/data_key_provider/rewrap".into(),
+        B::Obj,
+        true,
+    ));
+    c.instance().rotate(Some("idem_1")).await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/data_key_provider/rotate".into(),
+        B::None,
+        true,
     ));
     c.instance().get_before_user_create_hook().await.unwrap();
     expected.push((
@@ -1202,6 +1473,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance().delete_kerberos_secret().await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/kerberos_secret".into(),
+        B::None,
+        false,
+    ));
     c.instance()
         .set_kerberos_secret(&types::InstanceSetKerberosSecretBody::default())
         .await
@@ -1212,10 +1490,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.instance().delete_kerberos_secret().await.unwrap();
+    c.instance()
+        .delete_ldap_bind_password("p0_connection_id")
+        .await
+        .unwrap();
     expected.push((
         HttpMethod::Delete,
-        "/v1/instance/kerberos_secret".into(),
+        "/v1/instance/ldap_connections/p0_connection_id/bind_password".into(),
         B::None,
         false,
     ));
@@ -1233,16 +1514,6 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.instance()
-        .delete_ldap_bind_password("p0_connection_id")
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/instance/ldap_connections/p0_connection_id/bind_password".into(),
-        B::None,
-        false,
-    ));
-    c.instance()
         .move_origin(&types::OriginMoveRequest::default())
         .await
         .unwrap();
@@ -1251,6 +1522,23 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/instance/move_origin".into(),
         B::Obj,
         false,
+    ));
+    c.instance().op_keys(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/op_keys?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .rotate(&types::InstanceRotateBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/op_keys/rotate".into(),
+        B::Obj,
+        true,
     ));
     c.instance().get_policy_settings().await.unwrap();
     expected.push((
@@ -1269,6 +1557,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.instance().delete_policy_source().await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/policy_source".into(),
+        B::None,
+        false,
+    ));
     c.instance().get_policy_source().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1284,13 +1579,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Put,
         "/v1/instance/policy_source".into(),
         B::Obj,
-        false,
-    ));
-    c.instance().delete_policy_source().await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/instance/policy_source".into(),
-        B::None,
         false,
     ));
     c.instance()
@@ -1317,6 +1605,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance().delete_proxy_secret().await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/proxy_secret".into(),
+        B::None,
+        false,
+    ));
     c.instance().get_proxy_secret().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1332,13 +1627,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/instance/proxy_secret".into(),
         B::Obj,
-        false,
-    ));
-    c.instance().delete_proxy_secret().await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/instance/proxy_secret".into(),
-        B::None,
         false,
     ));
     c.instance().get_referrals().await.unwrap();
@@ -1435,6 +1723,23 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance().secret_keys(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/instance/secret_keys?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.instance()
+        .secret_keys(&types::InstanceSecretKeysBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/secret_keys".into(),
+        B::Obj,
+        true,
+    ));
     c.instance().get_security().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1452,6 +1757,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.instance()
+        .remove_signing_key_provider(&types::InstanceRemoveSigningKeyProviderBody::default())
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/signing_key_provider".into(),
+        B::Obj,
+        false,
+    ));
     c.instance().get_signing_key_provider().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1465,16 +1780,6 @@ async fn every_catalog_operation_hits_its_route() {
         .unwrap();
     expected.push((
         HttpMethod::Put,
-        "/v1/instance/signing_key_provider".into(),
-        B::Obj,
-        false,
-    ));
-    c.instance()
-        .remove_signing_key_provider(&types::InstanceRemoveSigningKeyProviderBody::default())
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
         "/v1/instance/signing_key_provider".into(),
         B::Obj,
         false,
@@ -1527,15 +1832,22 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.jwt_templates().list(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/jwt_templates?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.jwt_templates()
         .create(&types::JwtTemplatesCreateBody::default())
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/jwt_templates".into(), B::Obj, false));
-    c.jwt_templates().list(&q).await.unwrap();
+    c.jwt_templates().delete("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Get,
-        "/v1/jwt_templates?limit=2".into(),
+        HttpMethod::Delete,
+        "/v1/jwt_templates/p0_id".into(),
         B::None,
         false,
     ));
@@ -1556,12 +1868,15 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.jwt_templates().delete("p0_id").await.unwrap();
+    c.legacy_auth_connection()
+        .delete(Some("idem_1"))
+        .await
+        .unwrap();
     expected.push((
         HttpMethod::Delete,
-        "/v1/jwt_templates/p0_id".into(),
+        "/v1/legacy_auth_connection".into(),
         B::None,
-        false,
+        true,
     ));
     c.legacy_auth_connection().get().await.unwrap();
     expected.push((
@@ -1583,16 +1898,6 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
-    c.legacy_auth_connection()
-        .delete(Some("idem_1"))
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/legacy_auth_connection".into(),
-        B::None,
-        true,
-    ));
     c.localizations().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1605,6 +1910,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/localizations".into(), B::Obj, false));
+    c.localizations().delete("p0_id_no_content").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/localizations/p0_id_no_content".into(),
+        B::None,
+        false,
+    ));
     c.localizations().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1622,13 +1934,6 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.localizations().delete("p0_id_no_content").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/localizations/p0_id_no_content".into(),
-        B::None,
-        false,
-    ));
     c.log_streams().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1641,6 +1946,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/log_streams".into(), B::Obj, true));
+    c.log_streams().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/log_streams/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.log_streams().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1656,13 +1968,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/log_streams/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.log_streams().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/log_streams/p0_id".into(),
-        B::None,
         false,
     ));
     c.log_streams().test("p0_id").await.unwrap();
@@ -1692,6 +1997,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.logout_notify_endpoints()
+        .delete("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/logout_notify_endpoints/p0_id".into(),
+        B::None,
+        true,
+    ));
     c.logout_notify_endpoints().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1711,16 +2026,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/logout_notify_endpoints/p0_id".into(),
         B::Obj,
-        true,
-    ));
-    c.logout_notify_endpoints()
-        .delete("p0_id", Some("idem_1"))
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/logout_notify_endpoints/p0_id".into(),
-        B::None,
         true,
     ));
     c.logout_notify_endpoints()
@@ -1745,6 +2050,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/lti_platforms".into(), B::Obj, false));
+    c.lti_platforms().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/lti_platforms/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.lti_platforms().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1760,13 +2072,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/lti_platforms/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.lti_platforms().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/lti_platforms/p0_id".into(),
-        B::None,
         false,
     ));
     c.managed_waf().get().await.unwrap();
@@ -1801,6 +2106,18 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((HttpMethod::Get, "/v1/mcp".into(), B::None, false));
     c.mcp().call(&types::McpCallBody::default()).await.unwrap();
     expected.push((HttpMethod::Post, "/v1/mcp".into(), B::Obj, false));
+    c.mcp()
+        .elevations(&types::McpElevationsBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Post, "/v1/mcp/elevations".into(), B::Obj, true));
+    c.mcp_connector().delete(Some("idem_1")).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/mcp_connector".into(),
+        B::None,
+        true,
+    ));
     c.mcp_connector().get().await.unwrap();
     expected.push((HttpMethod::Get, "/v1/mcp_connector".into(), B::None, false));
     c.mcp_connector()
@@ -1808,12 +2125,15 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Put, "/v1/mcp_connector".into(), B::Obj, true));
-    c.mcp_connector().delete(Some("idem_1")).await.unwrap();
+    c.messaging_providers()
+        .disable_development_email()
+        .await
+        .unwrap();
     expected.push((
         HttpMethod::Delete,
-        "/v1/mcp_connector".into(),
+        "/v1/messaging_providers/email/development".into(),
         B::None,
-        true,
+        false,
     ));
     c.messaging_providers()
         .get_development_email()
@@ -1836,12 +2156,12 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.messaging_providers()
-        .disable_development_email()
+        .delete_managed_email(&q)
         .await
         .unwrap();
     expected.push((
         HttpMethod::Delete,
-        "/v1/messaging_providers/email/development".into(),
+        "/v1/messaging_providers/email/managed?limit=2".into(),
         B::None,
         false,
     ));
@@ -1863,16 +2183,6 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.messaging_providers()
-        .delete_managed_email(&q)
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/messaging_providers/email/managed?limit=2".into(),
-        B::None,
-        false,
-    ));
-    c.messaging_providers()
         .verify_managed_email()
         .await
         .unwrap();
@@ -1881,6 +2191,13 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/messaging_providers/email/managed/verify".into(),
         B::None,
         false,
+    ));
+    c.better_auth_bridge().delete(Some("idem_1")).await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/migrations/better_auth/bridge".into(),
+        B::None,
+        true,
     ));
     c.better_auth_bridge().get().await.unwrap();
     expected.push((
@@ -1902,13 +2219,6 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
-    c.better_auth_bridge().delete(Some("idem_1")).await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/migrations/better_auth/bridge".into(),
-        B::None,
-        true,
-    ));
     c.network_acls().list(&q).await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1921,6 +2231,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/network_acls".into(), B::Obj, false));
+    c.network_acls().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/network_acls/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.network_acls().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -1936,13 +2253,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/network_acls/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.network_acls().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/network_acls/p0_id".into(),
-        B::None,
         false,
     ));
     c.oauth_clients().list(&q).await.unwrap();
@@ -2000,6 +2310,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.oauth_clients()
+        .delete("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/oauth_clients/p0_id".into(),
+        B::None,
+        true,
+    ));
     c.oauth_clients().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -2019,16 +2339,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/oauth_clients/p0_id".into(),
         B::Obj,
-        true,
-    ));
-    c.oauth_clients()
-        .delete("p0_id", Some("idem_1"))
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/oauth_clients/p0_id".into(),
-        B::None,
         true,
     ));
     c.oauth_clients()
@@ -2052,6 +2362,26 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.oauth_clients()
+        .set_organization_access(
+            "p0_id",
+            &types::OAuthClientsSetOrganizationAccessBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/oauth_clients/p0_id/organization_access".into(),
+        B::Obj,
+        false,
+    ));
+    c.oauth_clients().organizations("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/oauth_clients/p0_id/organizations?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
         .rotate_secret_with(
             "p0_id",
             &types::OAuthClientsRotateSecretBody::default(),
@@ -2064,6 +2394,54 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/oauth_clients/p0_id/rotate_secret".into(),
         B::Obj,
         true,
+    ));
+    c.oauth_clients()
+        .token_exchange_profiles("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/oauth_clients/p0_id/token_exchange_profiles?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .token_exchange_profiles(
+            "p0_id_no_content",
+            &types::OAuthClientsTokenExchangeProfilesBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/oauth_clients/p0_id_no_content/token_exchange_profiles".into(),
+        B::Obj,
+        true,
+    ));
+    c.oauth_clients()
+        .delete_token_exchange_profiles("p0_id_no_content", "p1_profile_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/oauth_clients/p0_id_no_content/token_exchange_profiles/p1_profile_id".into(),
+        B::None,
+        false,
+    ));
+    c.oauth_clients()
+        .update_token_exchange_profiles(
+            "p0_id_no_content",
+            "p1_profile_id",
+            &types::OAuthClientsUpdateTokenExchangeProfilesBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/oauth_clients/p0_id_no_content/token_exchange_profiles/p1_profile_id".into(),
+        B::Obj,
+        false,
     ));
     c.oauth_initial_access_tokens().list(&q).await.unwrap();
     expected.push((
@@ -2112,15 +2490,26 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.openfga()
-        .write_authorization_model(
+        .assertions("p0_store", "p1_model")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/openfga/stores/p0_store/assertions/p1_model".into(),
+        B::None,
+        false,
+    ));
+    c.openfga()
+        .set_assertions(
             "p0_store",
-            &types::OpenFgaWriteAuthorizationModelBody::default(),
+            "p1_model",
+            &types::OpenFgaSetAssertionsBody::default(),
         )
         .await
         .unwrap();
     expected.push((
-        HttpMethod::Post,
-        "/v1/openfga/stores/p0_store/authorization-models".into(),
+        HttpMethod::Put,
+        "/v1/openfga/stores/p0_store/assertions/p1_model".into(),
         B::Obj,
         false,
     ));
@@ -2132,6 +2521,19 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Get,
         "/v1/openfga/stores/p0_store/authorization-models?limit=2".into(),
         B::None,
+        false,
+    ));
+    c.openfga()
+        .write_authorization_model(
+            "p0_store",
+            &types::OpenFgaWriteAuthorizationModelBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/openfga/stores/p0_store/authorization-models".into(),
+        B::Obj,
         false,
     ));
     c.openfga()
@@ -2224,6 +2626,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.org_ldap_connections()
+        .delete("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/org_ldap_connections/p0_id".into(),
+        B::None,
+        true,
+    ));
     c.org_ldap_connections().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -2243,16 +2655,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/org_ldap_connections/p0_id".into(),
         B::Obj,
-        true,
-    ));
-    c.org_ldap_connections()
-        .delete("p0_id", Some("idem_1"))
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/org_ldap_connections/p0_id".into(),
-        B::None,
         true,
     ));
     c.org_ldap_connections()
@@ -2290,6 +2692,37 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Get,
         "/v1/organizations/check_slug?limit=2".into(),
         B::None,
+        false,
+    ));
+    c.organizations().applications("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/applications?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .delete_applications("p0_id", "p1_client_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/applications/p1_client_id".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .set_applications(
+            "p0_id",
+            "p1_client_id",
+            &types::OrganizationsSetApplicationsBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/organizations/p0_id/applications/p1_client_id".into(),
+        B::Obj,
         false,
     ));
     c.organizations()
@@ -2343,6 +2776,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.organizations().it_alerts("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/it_alerts?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.organizations()
         .set_metadata(
             "p0_id",
@@ -2385,6 +2825,16 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.organizations()
+        .delete_role("p0_id", "p1_role_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/roles/p1_role_id?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
         .update_role(
             "p0_id",
             "p1_role_id",
@@ -2396,16 +2846,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/organizations/p0_id/roles/p1_role_id".into(),
         B::Obj,
-        false,
-    ));
-    c.organizations()
-        .delete_role("p0_id", "p1_role_id", &q)
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/organizations/p0_id/roles/p1_role_id?limit=2".into(),
-        B::None,
         false,
     ));
     c.organizations()
@@ -2440,6 +2880,16 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.organizations()
+        .delete_team("p0_id", "p1_team_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/teams/p1_team_id".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
         .get_team("p0_id", "p1_team_id")
         .await
         .unwrap();
@@ -2461,16 +2911,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/organizations/p0_id/teams/p1_team_id".into(),
         B::Obj,
-        false,
-    ));
-    c.organizations()
-        .delete_team("p0_id", "p1_team_id")
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/organizations/p0_id/teams/p1_team_id".into(),
-        B::None,
         false,
     ));
     c.organizations()
@@ -2532,6 +2972,16 @@ async fn every_catalog_operation_hits_its_route() {
         true,
     ));
     c.organizations()
+        .remove_end_user("p0_org_id", "p1_user_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_org_id/end_users/p1_user_id".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
         .update_end_user(
             "p0_org_id",
             "p1_user_id",
@@ -2546,12 +2996,12 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.organizations()
-        .remove_end_user("p0_org_id", "p1_user_id")
+        .unassign_group_role("p0_org_id", "p1_group_id", "p2_role_id")
         .await
         .unwrap();
     expected.push((
         HttpMethod::Delete,
-        "/v1/organizations/p0_org_id/end_users/p1_user_id".into(),
+        "/v1/organizations/p0_org_id/groups/p1_group_id/roles/p2_role_id".into(),
         B::None,
         false,
     ));
@@ -2566,12 +3016,12 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.organizations()
-        .unassign_group_role("p0_org_id", "p1_group_id", "p2_role_id")
+        .delete_reader_domain("p0_org_id")
         .await
         .unwrap();
     expected.push((
         HttpMethod::Delete,
-        "/v1/organizations/p0_org_id/groups/p1_group_id/roles/p2_role_id".into(),
+        "/v1/organizations/p0_org_id/reader_domain".into(),
         B::None,
         false,
     ));
@@ -2599,16 +3049,6 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
-    c.organizations()
-        .delete_reader_domain("p0_org_id")
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/organizations/p0_org_id/reader_domain".into(),
-        B::None,
-        false,
-    ));
     c.pca().get_attestors().await.unwrap();
     expected.push((HttpMethod::Get, "/v1/pca/attestors".into(), B::None, false));
     c.pca()
@@ -2616,13 +3056,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Put, "/v1/pca/attestors".into(), B::Obj, false));
+    c.pca().unfreeze().await.unwrap();
+    expected.push((HttpMethod::Delete, "/v1/pca/freeze".into(), B::None, false));
     c.pca()
         .freeze(&types::PcaFreezeBody::default())
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/pca/freeze".into(), B::Obj, false));
-    c.pca().unfreeze().await.unwrap();
-    expected.push((HttpMethod::Delete, "/v1/pca/freeze".into(), B::None, false));
     c.pca()
         .revoke(&types::PcaRevokeBody::default())
         .await
@@ -2655,6 +3095,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/permissions".into(), B::Obj, false));
+    c.permissions().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/permissions/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.permissions()
         .update("p0_id", &types::PermissionsUpdateBody::default())
         .await
@@ -2663,13 +3110,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/permissions/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.permissions().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/permissions/p0_id".into(),
-        B::None,
         false,
     ));
     c.platform()
@@ -2763,22 +3203,18 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.platform().atlas_id_publisher().delete().await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/platform/atlas_id_publisher".into(),
+        B::None,
+        false,
+    ));
     c.platform().atlas_id_publisher().get().await.unwrap();
     expected.push((
         HttpMethod::Get,
         "/v1/platform/atlas_id_publisher".into(),
         B::None,
-        false,
-    ));
-    c.platform()
-        .atlas_id_publisher()
-        .set(&types::AtlasIdPublisherSetBody::default())
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Put,
-        "/v1/platform/atlas_id_publisher".into(),
-        B::Obj,
         false,
     ));
     c.platform()
@@ -2792,11 +3228,15 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.platform().atlas_id_publisher().delete().await.unwrap();
+    c.platform()
+        .atlas_id_publisher()
+        .set(&types::AtlasIdPublisherSetBody::default())
+        .await
+        .unwrap();
     expected.push((
-        HttpMethod::Delete,
+        HttpMethod::Put,
         "/v1/platform/atlas_id_publisher".into(),
-        B::None,
+        B::Obj,
         false,
     ));
     c.platform().atlas_id_publisher().verify().await.unwrap();
@@ -2825,6 +3265,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/policies".into(), B::Obj, false));
+    c.policies().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/policies/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.policies().get("p0_id").await.unwrap();
     expected.push((HttpMethod::Get, "/v1/policies/p0_id".into(), B::None, false));
     c.policies()
@@ -2835,13 +3282,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/policies/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.policies().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/policies/p0_id".into(),
-        B::None,
         false,
     ));
     c.policies().list_acceptances("p0_id", &q).await.unwrap();
@@ -2869,6 +3309,16 @@ async fn every_catalog_operation_hits_its_route() {
         false,
     ));
     c.policies()
+        .delete_version("p0_id", "p1_version_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/policies/p0_id/versions/p1_version_id".into(),
+        B::None,
+        false,
+    ));
+    c.policies()
         .get_version("p0_id", "p1_version_id")
         .await
         .unwrap();
@@ -2890,16 +3340,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/policies/p0_id/versions/p1_version_id".into(),
         B::Obj,
-        false,
-    ));
-    c.policies()
-        .delete_version("p0_id", "p1_version_id")
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/policies/p0_id/versions/p1_version_id".into(),
-        B::None,
         false,
     ));
     c.policies()
@@ -2938,6 +3378,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/radius_clients".into(), B::Obj, false));
+    c.radius_clients().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/radius_clients/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.radius_clients().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -2953,13 +3400,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/radius_clients/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.radius_clients().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/radius_clients/p0_id".into(),
-        B::None,
         false,
     ));
     c.rate_limit_policy().get().await.unwrap();
@@ -2991,16 +3431,16 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/redirect_urls".into(), B::Obj, false));
-    c.redirect_urls().get("p0_id").await.unwrap();
+    c.redirect_urls().delete("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Get,
+        HttpMethod::Delete,
         "/v1/redirect_urls/p0_id".into(),
         B::None,
         false,
     ));
-    c.redirect_urls().delete("p0_id").await.unwrap();
+    c.redirect_urls().get("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Delete,
+        HttpMethod::Get,
         "/v1/redirect_urls/p0_id".into(),
         B::None,
         false,
@@ -3022,6 +3462,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.resource_servers().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/resource_servers/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.resource_servers().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -3037,13 +3484,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/resource_servers/p0_id".into(),
         B::Obj,
-        false,
-    ));
-    c.resource_servers().delete("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/resource_servers/p0_id".into(),
-        B::None,
         false,
     ));
     c.risk_based_mfa().get().await.unwrap();
@@ -3089,11 +3529,6 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/roles".into(), B::Obj, false));
-    c.roles()
-        .update("p0_id", &types::RolesUpdateBody::default())
-        .await
-        .unwrap();
-    expected.push((HttpMethod::Patch, "/v1/roles/p0_id".into(), B::Obj, false));
     c.roles().delete("p0_id", &q).await.unwrap();
     expected.push((
         HttpMethod::Delete,
@@ -3101,6 +3536,11 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.roles()
+        .update("p0_id", &types::RolesUpdateBody::default())
+        .await
+        .unwrap();
+    expected.push((HttpMethod::Patch, "/v1/roles/p0_id".into(), B::Obj, false));
     c.roles()
         .set_permissions("p0_id", &types::RolesSetPermissionsBody::default())
         .await
@@ -3131,6 +3571,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.scim_provisioning_targets().delete("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/scim_provisioning_targets/p0_id".into(),
+        B::None,
+        false,
+    ));
     c.scim_provisioning_targets().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -3151,12 +3598,39 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
-    c.scim_provisioning_targets().delete("p0_id").await.unwrap();
+    c.scim_provisioning_targets()
+        .failures("p0_id", &q)
+        .await
+        .unwrap();
     expected.push((
-        HttpMethod::Delete,
-        "/v1/scim_provisioning_targets/p0_id".into(),
+        HttpMethod::Get,
+        "/v1/scim_provisioning_targets/p0_id/failures?limit=2".into(),
         B::None,
         false,
+    ));
+    c.scim_provisioning_targets()
+        .logs("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/scim_provisioning_targets/p0_id/logs?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.scim_provisioning_targets()
+        .retry_failed(
+            "p0_id_no_content",
+            &types::ScimProvisioningTargetsRetryFailedBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/scim_provisioning_targets/p0_id_no_content/retry_failed".into(),
+        B::Obj,
+        true,
     ));
     c.scim_provisioning_targets()
         .sync_group(
@@ -3243,6 +3717,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.session_exchange_apps()
+        .delete("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/session_exchange_apps/p0_id".into(),
+        B::None,
+        true,
+    ));
     c.session_exchange_apps().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -3264,15 +3748,15 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
-    c.session_exchange_apps()
-        .delete("p0_id", Some("idem_1"))
+    c.sessions()
+        .update_custom_data("p0_id", &types::SessionsUpdateCustomDataBody::default())
         .await
         .unwrap();
     expected.push((
-        HttpMethod::Delete,
-        "/v1/session_exchange_apps/p0_id".into(),
-        B::None,
-        true,
+        HttpMethod::Patch,
+        "/v1/sessions/p0_id/custom_data".into(),
+        B::Obj,
+        false,
     ));
     c.sessions()
         .set_custom_data("p0_id", &types::SessionsSetCustomDataBody::default())
@@ -3280,16 +3764,6 @@ async fn every_catalog_operation_hits_its_route() {
         .unwrap();
     expected.push((
         HttpMethod::Put,
-        "/v1/sessions/p0_id/custom_data".into(),
-        B::Obj,
-        false,
-    ));
-    c.sessions()
-        .update_custom_data("p0_id", &types::SessionsUpdateCustomDataBody::default())
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Patch,
         "/v1/sessions/p0_id/custom_data".into(),
         B::Obj,
         false,
@@ -3335,6 +3809,13 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/sms_templates".into(), B::Obj, false));
+    c.sms_templates().delete("p0_name").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/sms_templates/p0_name".into(),
+        B::None,
+        false,
+    ));
     c.sms_templates().get("p0_name").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -3350,13 +3831,6 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Patch,
         "/v1/sms_templates/p0_name".into(),
         B::Obj,
-        false,
-    ));
-    c.sms_templates().delete("p0_name").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/sms_templates/p0_name".into(),
-        B::None,
         false,
     ));
     c.sms_templates()
@@ -3381,6 +3855,16 @@ async fn every_catalog_operation_hits_its_route() {
         .await
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/sso_connections".into(), B::Obj, true));
+    c.sso_connections()
+        .delete("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/sso_connections/p0_id".into(),
+        B::None,
+        true,
+    ));
     c.sso_connections().get("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -3403,16 +3887,6 @@ async fn every_catalog_operation_hits_its_route() {
         true,
     ));
     c.sso_connections()
-        .delete("p0_id", Some("idem_1"))
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/sso_connections/p0_id".into(),
-        B::None,
-        true,
-    ));
-    c.sso_connections()
         .preview_profile_mapping(
             "p0_id",
             &types::SsoConnectionsPreviewProfileMappingBody::default(),
@@ -3423,6 +3897,16 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/sso_connections/p0_id/profile_mapping/preview".into(),
         B::Obj,
+        false,
+    ));
+    c.sso_connections()
+        .delete_saml_encryption_key("p0_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/sso_connections/p0_id/saml_encryption_key".into(),
+        B::None,
         false,
     ));
     c.sso_connections()
@@ -3444,16 +3928,6 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/sso_connections/p0_id/saml_encryption_key".into(),
         B::None,
         true,
-    ));
-    c.sso_connections()
-        .delete_saml_encryption_key("p0_id")
-        .await
-        .unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/sso_connections/p0_id/saml_encryption_key".into(),
-        B::None,
-        false,
     ));
     c.sso_connections()
         .retire_previous_saml_encryption_key("p0_id")
@@ -3526,16 +4000,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
-    c.sso_onboarding().get_profile("p0_id").await.unwrap();
+    c.sso_onboarding().delete_profile("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Get,
+        HttpMethod::Delete,
         "/v1/sso_onboarding_profiles/p0_id".into(),
         B::None,
         false,
     ));
-    c.sso_onboarding().delete_profile("p0_id").await.unwrap();
+    c.sso_onboarding().get_profile("p0_id").await.unwrap();
     expected.push((
-        HttpMethod::Delete,
+        HttpMethod::Get,
         "/v1/sso_onboarding_profiles/p0_id".into(),
         B::None,
         false,
@@ -3593,6 +4067,13 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((HttpMethod::Post, "/v1/tokens/verify".into(), B::Obj, false));
     c.usage().get(&q).await.unwrap();
     expected.push((HttpMethod::Get, "/v1/usage?limit=2".into(), B::None, false));
+    c.usage().connections(&q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/usage/connections?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.import_export()
         .export_users(Some("idem_1"))
         .await
@@ -3667,6 +4148,13 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.users().list_consents("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/consents?limit=2".into(),
+        B::None,
+        false,
+    ));
     c.users()
         .create_consent(
             "p0_id",
@@ -3681,10 +4169,20 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
-    c.users().list_consents("p0_id", &q).await.unwrap();
+    c.users()
+        .contain("p0_id", &types::UsersContainBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
     expected.push((
-        HttpMethod::Get,
-        "/v1/users/p0_id/consents?limit=2".into(),
+        HttpMethod::Post,
+        "/v1/users/p0_id/contain".into(),
+        B::Obj,
+        true,
+    ));
+    c.users().clear_directives("p0_id").await.unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/directives".into(),
         B::None,
         false,
     ));
@@ -3701,13 +4199,6 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/users/p0_id/directives".into(),
         B::Obj,
         true,
-    ));
-    c.users().clear_directives("p0_id").await.unwrap();
-    expected.push((
-        HttpMethod::Delete,
-        "/v1/users/p0_id/directives".into(),
-        B::None,
-        false,
     ));
     c.users()
         .create_email_address(
@@ -3806,6 +4297,16 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Delete,
         "/v1/users/p0_id/identities/p1_identity_id".into(),
         B::None,
+        true,
+    ));
+    c.users()
+        .merge("p0_id", &types::UsersMergeBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/merge".into(),
+        B::Obj,
         true,
     ));
     c.users()
@@ -3961,6 +4462,20 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.users().resync("p0_id", Some("idem_1")).await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/referral/resync".into(),
+        B::None,
+        true,
+    ));
+    c.users().release("p0_id", Some("idem_1")).await.unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/release".into(),
+        B::None,
+        true,
+    ));
     c.users().reset_mfa("p0_id", Some("idem_1")).await.unwrap();
     expected.push((
         HttpMethod::Post,
@@ -4007,6 +4522,37 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((
         HttpMethod::Get,
         "/v1/users/p0_id/state".into(),
+        B::None,
+        false,
+    ));
+    c.users().temporary_access("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/users/p0_id/temporary_access?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.users()
+        .temporary_access(
+            "p0_id",
+            &types::UsersTemporaryAccessBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/temporary_access".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .delete_temporary_access("p0_id", "p1_pass_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/temporary_access/p1_pass_id".into(),
         B::None,
         false,
     ));
@@ -4081,4 +4627,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 461 operations, 461 typed; 461 calls.
+// 523 operations, 508 typed; 523 calls.

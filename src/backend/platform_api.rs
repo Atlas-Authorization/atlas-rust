@@ -721,6 +721,39 @@ pub struct PlatformApp {
     pub extra: Map<String, Value>,
 }
 
+/// `POST /v1/platform/apps/:id/initial_secret/reveal`: a new app's secret
+/// keys once more, within 10 minutes of the create.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct InitialSecret {
+    /// `initial_secret`.
+    pub object: String,
+    pub app_id: String,
+    pub instance_id: String,
+    pub key_id: String,
+    /// `None` when the key was rotated or revoked since (or on a dry run).
+    pub secret: Option<String>,
+    /// The development sibling's key, when one was created.
+    pub sibling_instance: Option<InitialSecretSibling>,
+    /// Dry run: whether a reveal would still succeed.
+    pub available: Option<bool>,
+    /// Epoch ms.
+    pub expires_at: Option<i64>,
+    pub note: Option<String>,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// [`InitialSecret::sibling_instance`].
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct InitialSecretSibling {
+    pub instance_id: String,
+    pub key_id: String,
+    pub secret: Option<String>,
+    pub note: Option<String>,
+}
+
 /// Body for `POST /v1/platform/apps`.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct CreatePlatformAppBody {
@@ -778,7 +811,9 @@ pub struct PlatformApps<'a> {
 
 impl PlatformApps<'_> {
     /// `POST /v1/platform/apps` — provision an app; its first secret key is in
-    /// the response, exactly once.
+    /// the response. `initial_secret_reveal` (`path`, `expires_at`) says how to
+    /// fetch it once more ([`Self::reveal_initial_secret`]); an
+    /// Idempotency-Key replay carries `secret_redacted: true` and null secrets.
     pub async fn create(&self, body: &CreatePlatformAppBody, idempotency_key: Option<&str>) -> Result<Value, BackendError> {
         self.client
             .request(
@@ -789,6 +824,15 @@ impl PlatformApps<'_> {
                 idempotency_key,
             )
             .await
+    }
+    /// `POST /v1/platform/apps/:id/initial_secret/reveal` — the new app's
+    /// secret (and its development sibling's) once more, within 10 minutes of
+    /// the create, for the platform that created it. `dry_run` only reports
+    /// whether it is still available.
+    pub async fn reveal_initial_secret(&self, id: &str, dry_run: bool) -> Result<InitialSecret, BackendError> {
+        let path = format!("/v1/platform/apps/{}/initial_secret/reveal", seg(id));
+        let q = if dry_run { vec![("dry_run", "true".to_string())] } else { Vec::new() };
+        self.client.request(HttpMethod::Post, &path, &q, None, None).await
     }
     /// `GET /v1/platform/apps` — e.g. `Query::new().set("include_archived", true)`.
     pub async fn list(&self, query: &Query) -> Result<ListPage<PlatformApp>, BackendError> {

@@ -13,6 +13,8 @@
 //! keep the fields a caller reads and flatten the rest into `extra`, so a new
 //! server-side field never breaks deserialization.
 
+use std::collections::HashMap;
+
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -21,7 +23,7 @@ use crate::http::HttpMethod;
 
 use super::client::{encode_component, BackendClient};
 use super::error::BackendError;
-use super::pagination::{CursorPage, CursorParams};
+use super::pagination::{CursorPage, CursorParams, Query};
 
 /// A free-form metadata bag. The BAPI stores arbitrary JSON objects here.
 pub type Metadata = Map<String, Value>;
@@ -171,6 +173,16 @@ pub struct UserReferralAttributedEvent {
     pub referral_code: Option<String>,
     #[serde(default)]
     pub referral_link: Option<String>,
+    /// `sign_in_with_atlas` when the sign-up came through a Sign in with Atlas
+    /// app; `None` otherwise.
+    #[serde(default)]
+    pub source: Option<String>,
+    /// With `source: "sign_in_with_atlas"`: the Atlas ID account's `sub`.
+    #[serde(default)]
+    pub atlas_id_sub: Option<String>,
+    /// With `source: "sign_in_with_atlas"`: the Sign in with Atlas app's id.
+    #[serde(default)]
+    pub atlas_id_app_id: Option<String>,
     /// Epoch ms.
     #[serde(default)]
     pub signed_up_at: Option<i64>,
@@ -212,6 +224,27 @@ pub struct CreateUserBody {
     /// `REFERRAL_CODE_TAKEN`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub referral_code: Option<String>,
+    /// An existing password hash instead of `password`. A self-describing
+    /// hash (Argon2id, bcrypt, Django / passlib PBKDF2 and scrypt, phpass,
+    /// LDAP `{SSHA}`) is stored as given; name any other with
+    /// `password_hash_algorithm`. Upgraded to Argon2id on the first sign-in.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_hash: Option<String>,
+    /// The algorithm of a hash that does not describe itself: `scrypt`,
+    /// `pbkdf2`, `md5`, `sha1`, `sha256`, `sha512`, `hmac_sha256`, ...
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_hash_algorithm: Option<String>,
+    /// The algorithm's parameters, e.g. scrypt
+    /// `{ "n", "r", "p", "key_length", "salt_encoding" }`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_hash_params: Option<Map<String, Value>>,
+    /// The salt of a hash named with `password_hash_algorithm`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_salt: Option<String>,
+    /// The hasher name used elsewhere for `password_hash_algorithm`; read only
+    /// when the hash does not describe itself.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password_hasher: Option<String>,
 }
 
 /// `PATCH /v1/users/:id` body.
@@ -411,10 +444,48 @@ pub struct Organization {
     pub public_metadata: Metadata,
     #[serde(default)]
     pub max_allowed_memberships: Option<u64>,
+    /// `None` when your backend created the organization without a creator.
     #[serde(default)]
     pub created_by: Option<String>,
+    /// Your own id for this customer; unique per instance.
+    #[serde(default)]
+    pub external_id: Option<String>,
+    /// Role key to your product's name for it (the `org_role_mapped` claim).
+    #[serde(default)]
+    pub role_mappings: Option<HashMap<String, String>>,
+    /// On create with `owner_email` only: the invitation sent to that address.
+    #[serde(default)]
+    pub owner_invitation: Option<OrganizationInvitation>,
+    /// `GET /v1/organizations/:id` only: the organization's SSO setup.
+    #[serde(default)]
+    pub sso: Option<OrganizationSso>,
+    /// [`Organizations::find_by_domain`] only: the matched domain.
+    #[serde(default)]
+    pub domain: Option<OrgDomain>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// The `sso` block of `GET /v1/organizations/:id`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct OrganizationSso {
+    pub connections: Vec<OrganizationSsoConnection>,
+    /// The SCIM 2.0 base URL to give this organization's identity provider.
+    pub scim_base_url: String,
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+/// One connection in [`OrganizationSso`].
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct OrganizationSsoConnection {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub connection_type: String,
+    /// `draft`, `active` or `disabled`.
+    pub status: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -453,12 +524,62 @@ pub struct OrgDomain {
     pub organization_id: String,
     #[serde(default)]
     pub domain: String,
+    /// `pending`, `verified` or `failed`.
     #[serde(default)]
     pub status: String,
     #[serde(default)]
     pub auto_join: bool,
+    /// Every way to prove the domain.
+    #[serde(default)]
+    pub verification_methods: Option<OrgDomainVerificationMethods>,
+    /// How it was (or is being) proven: `dns_txt`, `well_known`, `email`.
+    #[serde(default)]
+    pub verification_method: Option<String>,
+    /// Epoch ms.
+    #[serde(default)]
+    pub verified_at: Option<i64>,
+    /// [`OrgDomains::send_verification_email`] only: where the code went.
+    #[serde(default)]
+    pub sent_to: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// [`OrgDomain::verification_methods`].
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct OrgDomainVerificationMethods {
+    pub dns_txt: Option<OrgDomainDnsTxt>,
+    pub well_known: Option<OrgDomainWellKnown>,
+    pub email: Option<OrgDomainEmailVerification>,
+}
+
+/// Publish this TXT record, then verify.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct OrgDomainDnsTxt {
+    pub record_name: String,
+    pub record_type: String,
+    pub record_value: String,
+}
+
+/// Serve `body` at `url` with `content_type`, then verify with `well_known`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct OrgDomainWellKnown {
+    pub url: String,
+    pub body: String,
+    pub content_type: String,
+}
+
+/// The administrative mailboxes a code can be emailed to, and the last send.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct OrgDomainEmailVerification {
+    pub addresses: Vec<String>,
+    pub sent_to: Option<String>,
+    /// Epoch ms.
+    pub expires_at: Option<i64>,
 }
 
 /// The org security policy (§4.4). `policy` is the raw bag; read it typed
@@ -552,9 +673,26 @@ pub struct OrgPolicyPatch {
 pub struct CreateOrganizationBody {
     pub name: String,
     pub slug: String,
+    /// Seated with the creator role. Leave empty (not sent) for a
+    /// backend-created organization with no members yet.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub created_by: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_allowed_memberships: Option<u64>,
+    /// Your own id for this customer; unique per instance (409 when taken).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_metadata: Option<Metadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private_metadata: Option<Metadata>,
+    /// Invite this address with the creator role; the response then carries
+    /// `owner_invitation`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owner_email: Option<String>,
+    /// Role key to your product's name for it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role_mappings: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -571,6 +709,12 @@ pub struct UpdateOrganizationBody {
     pub public_metadata: Option<Metadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub private_metadata: Option<Metadata>,
+    /// `Some(None)` sends null and clears it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_id: Option<Option<String>>,
+    /// `Some(None)` sends null and clears them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role_mappings: Option<Option<HashMap<String, String>>>,
 }
 
 /// The `/v1/organizations` namespace.
@@ -583,8 +727,29 @@ impl<'a> Organizations<'a> {
         let q = params.to_query();
         self.client.request(HttpMethod::Get, "/v1/organizations", &q, None, None).await
     }
+    /// `GET /v1/organizations` with filters: `external_id`, and
+    /// `metadata[key]=value` (AND; build with
+    /// [`metadata_query`](super::metadata_query)), plus `limit` /
+    /// `starting_after`.
+    pub async fn list_with(&self, query: &Query) -> Result<CursorPage<Organization>, BackendError> {
+        self.client.request(HttpMethod::Get, "/v1/organizations", &query.as_pairs(), None, None).await
+    }
+    /// `GET /v1/organizations/:id` — with its `sso` block.
     pub async fn get(&self, id: &str) -> Result<Organization, BackendError> {
         let path = format!("/v1/organizations/{}", seg(id));
+        self.client.request(HttpMethod::Get, &path, &[], None, None).await
+    }
+    /// `GET /v1/organizations/by_domain/:domain` — the organization owning a
+    /// domain (or an email address's domain), with the matched `domain`.
+    /// Verified domains only unless `include_unverified`; 404 when none.
+    pub async fn find_by_domain(&self, domain: &str, include_unverified: bool) -> Result<Organization, BackendError> {
+        let path = format!("/v1/organizations/by_domain/{}", seg(domain));
+        let q = if include_unverified { vec![("include_unverified", "true".to_string())] } else { Vec::new() };
+        self.client.request(HttpMethod::Get, &path, &q, None, None).await
+    }
+    /// `GET /v1/organizations/:id/policy`.
+    pub async fn get_policy(&self, id: &str) -> Result<OrganizationPolicy, BackendError> {
+        let path = format!("/v1/organizations/{}/policy", seg(id));
         self.client.request(HttpMethod::Get, &path, &[], None, None).await
     }
     pub async fn create(
@@ -732,6 +897,33 @@ impl OrgDomains<'_> {
     pub async fn verify(&self, domain_id: &str) -> Result<OrgDomain, BackendError> {
         let path = format!("/v1/organizations/{}/domains/{}/verify", seg(&self.org_id), seg(domain_id));
         self.client.request(HttpMethod::Post, &path, &[], None, None).await
+    }
+    /// `POST /v1/organizations/:id/domains/:domain_id/verify` with a method:
+    /// `dns_txt`, `well_known` (fetches the file) or `email` (with the emailed
+    /// `code`).
+    pub async fn verify_with(&self, domain_id: &str, method: &str, code: Option<&str>) -> Result<OrgDomain, BackendError> {
+        let path = format!("/v1/organizations/{}/domains/{}/verify", seg(&self.org_id), seg(domain_id));
+        let mut body = serde_json::Map::new();
+        body.insert("method".into(), Value::String(method.to_string()));
+        if let Some(c) = code {
+            body.insert("code".into(), Value::String(c.to_string()));
+        }
+        self.client.request(HttpMethod::Post, &path, &[], Some(Value::Object(body)), None).await
+    }
+    /// `POST /v1/organizations/:id/domains/:domain_id/verification_email` —
+    /// email a 6-digit code to `admin@` (or `administrator`, `hostmaster`,
+    /// `postmaster`, `webmaster`) at the domain, through your email provider.
+    pub async fn send_verification_email(&self, domain_id: &str, address: Option<&str>) -> Result<OrgDomain, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/domains/{}/verification_email",
+            seg(&self.org_id),
+            seg(domain_id)
+        );
+        let mut body = serde_json::Map::new();
+        if let Some(a) = address {
+            body.insert("address".into(), Value::String(a.to_string()));
+        }
+        self.client.request(HttpMethod::Post, &path, &[], Some(Value::Object(body)), None).await
     }
     pub async fn delete(&self, domain_id: &str) -> Result<DeletedObject, BackendError> {
         let path = format!("/v1/organizations/{}/domains/{}", seg(&self.org_id), seg(domain_id));
@@ -1352,8 +1544,44 @@ pub struct CustomDomain {
     /// DNS automation (`provider`, `token_set`; the token is never returned).
     #[serde(default)]
     pub dns: Option<Value>,
+    /// `cname` (default) or `path` (a path mount on your own host).
+    #[serde(default)]
+    pub method: Option<String>,
+    /// `None` for a path mount.
+    #[serde(default)]
+    pub cname_target: Option<String>,
+    /// Path mount: the prefix the Frontend API is served under.
+    #[serde(default)]
+    pub base_path: Option<String>,
+    /// Path mount, once verified: `atlas_ingress` or `customer_proxy`.
+    #[serde(default)]
+    pub routing: Option<String>,
+    /// Path mount: `https://<host><base_path>`.
+    #[serde(default)]
+    pub frontend_api_url: Option<String>,
+    /// Path mount: publish `content` at `url`, then verify.
+    #[serde(default)]
+    pub verification: Option<CustomDomainVerification>,
+    /// Setup steps (DNS record, or the reverse-proxy rule of a path mount).
+    #[serde(default)]
+    pub instructions: Option<Value>,
+    /// On verify: the issuer once the domain is live.
+    #[serde(default)]
+    pub issuer: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
+}
+
+/// A path mount's ownership proof ([`CustomDomain::verification`]).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CustomDomainVerification {
+    /// `https_file`.
+    pub method: String,
+    pub url: String,
+    pub token: String,
+    pub content: String,
+    pub instructions: String,
 }
 
 /// The `/v1/domains` namespace (the instance's own FAPI/accounts domains).
@@ -1375,6 +1603,25 @@ impl Domains<'_> {
         body.insert("host".into(), Value::String(host.to_string()));
         if let Some(r) = role {
             body.insert("role".into(), Value::String(r.to_string()));
+        }
+        self.client
+            .request(HttpMethod::Post, "/v1/domains", &[], Some(Value::Object(body)), idempotency_key)
+            .await
+    }
+    /// `POST /v1/domains` with `method: "path"` — serve the Frontend API under
+    /// `base_path` (default `/__atlas`) on a host you already run, proven by an
+    /// https file instead of DNS.
+    pub async fn create_path_mount(
+        &self,
+        hostname: &str,
+        base_path: Option<&str>,
+        idempotency_key: Option<&str>,
+    ) -> Result<CustomDomain, BackendError> {
+        let mut body = serde_json::Map::new();
+        body.insert("method".into(), Value::String("path".into()));
+        body.insert("hostname".into(), Value::String(hostname.to_string()));
+        if let Some(b) = base_path {
+            body.insert("base_path".into(), Value::String(b.to_string()));
         }
         self.client
             .request(HttpMethod::Post, "/v1/domains", &[], Some(Value::Object(body)), idempotency_key)

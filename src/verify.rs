@@ -41,6 +41,11 @@ pub struct AtlasBackendOptions {
     /// token-confusion guard is the positive `token_use:"session"` marker, NOT
     /// the presence of `aud` (matching the TS/Go/Ruby peers).
     pub audiences: Vec<String>,
+    /// Earlier issuers of THIS instance, also accepted as `iss` (its old
+    /// sign-in host while it moves to a custom domain or path mount). The keys
+    /// are the instance's own. Discovery lists them in
+    /// `atlas_previous_issuers` with an `accepted_until`; drop them after that.
+    pub previous_issuers: Vec<String>,
 }
 
 /// Builder for an [`AtlasBackend`]. Supply exactly one key source: a `jwks_url`
@@ -52,6 +57,7 @@ pub struct AtlasBackendBuilder {
     static_jwks: Option<crate::jwks::Jwks>,
     authorized_parties: Vec<String>,
     audiences: Vec<String>,
+    previous_issuers: Vec<String>,
     source: Option<Arc<dyn JwksSource>>,
     clock: Option<Clock>,
     ttl_ms: Option<u64>,
@@ -68,6 +74,7 @@ impl AtlasBackendBuilder {
             static_jwks: None,
             authorized_parties: Vec::new(),
             audiences: Vec::new(),
+            previous_issuers: Vec::new(),
             source: None,
             clock: None,
             ttl_ms: None,
@@ -139,6 +146,24 @@ impl AtlasBackendBuilder {
         S: Into<String>,
     {
         self.audiences.extend(audiences.into_iter().map(Into::into));
+        self
+    }
+
+    /// Also accept these earlier issuers of the same instance (`iss` must equal
+    /// the configured issuer or one of these; nothing else). Use while the
+    /// instance moves to a new sign-in host, until `accepted_until` in the
+    /// discovery document's `atlas_previous_issuers`.
+    pub fn previous_issuers<I, S>(mut self, issuers: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        for issuer in issuers {
+            let issuer: String = issuer.into();
+            if !issuer.is_empty() {
+                self.previous_issuers.push(issuer);
+            }
+        }
         self
     }
 
@@ -236,6 +261,7 @@ impl AtlasBackendBuilder {
                 issuer: self.issuer,
                 authorized_parties: self.authorized_parties,
                 audiences: self.audiences,
+                previous_issuers: self.previous_issuers,
             },
             jwks: cache,
             clock,
@@ -342,7 +368,9 @@ impl AtlasBackend {
         // Candidate keys: the kid match, or every RSA key when the header
         // carries no kid.
         let mut validation = Validation::new(header.alg);
-        validation.set_issuer(&[self.options.issuer.as_str()]);
+        let mut issuers = vec![self.options.issuer.as_str()];
+        issuers.extend(self.options.previous_issuers.iter().map(String::as_str));
+        validation.set_issuer(&issuers[..]);
         validation.set_required_spec_claims(&["exp", "iss"]);
         validation.leeway = CLOCK_SKEW_SECONDS;
         validation.validate_exp = true;

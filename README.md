@@ -104,6 +104,12 @@ marker, not the presence of `aud`). Set one or more expected audiences — via
 contain **at least one** of them (OR), which is how a single verifier can serve
 tokens for several instances or resource servers.
 
+While your instance moves to a new sign-in host (a custom domain or a path mount
+going active), `.previous_issuers(["https://your-instance-fapi.atlasauth.net"])`
+also accepts tokens whose `iss` is the old host. `iss` must equal the issuer or
+one of these; nothing else. The discovery document lists them in
+`atlas_previous_issuers` with an `accepted_until`; remove them after that.
+
 ### Offline / CI
 
 Pass a static key set instead of a URL — no network call is ever made:
@@ -587,6 +593,22 @@ manager, privacy orchestrator, completion webhook and executor key in one idempo
 carry `warnings` (for example an `unknown_field` that was dropped). `/v1/instance/secret_keys` is the same
 route as `/v1/secret_keys` (`secret_keys()`).
 
+### Organizations, trusted-JWT connections, path mounts
+
+`organizations().create(..)` takes `external_id`, `public_metadata`, `private_metadata`, `owner_email`
+(the response then carries `owner_invitation`) and `role_mappings`; leave `created_by` empty for an
+organization with no members yet. `organizations().list_with(&metadata_query(..).set("external_id", "acme-1"))`
+filters, `find_by_domain("ada@acme.example.com", false)` finds the owner of a domain or email address,
+`get_policy(id)` reads the policy, and `get(id)` carries the `sso` block (`connections`, `scim_base_url`).
+Organization domains verify by DNS TXT, a `well_known` file or an emailed code:
+`domains(org_id).send_verification_email(domain_id, None)` then `verify_with(domain_id, "email", Some(code))`.
+
+`jwt_connections()` (`list`, `get`, `create`, `update`, `delete`) signs people in with a JWT your system
+signs: send them to the connection's `login_url?token=…&redirect_url=…`. `domains().create_path_mount(host,
+None, None)` serves the Frontend API under `/__atlas` on a host you already run. Webhook endpoints take your
+own `secret` on create and on `rotate_secret_with(.., &RotateWebhookSecretBody::new().with_secret(..))`;
+`platform().apps().reveal_initial_secret(app_id, false)` shows a new app's secret once more within 10 minutes.
+
 ### Policy acceptance
 
 Terms of service, a privacy policy or any policy your users accept at sign-up (and again at sign-in when a new
@@ -904,7 +926,7 @@ MIT.
 Two more framework integrations, off by default, both over the same `AtlasBackend` verifier (local RS256 against the cached JWKS, issuer, expiry, `azp` allowlist). A missing or invalid credential is a 401; a verifier that was never registered fails closed with a 500.
 
 ```toml
-atlasauth = { version = "0.27", features = ["actix"] }   # or "rocket"
+atlasauth = { version = "0.28", features = ["actix"] }   # or "rocket"
 ```
 
 ```rust

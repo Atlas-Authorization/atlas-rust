@@ -464,6 +464,19 @@ impl ActionTemplates<'_> {
             )
             .await
     }
+    /// `DELETE /v1/action_templates/{id}` — Delete a template and its versions from the gallery.
+    /// Actions already installed from it keep working.
+    ///
+    /// Returns [`types::ActionTemplatesDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::ActionTemplatesDeleteResponse, BackendError> {
+        let path = format!("/v1/action_templates/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/action_templates/{id}` — One of your gallery templates, with every version.
     ///
     /// Returns [`types::ActionTemplate`].
@@ -485,19 +498,6 @@ impl ActionTemplates<'_> {
         let path = format!("/v1/action_templates/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/action_templates/{id}` — Delete a template and its versions from the gallery.
-    /// Actions already installed from it keep working.
-    ///
-    /// Returns [`types::ActionTemplatesDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-    ) -> Result<types::ActionTemplatesDeleteResponse, BackendError> {
-        let path = format!("/v1/action_templates/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/action_templates/{id}/publish` — List an approved template in the gallery again
@@ -636,6 +636,16 @@ impl Actions<'_> {
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `DELETE /v1/actions/{id}` — Delete an Action. Its trigger bindings cascade away, so it stops
+    /// running everywhere.
+    ///
+    /// Returns [`types::ActionsDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::ActionsDeleteResponse, BackendError> {
+        let path = format!("/v1/actions/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/actions/{id}` — Read one Action. Reports secret names only, never their values.
     ///
     /// Returns [`types::Action`].
@@ -657,16 +667,6 @@ impl Actions<'_> {
         let path = format!("/v1/actions/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/actions/{id}` — Delete an Action. Its trigger bindings cascade away, so it stops
-    /// running everywhere.
-    ///
-    /// Returns [`types::ActionsDeleteResponse`].
-    pub async fn delete(&self, id: &str) -> Result<types::ActionsDeleteResponse, BackendError> {
-        let path = format!("/v1/actions/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/actions/{id}/gallery_update` — Update an installed action to its template's latest
@@ -810,18 +810,31 @@ impl ApiKeys<'_> {
             )
             .await
     }
+    /// `GET /v1/api_keys/{id}/usage` — A key's current-window usage: each cap with
+    /// used/remaining/resets_at, plus the day, month and total counters of every unit the key has
+    /// been debited in.
+    ///
+    /// Returns [`types::ApiKeyUsage`].
+    pub async fn get_usage(&self, id: &str) -> Result<types::ApiKeyUsage, BackendError> {
+        let path = format!("/v1/api_keys/{}/usage", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
     /// `POST /v1/api_keys/{id}/usage` — Meter usage against a key's spend caps, atomically. Body:
     /// amount (positive integer), unit (app-defined, e.g. requests or usd_cents), optional
     /// idempotency_key. When the debit fits every cap for that unit it is recorded (day, month and
-    /// total counters) and allowed:true is returned; when it would exceed a cap — or is larger than
-    /// a per-request cap — NOTHING is recorded and the response is 200 with allowed:false and code
-    /// LIMIT_EXCEEDED, so you enforce it in your own transaction. Concurrent debits on one key
-    /// serialize: two can never both pass a cap only one fits under. Day and month windows are UTC
-    /// calendar windows. The same idempotency_key (kept 24 hours) returns the first outcome without
-    /// counting again (idempotent_replay:true); reusing it with a different unit or amount is 409
-    /// IDEMPOTENCY_CONFLICT. A revoked or expired key is 409 CONFLICT; an unknown id 404. The first
-    /// time a cap fills or refuses a debit in a window, api_key.limit_reached is emitted (once per
-    /// cap per window).
+    /// total counters, plus second/minute counters for a unit capped on those windows) and
+    /// allowed:true is returned; when it would exceed a cap — or is larger than a per-request cap —
+    /// NOTHING is recorded and the response is 200 with allowed:false and code LIMIT_EXCEEDED, so
+    /// you enforce it in your own transaction. Concurrent debits on one key serialize: two can
+    /// never both pass a cap only one fits under. Second and minute windows are fixed windows
+    /// aligned to the UTC clock (a 600/minute cap refuses the 601st request until the next whole
+    /// minute); day and month windows are UTC calendar windows. The same idempotency_key (kept 24
+    /// hours) returns the first outcome without counting again (idempotent_replay:true); reusing it
+    /// with a different unit or amount is 409 IDEMPOTENCY_CONFLICT. A revoked or expired key is 409
+    /// CONFLICT; an unknown id 404. The first time a cap fills or refuses a debit in a window,
+    /// api_key.limit_reached is emitted (once per cap per window).
     ///
     /// Takes [`types::ApiKeysRecordUsageBody`]. Returns [`types::ApiKeyUsageDebit`].
     pub async fn record_usage(
@@ -832,17 +845,6 @@ impl ApiKeys<'_> {
         let path = format!("/v1/api_keys/{}/usage", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `GET /v1/api_keys/{id}/usage` — A key's current-window usage: each cap with
-    /// used/remaining/resets_at, plus the day, month and total counters of every unit the key has
-    /// been debited in.
-    ///
-    /// Returns [`types::ApiKeyUsage`].
-    pub async fn get_usage(&self, id: &str) -> Result<types::ApiKeyUsage, BackendError> {
-        let path = format!("/v1/api_keys/{}/usage", seg(id));
-        self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
 }
@@ -885,6 +887,16 @@ impl AppRoles<'_> {
             )
             .await
     }
+    /// `DELETE /v1/app_roles/{id}` — Delete an app role. Every holder loses it (and its
+    /// permissions); user.app_roles_updated is sent for each and appRole.deleted once.
+    ///
+    /// Returns [`types::AppRolesDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::AppRolesDeleteResponse, BackendError> {
+        let path = format!("/v1/app_roles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/app_roles/{id}` — Fetch an app role by id or key.
     ///
     /// Returns [`types::AppRolesGetResponse`].
@@ -906,16 +918,6 @@ impl AppRoles<'_> {
         let path = format!("/v1/app_roles/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/app_roles/{id}` — Delete an app role. Every holder loses it (and its
-    /// permissions); user.app_roles_updated is sent for each and appRole.deleted once.
-    ///
-    /// Returns [`types::AppRolesDeleteResponse`].
-    pub async fn delete(&self, id: &str) -> Result<types::AppRolesDeleteResponse, BackendError> {
-        let path = format!("/v1/app_roles/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `GET /v1/app_roles/{id}/users` — The users holding an app role, oldest assignment first.
@@ -989,6 +991,25 @@ impl AuditLogs<'_> {
 }
 
 impl BetterAuthImports<'_> {
+    /// `GET /v1/better_auth_imports` — List Better Auth imports, newest first (cursor pagination).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::BetterAuthImportsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::BetterAuthImportsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/better_auth_imports",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
     /// `POST /v1/better_auth_imports` — Start a Better Auth import (status `uploading`). Then
     /// upload the sealed bundle with PUT …/parts/{part} and call …/finalize. Nothing is written to
     /// users until apply.
@@ -1006,25 +1027,6 @@ impl BetterAuthImports<'_> {
                 &[],
                 body_of(body)?,
                 idempotency_key,
-            )
-            .await
-    }
-    /// `GET /v1/better_auth_imports` — List Better Auth imports, newest first (cursor pagination).
-    ///
-    /// Query parameters: `limit`, `starting_after`.
-    ///
-    /// Returns [`types::BetterAuthImportsListResponse`].
-    pub async fn list(
-        &self,
-        query: &Query,
-    ) -> Result<types::BetterAuthImportsListResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/better_auth_imports",
-                &query.as_pairs(),
-                None,
-                None,
             )
             .await
     }
@@ -1092,16 +1094,6 @@ impl BetterAuthImports<'_> {
             )
             .await
     }
-    /// `GET /v1/better_auth_imports/{id}` — Fetch one import: status, the dry-run report, live
-    /// progress and the apply result.
-    ///
-    /// Returns [`types::BetterAuthImport`].
-    pub async fn get(&self, id: &str) -> Result<types::BetterAuthImport, BackendError> {
-        let path = format!("/v1/better_auth_imports/{}", seg(id));
-        self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
-            .await
-    }
     /// `DELETE /v1/better_auth_imports/{id}` — Delete an import and its stored bundle. Data it
     /// already imported stays. Refused (409) while it is analyzing or applying.
     ///
@@ -1113,6 +1105,16 @@ impl BetterAuthImports<'_> {
         let path = format!("/v1/better_auth_imports/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/better_auth_imports/{id}` — Fetch one import: status, the dry-run report, live
+    /// progress and the apply result.
+    ///
+    /// Returns [`types::BetterAuthImport`].
+    pub async fn get(&self, id: &str) -> Result<types::BetterAuthImport, BackendError> {
+        let path = format!("/v1/better_auth_imports/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
     /// `POST /v1/better_auth_imports/{id}/apply` — Import the bundle. Every record is an idempotent
@@ -1198,6 +1200,142 @@ impl Billing<'_> {
             )
             .await
     }
+    /// `GET /v1/billing/coupons` — List the discount codes you offer.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::BillingCouponsResponse`].
+    pub async fn coupons(
+        &self,
+        query: &Query,
+    ) -> Result<types::BillingCouponsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/billing/coupons",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/billing/coupons` — Create a discount code. Set exactly one of `percent_off` or
+    /// `amount_off` (+ `currency`). It is created on your own Stripe account as a coupon and
+    /// promotion code, so Stripe enforces and applies it; a provider without discount support
+    /// refuses with 422.
+    ///
+    /// Takes [`types::BillingCouponsBody`]. Returns [`types::BillingCouponsResponse2`].
+    pub async fn coupons(
+        &self,
+        body: &types::BillingCouponsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::BillingCouponsResponse2, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/billing/coupons",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/billing/coupons/validate` — Would this code work for this subject and plan?
+    /// `reason`: unknown, inactive, expired, exhausted, plan_not_eligible, first_time_only or
+    /// already_used.
+    ///
+    /// Takes [`types::BillingValidateBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn validate(
+        &self,
+        body: &types::BillingValidateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/billing/coupons/validate",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/billing/coupons/{id}` — Delete a code and stop it being used. Subscriptions that
+    /// already have the discount keep it.
+    ///
+    /// Returns [`types::BillingDeleteCouponsResponse`].
+    pub async fn delete_coupons(
+        &self,
+        id: &str,
+    ) -> Result<types::BillingDeleteCouponsResponse, BackendError> {
+        let path = format!("/v1/billing/coupons/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/billing/coupons/{id}` — Read one discount code.
+    ///
+    /// Returns [`types::BillingCouponsResponse3`].
+    pub async fn coupons(&self, id: &str) -> Result<types::BillingCouponsResponse3, BackendError> {
+        let path = format!("/v1/billing/coupons/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/billing/coupons/{id}` — Deactivate or reactivate a code, rename it, or change its
+    /// redemption cap. The discount itself cannot change; create a new code for that.
+    ///
+    /// Takes [`types::BillingUpdateCouponsBody`]. Returns [`types::BillingUpdateCouponsResponse`].
+    pub async fn update_coupons(
+        &self,
+        id: &str,
+        body: &types::BillingUpdateCouponsBody,
+    ) -> Result<types::BillingUpdateCouponsResponse, BackendError> {
+        let path = format!("/v1/billing/coupons/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/billing/credits` — A subject's account-credit ledger and its balance per currency.
+    ///
+    /// Query parameters: `subject_type`, `subject_id`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::BillingCreditsResponse`].
+    pub async fn credits(
+        &self,
+        query: &Query,
+    ) -> Result<types::BillingCreditsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/billing/credits",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/billing/credits` — Post account credit (or a negative adjustment) to a subject.
+    /// Idempotent on `idempotency_key`. Once the subject has a customer on the provider the credit
+    /// lands on their balance and is applied to their next invoices; before that it waits for their
+    /// first completed checkout.
+    ///
+    /// Takes [`types::BillingCreditsBody`]. Returns [`types::BillingCreditsResponse2`].
+    pub async fn credits(
+        &self,
+        body: &types::BillingCreditsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::BillingCreditsResponse2, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/billing/credits",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
     /// `PATCH /v1/billing/plans/{id}` — Update an end-user billing plan's name, slug, price,
     /// interval, features, audience or active flag.
     ///
@@ -1249,6 +1387,22 @@ impl Billing<'_> {
             )
             .await
     }
+    /// `DELETE /v1/billing/providers/{provider}` — Remove a provider's credentials. Refused while
+    /// live subscriptions or plans depend on it, unless `force=true`.
+    ///
+    /// Query parameters: `force`.
+    ///
+    /// Returns [`types::BillingDeleteProviderResponse`].
+    pub async fn delete_provider(
+        &self,
+        provider: &str,
+        query: &Query,
+    ) -> Result<types::BillingDeleteProviderResponse, BackendError> {
+        let path = format!("/v1/billing/providers/{}", seg(provider));
+        self.client
+            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
     /// `GET /v1/billing/providers/{provider}` — One billing provider's settings: environment, which
     /// credentials are set, public fields (e.g. Stripe publishable key), status and the webhook URL
     /// to register. When the provider has no credentials: 200 `{ object: "billing_provider",
@@ -1281,22 +1435,6 @@ impl Billing<'_> {
         let path = format!("/v1/billing/providers/{}", seg(provider));
         self.client
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/billing/providers/{provider}` — Remove a provider's credentials. Refused while
-    /// live subscriptions or plans depend on it, unless `force=true`.
-    ///
-    /// Query parameters: `force`.
-    ///
-    /// Returns [`types::BillingDeleteProviderResponse`].
-    pub async fn delete_provider(
-        &self,
-        provider: &str,
-        query: &Query,
-    ) -> Result<types::BillingDeleteProviderResponse, BackendError> {
-        let path = format!("/v1/billing/providers/{}", seg(provider));
-        self.client
-            .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
             .await
     }
     /// `POST /v1/billing/providers/{provider}/test` — Make one read-only call to the provider with
@@ -1588,7 +1726,11 @@ impl Branding<'_> {
     /// full-replace), validated the way the renderer resolves it — a value it would drop is
     /// refused, not silently ignored. Top-level fields replace; socialButtons merges one level
     /// deeper: its per-provider maps (labels, displayNames, icons, modes, styles) merge per
-    /// provider key, and a null value deletes that key.
+    /// provider key, and a null value deletes that key. URLs: legal.termsUrl and legal.privacyUrl
+    /// must be https:// on every instance, development included (a localhost policy page is refused
+    /// with 422 VALIDATION_FAILED, param branding.legal.privacyUrl); logoUrl is https or a raster
+    /// data: URI. The same fields cannot be sent as auth_config.branding on PATCH /v1/instance
+    /// (strict writes refuse them with 422 UNKNOWN_FIELD and meta.hint naming this endpoint).
     ///
     /// Takes [`types::BrandingSettings`]. Returns [`types::Branding`].
     pub async fn update(
@@ -1710,6 +1852,16 @@ impl Connectors<'_> {
             )
             .await
     }
+    /// `DELETE /v1/connectors/{id}` — Delete one of the caller's own connector profiles and cascade
+    /// its installs, reviews, and reports.
+    ///
+    /// Returns [`types::ConnectorsDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::ConnectorsDeleteResponse, BackendError> {
+        let path = format!("/v1/connectors/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/connectors/{id}` — Fetch one of the caller's own connector profiles. The shared
     /// secret is never returned.
     ///
@@ -1732,16 +1884,6 @@ impl Connectors<'_> {
         let path = format!("/v1/connectors/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/connectors/{id}` — Delete one of the caller's own connector profiles and cascade
-    /// its installs, reviews, and reports.
-    ///
-    /// Returns [`types::ConnectorsDeleteResponse`].
-    pub async fn delete(&self, id: &str) -> Result<types::ConnectorsDeleteResponse, BackendError> {
-        let path = format!("/v1/connectors/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/connectors/{id}/publish` — Publish a connector to the public directory. Requires
@@ -1891,6 +2033,20 @@ impl CustomOAuthProviders<'_> {
             )
             .await
     }
+    /// `DELETE /v1/custom_oauth_providers/{id}` — Delete a custom provider with its credentials,
+    /// signing keys and upstream-session links; it leaves the sign-in options. Linked user
+    /// identities stay.
+    ///
+    /// Returns [`types::CustomOAuthProvidersDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::CustomOAuthProvidersDeleteResponse, BackendError> {
+        let path = format!("/v1/custom_oauth_providers/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/custom_oauth_providers/{id}` — Fetch one custom provider. Another instance id is
     /// 404.
     ///
@@ -1924,20 +2080,6 @@ impl CustomOAuthProviders<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
-            .await
-    }
-    /// `DELETE /v1/custom_oauth_providers/{id}` — Delete a custom provider with its credentials,
-    /// signing keys and upstream-session links; it leaves the sign-in options. Linked user
-    /// identities stay.
-    ///
-    /// Returns [`types::CustomOAuthProvidersDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-    ) -> Result<types::CustomOAuthProvidersDeleteResponse, BackendError> {
-        let path = format!("/v1/custom_oauth_providers/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/custom_oauth_providers/{id}/profile_mapping/preview` — Run the provider's stored
@@ -2020,6 +2162,26 @@ impl CustomOAuthProviders<'_> {
 }
 
 impl DataSubjectRequests<'_> {
+    /// `GET /v1/data_subject_requests` — List GDPR/DSAR export and erasure requests, filterable by
+    /// type/status/user (cursor pagination).
+    ///
+    /// Query parameters: `limit`, `starting_after`, `type`, `status`, `user_id`.
+    ///
+    /// Returns [`types::DataSubjectRequestsListResponse`].
+    pub async fn list(
+        &self,
+        query: &Query,
+    ) -> Result<types::DataSubjectRequestsListResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/data_subject_requests",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
     /// `POST /v1/data_subject_requests` — Create a DSAR (export or erasure) for a user from the
     /// backend — the twin of the self-service /client/me flows, for a DSAR orchestrator. Identify
     /// the subject by user_id OR subject_email (an orchestrator that knows people by email need not
@@ -2041,26 +2203,6 @@ impl DataSubjectRequests<'_> {
                 &[],
                 body_of(body)?,
                 idempotency_key,
-            )
-            .await
-    }
-    /// `GET /v1/data_subject_requests` — List GDPR/DSAR export and erasure requests, filterable by
-    /// type/status/user (cursor pagination).
-    ///
-    /// Query parameters: `limit`, `starting_after`, `type`, `status`, `user_id`.
-    ///
-    /// Returns [`types::DataSubjectRequestsListResponse`].
-    pub async fn list(
-        &self,
-        query: &Query,
-    ) -> Result<types::DataSubjectRequestsListResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Get,
-                "/v1/data_subject_requests",
-                &query.as_pairs(),
-                None,
-                None,
             )
             .await
     }
@@ -2254,6 +2396,18 @@ impl EmailTemplates<'_> {
             )
             .await
     }
+    /// `DELETE /v1/email_templates/{name}` — Revert a template to the Atlas built-in.
+    ///
+    /// Returns [`types::EmailTemplatesDeleteResponse`].
+    pub async fn delete(
+        &self,
+        name: &str,
+    ) -> Result<types::EmailTemplatesDeleteResponse, BackendError> {
+        let path = format!("/v1/email_templates/{}", seg(name));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `PUT /v1/email_templates/{name}` — Override a template. Dropping a required placeholder is
     /// refused.
     ///
@@ -2266,18 +2420,6 @@ impl EmailTemplates<'_> {
         let path = format!("/v1/email_templates/{}", seg(name));
         self.client
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/email_templates/{name}` — Revert a template to the Atlas built-in.
-    ///
-    /// Returns [`types::EmailTemplatesDeleteResponse`].
-    pub async fn delete(
-        &self,
-        name: &str,
-    ) -> Result<types::EmailTemplatesDeleteResponse, BackendError> {
-        let path = format!("/v1/email_templates/{}", seg(name));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/email_templates/{name}/preview` — Render an email template (an unsaved draft if
@@ -2315,6 +2457,56 @@ impl Events<'_> {
 }
 
 impl Fga<'_> {
+    /// `POST /v1/fga/models/transform` — Validate an authorization model and convert it: DSL (or
+    /// modular DSL files) to canonical JSON, and JSON to DSL.
+    ///
+    /// Takes [`types::FgaTransformBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn transform(
+        &self,
+        body: &types::FgaTransformBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/fga/models/transform",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/fga/settings` — How this instance runs fine-grained authorization reads: the
+    /// result-cache TTL, the consistency mode applied to reads that name none, and how long the
+    /// tuple change log is kept.
+    ///
+    /// Returns [`types::FgaSettings`].
+    pub async fn settings(&self) -> Result<types::FgaSettings, BackendError> {
+        self.client
+            .request(HttpMethod::Get, "/v1/fga/settings", &[], None, None)
+            .await
+    }
+    /// `PUT /v1/fga/settings` — Change the instance FGA settings. Fields you omit keep their value.
+    /// `cache_ttl_ms` null uses the platform default and 0 turns the result cache off; a request
+    /// that carries its own `consistency` always wins over `default_consistency`;
+    /// `changelog_retention_days` null keeps the whole tuple change log, otherwise older changes
+    /// are removed in the background.
+    ///
+    /// Takes [`types::FgaSetSettingsBody`]. Returns [`types::FgaSettings`].
+    pub async fn set_settings(
+        &self,
+        body: &types::FgaSetSettingsBody,
+    ) -> Result<types::FgaSettings, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/fga/settings",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/fga/stores` — List fine-grained authorization (ReBAC / Zanzibar) stores in the
     /// instance. Each store namespaces its own authorization models and relationship tuples.
     ///
@@ -2354,15 +2546,6 @@ impl Fga<'_> {
             )
             .await
     }
-    /// `GET /v1/fga/stores/{id}` — Read one FGA store. A store from another instance is a 404.
-    ///
-    /// Returns [`types::FgaStore`].
-    pub async fn get_store(&self, id: &str) -> Result<types::FgaStore, BackendError> {
-        let path = format!("/v1/fga/stores/{}", seg(id));
-        self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
-            .await
-    }
     /// `DELETE /v1/fga/stores/{id}` — Delete an FGA store, cascading its authorization models and
     /// relationship tuples.
     ///
@@ -2374,6 +2557,15 @@ impl Fga<'_> {
         let path = format!("/v1/fga/stores/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/fga/stores/{id}` — Read one FGA store. A store from another instance is a 404.
+    ///
+    /// Returns [`types::FgaStore`].
+    pub async fn get_store(&self, id: &str) -> Result<types::FgaStore, BackendError> {
+        let path = format!("/v1/fga/stores/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
     /// `GET /v1/fga/stores/{id}/authorization-models` — List the immutable authorization-model
@@ -2432,6 +2624,56 @@ impl Fga<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
+    /// `POST /v1/fga/stores/{id}/authorization-models/{mid}/assertions/run` — Run the stored
+    /// assertions of a model version against the real store tuples.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn run(
+        &self,
+        id: &str,
+        mid: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!(
+            "/v1/fga/stores/{}/authorization-models/{}/assertions/run",
+            seg(id),
+            seg(mid)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `GET /v1/fga/stores/{id}/authorization-models/{mid}/diff` — What changed between a model
+    /// version and the one before it (or `against`): types, relations, conditions, and whether the
+    /// change can alter who has access.
+    ///
+    /// Query parameters: `against`.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn diff(&self, id: &str, mid: &str, query: &Query) -> Result<Value, BackendError> {
+        let path = format!(
+            "/v1/fga/stores/{}/authorization-models/{}/diff",
+            seg(id),
+            seg(mid)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `GET /v1/fga/stores/{id}/authorization-models/{mid}/graph` — The nodes and edges of an
+    /// authorization model, for a visualizer.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn graph(&self, id: &str, mid: &str) -> Result<Value, BackendError> {
+        let path = format!(
+            "/v1/fga/stores/{}/authorization-models/{}/graph",
+            seg(id),
+            seg(mid)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
     /// `POST /v1/fga/stores/{id}/batch-check` — Check up to 100 (user, relation, object) tuples in
     /// one request.
     ///
@@ -2478,6 +2720,40 @@ impl Fga<'_> {
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `GET /v1/fga/stores/{id}/export` — Export the store tuples as NDJSON (one tuple per line),
+    /// paged: pass the `atlas-next-cursor` response header back as `cursor`.
+    ///
+    /// Query parameters: `cursor`, `limit`.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn export(&self, id: &str, query: &Query) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/export", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/fga/stores/{id}/import` — Bulk-import up to 20,000 tuples. Idempotent: an existing
+    /// tuple is untouched, a changed condition or expiry updates it. Validated against the latest
+    /// model; `dry_run` reports how many are new without writing.
+    ///
+    /// Takes [`types::FgaImportBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn import(
+        &self,
+        id: &str,
+        body: &types::FgaImportBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/import", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
     /// `POST /v1/fga/stores/{id}/list-objects` — List the object ids of a type that a user has a
     /// relation on. Exact (check-filtered over the complete candidate set); cost is linear in the
     /// objects of that type. Send `limit` (and `starting_after` from `next_cursor`) to page the
@@ -2494,6 +2770,74 @@ impl Fga<'_> {
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `GET /v1/fga/stores/{id}/materializations` — The materialized permission sets of a store:
+    /// which (object type, relation, user type) answers are precomputed, their status, the revision
+    /// they were built at and when a tuple expiry will next invalidate them.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn materializations(&self, id: &str) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/materializations", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/fga/stores/{id}/materializations` — Precompute list-objects for every user of
+    /// `user_type` on `object_type#relation`, so a huge list question is one indexed read. The
+    /// first build runs now; the worker rebuilds after tuple writes. A stored answer is served only
+    /// while it is current for the store revision and model, before any tuple expiry, and for a
+    /// plain `type:id` user with no request context or contextual tuples; otherwise list-objects is
+    /// answered live. A model that uses conditions cannot be materialized.
+    ///
+    /// Takes [`types::FgaMaterializationsBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn materializations(
+        &self,
+        id: &str,
+        body: &types::FgaMaterializationsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/materializations", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/fga/stores/{id}/materializations/{mid}` — Remove a materialization; list-objects
+    /// is then always computed live.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete_materializations(
+        &self,
+        id: &str,
+        mid: &str,
+    ) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/materializations/{}", seg(id), seg(mid));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `POST /v1/fga/stores/{id}/materializations/{mid}/rebuild` — Rebuild one materialization now.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn rebuild(
+        &self,
+        id: &str,
+        mid: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!(
+            "/v1/fga/stores/{}/materializations/{}/rebuild",
+            seg(id),
+            seg(mid)
+        );
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
     /// `POST /v1/fga/stores/{id}/read` — Query stored relationship tuples in a store, optionally
     /// filtered by user, relation and/or object.
     ///
@@ -2506,6 +2850,54 @@ impl Fga<'_> {
         let path = format!("/v1/fga/stores/{}/read", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/fga/stores/{id}/snapshot` — What a local policy decision point syncs: the latest
+    /// model and the store tuples. Without `since`, a page of tuples (`full: true`, follow
+    /// `next_cursor`); with `since=&lt;revision&gt;`, only the tuple changes after that revision.
+    /// Tuples carry `expires_at`; expired tuples are never listed.
+    ///
+    /// Query parameters: `since`, `cursor`, `limit`.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn snapshot(&self, id: &str, query: &Query) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/snapshot", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/fga/stores/{id}/tests` — Run an FGA test suite in memory: a model (DSL, modules, a
+    /// version id or the latest), suite tuples and tests with check, list_objects and list_users
+    /// assertions. Returns per-test results and relation coverage. The store tuples are never read.
+    ///
+    /// Takes [`types::FgaTestsBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn tests(
+        &self,
+        id: &str,
+        body: &types::FgaTestsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/tests", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/fga/stores/{id}/watch` — Server-sent stream of the store tuple changes after
+    /// `since` (or `Last-Event-ID`). Ends after about a minute; reconnect with the last event id.
+    ///
+    /// Query parameters: `since`, `type`.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn watch(&self, id: &str, query: &Query) -> Result<Value, BackendError> {
+        let path = format!("/v1/fga/stores/{}/watch", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
     /// `POST /v1/fga/stores/{id}/write` — Transactionally write and/or delete relationship tuples
@@ -2530,9 +2922,83 @@ impl Fga<'_> {
             )
             .await
     }
+    /// `POST /v1/fga/tests` — Run an FGA test suite with no store: the model comes from `dsl` or
+    /// `modules`. Returns per-test results and relation coverage. For CI.
+    ///
+    /// Takes [`types::FgaTestsBody2`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn tests(
+        &self,
+        body: &types::FgaTestsBody2,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/fga/tests",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
 }
 
 impl Fraud<'_> {
+    /// `POST /v1/fraud/email_risk` — Email risk for one address: syntax, disposable domain, role
+    /// account, MX (with the implicit-MX fallback), the suppression list and, when configured or
+    /// `verify_mailbox` is true, a mailbox verdict from your own ZeroBounce or Kickbox account.
+    /// Returns a score and an allow / review / block verdict.
+    ///
+    /// Takes [`types::FraudEmailRiskBody`]. Returns [`types::FraudEmailRiskResponse`].
+    pub async fn email_risk(
+        &self,
+        body: &types::FraudEmailRiskBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::FraudEmailRiskResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/fraud/email_risk",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `GET /v1/fraud/email_risk/settings` — Email risk settings: mode, provider, blocking policy
+    /// and the sign-up gate.
+    ///
+    /// Returns [`types::FraudSettingsResponse`].
+    pub async fn settings(&self) -> Result<types::FraudSettingsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/fraud/email_risk/settings",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/fraud/email_risk/settings` — Change email risk settings. `mode`: off, mx or
+    /// provider (your own verification account; the key is write-only). With `gate_sign_up` a
+    /// `block` verdict refuses the sign-up.
+    ///
+    /// Takes [`types::FraudSetSettingsBody`]. Returns [`types::FraudSetSettingsResponse`].
+    pub async fn set_settings(
+        &self,
+        body: &types::FraudSetSettingsBody,
+    ) -> Result<types::FraudSetSettingsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/fraud/email_risk/settings",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
     /// `POST /v1/fraud/lookup` — Fraud decision for a sign-up, sign-in or checkout. Send the client
     /// IP, user agent, the SDK `device_id`, optional device features and email; get back signals
     /// (country, ASN, datacenter, Tor, headless/automation, client class
@@ -2620,27 +3086,6 @@ impl Instance<'_> {
             )
             .await
     }
-    /// `PUT /v1/instance/captcha_secret` — Store a captcha provider secret (write-only, encrypted;
-    /// never read back). Captcha always runs on your own provider keys, so store the secret first:
-    /// `provider` names the provider it belongs to (default: the configured
-    /// auth_config.captcha.provider), so it can be stored before the captcha is turned on. Without
-    /// a provider in the body or the config, the call is refused.
-    ///
-    /// Takes [`types::InstanceSetCaptchaSecretBody`]. Returns [`types::InstanceSetCaptchaSecretResponse`].
-    pub async fn set_captcha_secret(
-        &self,
-        body: &types::InstanceSetCaptchaSecretBody,
-    ) -> Result<types::InstanceSetCaptchaSecretResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Put,
-                "/v1/instance/captcha_secret",
-                &[],
-                body_of(body)?,
-                None,
-            )
-            .await
-    }
     /// `DELETE /v1/instance/captcha_secret` — Clear a stored captcha provider secret (default: the
     /// configured provider). Refused with 409 CAPTCHA_IN_USE (meta.flows names them) while a flow
     /// runs a captcha on that provider; pass force=true to remove it anyway, which also turns the
@@ -2659,6 +3104,27 @@ impl Instance<'_> {
                 "/v1/instance/captcha_secret",
                 &query.as_pairs(),
                 None,
+                None,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/captcha_secret` — Store a captcha provider secret (write-only, encrypted;
+    /// never read back). Captcha always runs on your own provider keys, so store the secret first:
+    /// `provider` names the provider it belongs to (default: the configured
+    /// auth_config.captcha.provider), so it can be stored before the captcha is turned on. Without
+    /// a provider in the body or the config, the call is refused.
+    ///
+    /// Takes [`types::InstanceSetCaptchaSecretBody`]. Returns [`types::InstanceSetCaptchaSecretResponse`].
+    pub async fn set_captcha_secret(
+        &self,
+        body: &types::InstanceSetCaptchaSecretBody,
+    ) -> Result<types::InstanceSetCaptchaSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/captcha_secret",
+                &[],
+                body_of(body)?,
                 None,
             )
             .await
@@ -2686,6 +3152,134 @@ impl Instance<'_> {
                 &query.as_pairs(),
                 None,
                 None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/data_key_provider` — Remove customer-managed encryption by deleting the
+    /// wrapped data keys. This crypto-shreds everything encrypted under them and cannot be undone;
+    /// send { "confirm": "shred" }.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn delete_data_key_provider(&self) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/data_key_provider",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `GET /v1/instance/data_key_provider` — Customer-managed encryption status: whether it is on,
+    /// the key provider, the data key versions, the last health check and how long a revoked key
+    /// keeps working before Atlas fails closed.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn data_key_provider(&self) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/data_key_provider",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/data_key_provider` — Turn on customer-managed encryption. A random data
+    /// key is created, wrapped by the KMS key set with PUT /v1/vault/key_provider (AWS KMS, Google
+    /// Cloud KMS or Azure Key Vault) and proved by an unwrap before anything depends on it. From
+    /// then on everything Atlas encrypts for the instance depends on that KMS key; values written
+    /// earlier stay readable until the re-encryption sweep has moved them. If the key is later
+    /// disabled, deleted or its access removed, requests that need the instance data fail with 503
+    /// CUSTOMER_KEY_UNAVAILABLE within five minutes; nothing falls back to a platform key.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn data_key_provider(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/data_key_provider",
+                &[],
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `PUT /v1/instance/data_key_provider` — Set the cache window: how long Atlas may use a loaded
+    /// data key without your KMS confirming it, which is how long a revoked key keeps working (60
+    /// to 3,600 seconds, default 300). Shorter revokes faster but depends on the KMS being
+    /// reachable more tightly: Atlas re-confirms every 20 seconds, so a KMS outage longer than the
+    /// window takes the instance down.
+    ///
+    /// Takes [`types::InstanceSetDataKeyProviderBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn set_data_key_provider(
+        &self,
+        body: &types::InstanceSetDataKeyProviderBody,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Put,
+                "/v1/instance/data_key_provider",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/data_key_provider/check` — Check the customer key now: wrap and unwrap a
+    /// random key through it and open the current data keys. `reason` names a failure:
+    /// key_disabled, key_not_found, access_denied, unreachable or invalid_config.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn check(&self, idempotency_key: Option<&str>) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/data_key_provider/check",
+                &[],
+                None,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/instance/data_key_provider/rewrap` — Re-wrap data keys and vault versions wrapped
+    /// by an earlier KMS key under the provider as configured now. Pass `previous` (provider,
+    /// config, credentials) when the old key is no longer the configured one. Only small keys are
+    /// unwrapped and wrapped again; no data is re-encrypted, and it is safe to repeat.
+    ///
+    /// Takes [`types::InstanceRewrapBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn rewrap(
+        &self,
+        body: &types::InstanceRewrapBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/data_key_provider/rewrap",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/instance/data_key_provider/rotate` — Create a new data key version. New data uses
+    /// it; earlier versions stay until a re-encryption sweep reports none left on them.
+    ///
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn rotate(&self, idempotency_key: Option<&str>) -> Result<Value, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/data_key_provider/rotate",
+                &[],
+                None,
+                idempotency_key,
             )
             .await
     }
@@ -2771,6 +3365,23 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `DELETE /v1/instance/kerberos_secret` — Clear the stored Kerberos/IWA trusted-proxy secret
+    /// for this instance.
+    ///
+    /// Returns [`types::InstanceDeleteKerberosSecretResponse`].
+    pub async fn delete_kerberos_secret(
+        &self,
+    ) -> Result<types::InstanceDeleteKerberosSecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/kerberos_secret",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `PUT /v1/instance/kerberos_secret` — Store the per-instance Kerberos/IWA trusted-proxy
     /// secret (write-only, encrypted; never read back). Refused while the kerberos strategy is off.
     ///
@@ -2789,21 +3400,20 @@ impl Instance<'_> {
             )
             .await
     }
-    /// `DELETE /v1/instance/kerberos_secret` — Clear the stored Kerberos/IWA trusted-proxy secret
-    /// for this instance.
+    /// `DELETE /v1/instance/ldap_connections/{connectionId}/bind_password` — Clear the stored bind
+    /// password for an LDAP connection.
     ///
-    /// Returns [`types::InstanceDeleteKerberosSecretResponse`].
-    pub async fn delete_kerberos_secret(
+    /// Returns [`types::InstanceDeleteLdapBindPasswordResponse`].
+    pub async fn delete_ldap_bind_password(
         &self,
-    ) -> Result<types::InstanceDeleteKerberosSecretResponse, BackendError> {
+        connection_id: &str,
+    ) -> Result<types::InstanceDeleteLdapBindPasswordResponse, BackendError> {
+        let path = format!(
+            "/v1/instance/ldap_connections/{}/bind_password",
+            seg(connection_id)
+        );
         self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/instance/kerberos_secret",
-                &[],
-                None,
-                None,
-            )
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `PUT /v1/instance/ldap_connections/{connectionId}/bind_password` — Store an LDAP connection
@@ -2822,22 +3432,6 @@ impl Instance<'_> {
         );
         self.client
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/instance/ldap_connections/{connectionId}/bind_password` — Clear the stored bind
-    /// password for an LDAP connection.
-    ///
-    /// Returns [`types::InstanceDeleteLdapBindPasswordResponse`].
-    pub async fn delete_ldap_bind_password(
-        &self,
-        connection_id: &str,
-    ) -> Result<types::InstanceDeleteLdapBindPasswordResponse, BackendError> {
-        let path = format!(
-            "/v1/instance/ldap_connections/{}/bind_password",
-            seg(connection_id)
-        );
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/instance/move_origin` — Move the instance from one origin to another in one call
@@ -2871,6 +3465,47 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/op_keys` — The OpenID provider keys beyond the instance signing key:
+    /// PS256, ES384 and EdDSA signing keys and the RSA-OAEP-256 / ECDH-ES keys request objects are
+    /// encrypted to, with their status.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::InstanceOpKeysResponse`].
+    pub async fn op_keys(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceOpKeysResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/op_keys",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/op_keys/rotate` — Rotate the key of one algorithm (`alg`). The previous
+    /// public key stays published for `grace_period_seconds` (default 24 h) so tokens it signed
+    /// keep verifying.
+    ///
+    /// Takes [`types::InstanceRotateBody`]. Returns nothing (`204 No Content`).
+    pub async fn rotate(
+        &self,
+        body: &types::InstanceRotateBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/op_keys/rotate",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
     /// `GET /v1/instance/policy_settings` — Policy settings: the optional pol session claim.
     ///
     /// Returns [`types::InstanceGetPolicySettingsResponse`].
@@ -2901,6 +3536,23 @@ impl Instance<'_> {
                 "/v1/instance/policy_settings",
                 &[],
                 body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/policy_source` — Disconnect the policy source (its policies and their
+    /// history stay; they stop syncing).
+    ///
+    /// Returns [`types::InstanceDeletePolicySourceResponse`].
+    pub async fn delete_policy_source(
+        &self,
+    ) -> Result<types::InstanceDeletePolicySourceResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/policy_source",
+                &[],
+                None,
                 None,
             )
             .await
@@ -2939,23 +3591,6 @@ impl Instance<'_> {
                 "/v1/instance/policy_source",
                 &[],
                 body_of(body)?,
-                None,
-            )
-            .await
-    }
-    /// `DELETE /v1/instance/policy_source` — Disconnect the policy source (its policies and their
-    /// history stay; they stop syncing).
-    ///
-    /// Returns [`types::InstanceDeletePolicySourceResponse`].
-    pub async fn delete_policy_source(
-        &self,
-    ) -> Result<types::InstanceDeletePolicySourceResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/instance/policy_source",
-                &[],
-                None,
                 None,
             )
             .await
@@ -3016,6 +3651,23 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `DELETE /v1/instance/proxy_secret` — Remove the trusted reverse proxy secret (current and
+    /// previous). X-Atlas-Client-IP is ignored again from then on. 404 when none is set.
+    ///
+    /// Returns [`types::InstanceDeleteProxySecretResponse`].
+    pub async fn delete_proxy_secret(
+        &self,
+    ) -> Result<types::InstanceDeleteProxySecretResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/proxy_secret",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/instance/proxy_secret` — Whether this instance has a trusted reverse proxy secret,
     /// when it was created, and until when the previous one still works after a rotation. Never
     /// returns the secret.
@@ -3055,23 +3707,6 @@ impl Instance<'_> {
             )
             .await
     }
-    /// `DELETE /v1/instance/proxy_secret` — Remove the trusted reverse proxy secret (current and
-    /// previous). X-Atlas-Client-IP is ignored again from then on. 404 when none is set.
-    ///
-    /// Returns [`types::InstanceDeleteProxySecretResponse`].
-    pub async fn delete_proxy_secret(
-        &self,
-    ) -> Result<types::InstanceDeleteProxySecretResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/instance/proxy_secret",
-                &[],
-                None,
-                None,
-            )
-            .await
-    }
     /// `GET /v1/instance/referrals` — Read the instance's referral attribution settings: provider,
     /// endpoint, capture parameters, consent, auto-enroll and link template, with the connection
     /// status and the providers Atlas supports. Secrets are reported as *_set markers only.
@@ -3084,12 +3719,14 @@ impl Instance<'_> {
     }
     /// `PATCH /v1/instance/referrals` — Update the referral attribution settings. Only the fields
     /// you send change; null clears. signing_secret, api_key and inbound_secret are write-only.
-    /// Enabling requires what the provider needs (422 REFERRALS_NOT_CONFIGURED). Every change is
-    /// audit-logged without secret values. `warnings` says what was stored differently from what
-    /// was sent: renamed (a retired provider spelling such as referally stored as referalli, in
-    /// provider or browser_sources\[i\], with from and to; the write also carries Deprecation and
-    /// Sunset headers) and defaulted (a newly picked platform's tracking cookies filled into
-    /// context_cookies because the body named none).
+    /// Enabling requires what the provider needs (422 REFERRALS_NOT_CONFIGURED, meta.missing). A
+    /// body field this route does not know, top level or inside security, is 422 UNKNOWN_FIELD with
+    /// param naming it, and nothing is saved; a known field with a bad value is 400
+    /// VALIDATION_FAILED with param. Every change is audit-logged without secret values. `warnings`
+    /// says what was stored differently from what was sent: renamed (a retired provider spelling
+    /// such as referally stored as referalli, in provider or browser_sources\[i\], with from and
+    /// to; the write also carries Deprecation and Sunset headers) and defaulted (a newly picked
+    /// platform's tracking cookies filled into context_cookies because the body named none).
     ///
     /// Takes [`types::InstanceUpdateReferralsBody`]. Returns [`types::InstanceUpdateReferralsResponse`].
     pub async fn update_referrals(
@@ -3111,7 +3748,8 @@ impl Instance<'_> {
     /// created since a date, each with its real sign-up time, so the platform dates the referrals
     /// correctly and replays the payments since. Codes come from `codes` or a metadata path; users
     /// with no code are reported only when auto_enroll_users is on; users already reported are
-    /// skipped. Calls go out at about 10 per second. Up to 10,000 users per request. Requires
+    /// skipped unless `force` is set. `user_ids` limits the job to those users (`since` is then
+    /// optional). Calls go out at about 10 per second. Up to 10,000 users per request. Requires
     /// referrals to be on (422 REFERRALS_NOT_CONFIGURED).
     ///
     /// Takes [`types::InstanceStartReferralBackfillBody`]. Returns [`types::InstanceStartReferralBackfillResponse`].
@@ -3202,7 +3840,10 @@ impl Instance<'_> {
             .await
     }
     /// `POST /v1/instance/referrals/calls/{id}/retry` — Retry a failed, retrying or skipped call
-    /// now. A late sign-up answer emits user.referral_attributed.
+    /// now. A late sign-up answer emits user.referral_attributed. A succeeded sign-up whose answer
+    /// names a since-fixable condition (reasoning code enroll_email_taken or no_email_for_enroll)
+    /// can be retried too; any other succeeded call is a 409 that points at POST
+    /// /v1/users/{id}/referral/resync.
     ///
     /// Returns [`types::InstanceRetryReferralCallResponse`].
     pub async fn retry_referral_call(
@@ -3258,6 +3899,58 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `GET /v1/instance/secret_keys` — Alias of GET /v1/secret_keys. List this instance's secret
+    /// keys with scopes, owner, expiry, last use, last-used IP and provisioning tags. Revoked keys
+    /// stay listed. Filter by tag with ?metadata\[key\]=value.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::InstanceSecretKeysResponse`].
+    pub async fn secret_keys(
+        &self,
+        query: &Query,
+    ) -> Result<types::InstanceSecretKeysResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/instance/secret_keys",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/secret_keys` — Alias of POST /v1/secret_keys. Create a scoped secret key:
+    /// `name`, `scopes\[\]` (refused when unknown, or when the calling key does not hold them;
+    /// presets `read_only`, `privacy:execute`, `privacy:grants:revoke`), `expires_at` (at most a
+    /// year; default one year; "never" is refused), `allowed_ips` (CIDRs), `allowed_origins`
+    /// (browser origins; a request with another Origin gets 403 ORIGIN_NOT_ALLOWED), `owner`
+    /// (default: the creating person or key), `external_ref` (idempotent create: a repeat returns
+    /// the existing key, 200, idempotent_replay, no secret), `metadata` (tags; filter the list with
+    /// ?metadata\[key\]=value) and `key_format` (`atlas`, the default `atlas_&lt;env&gt;_sk_…`, or
+    /// `legacy` `sk_&lt;env&gt;_…`). The secret is returned once. Minting with an operator token
+    /// needs multi-factor sign-in within 5 minutes (403 STEP_UP_REQUIRED). Send
+    /// `X-Secret-Recipient: x25519:&lt;public key&gt;` to receive the secret sealed (libsodium
+    /// sealed box) as `sealed_secret` instead of in plaintext. Example: a data-rights tool's key, {
+    /// "name": "DSAR executor", "scopes": \["privacy:execute", "privacy:grants:revoke"\],
+    /// "expires_at": "2027-04-01" }.
+    ///
+    /// Takes [`types::InstanceSecretKeysBody`]. Returns [`types::InstanceSecretKeysResponse2`].
+    pub async fn secret_keys(
+        &self,
+        body: &types::InstanceSecretKeysBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceSecretKeysResponse2, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/secret_keys",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
     /// `GET /v1/instance/security` — Read the instance kill switches (per-flow on/off) and the
     /// customer IP allowlist.
     ///
@@ -3282,6 +3975,26 @@ impl Instance<'_> {
             .request(
                 HttpMethod::Patch,
                 "/v1/instance/security",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/instance/signing_key_provider` — Stop using the key management service: rotate
+    /// back to a new key Atlas holds (the KMS key stays published for `grace_period_seconds`, or
+    /// not at all with `emergency`) and delete the saved settings and credentials. The KMS key
+    /// itself is not deleted. Audited as signing_key.provider_removed.
+    ///
+    /// Takes [`types::InstanceRemoveSigningKeyProviderBody`]. Returns [`types::InstanceRemoveSigningKeyProviderResponse`].
+    pub async fn remove_signing_key_provider(
+        &self,
+        body: &types::InstanceRemoveSigningKeyProviderBody,
+    ) -> Result<types::InstanceRemoveSigningKeyProviderResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/signing_key_provider",
                 &[],
                 body_of(body)?,
                 None,
@@ -3326,26 +4039,6 @@ impl Instance<'_> {
         self.client
             .request(
                 HttpMethod::Put,
-                "/v1/instance/signing_key_provider",
-                &[],
-                body_of(body)?,
-                None,
-            )
-            .await
-    }
-    /// `DELETE /v1/instance/signing_key_provider` — Stop using the key management service: rotate
-    /// back to a new key Atlas holds (the KMS key stays published for `grace_period_seconds`, or
-    /// not at all with `emergency`) and delete the saved settings and credentials. The KMS key
-    /// itself is not deleted. Audited as signing_key.provider_removed.
-    ///
-    /// Takes [`types::InstanceRemoveSigningKeyProviderBody`]. Returns [`types::InstanceRemoveSigningKeyProviderResponse`].
-    pub async fn remove_signing_key_provider(
-        &self,
-        body: &types::InstanceRemoveSigningKeyProviderBody,
-    ) -> Result<types::InstanceRemoveSigningKeyProviderResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
                 "/v1/instance/signing_key_provider",
                 &[],
                 body_of(body)?,
@@ -3479,30 +4172,6 @@ impl Jobs<'_> {
 }
 
 impl JwtTemplates<'_> {
-    /// `POST /v1/jwt_templates` — Define a named custom-claims JWT template. These are minted ON
-    /// DEMAND via POST /v1/sessions/{id}/tokens/{template} (Clerk getToken({template}) parity) —
-    /// they do NOT alter the session cookie. To shape the session token itself, use auth_config
-    /// (entitlements → `pla`/`fea`, identityTraits) and public_metadata
-    /// (`progression`/`tier`/`flair`); see session-tokens-and-claims. Claims resolve per session at
-    /// mint time (`{{org.id}}`, `{{org.membership_id}}`, `{{org.role}}` follow the session's active
-    /// organization). Optional `settings.lifetime_seconds` (10–86400, default 60) sets the token
-    /// lifetime. Reserved claims and private fields are refused.
-    ///
-    /// Takes [`types::JwtTemplatesCreateBody`]. Returns [`types::JwtTemplatesCreateResponse`].
-    pub async fn create(
-        &self,
-        body: &types::JwtTemplatesCreateBody,
-    ) -> Result<types::JwtTemplatesCreateResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Post,
-                "/v1/jwt_templates",
-                &[],
-                body_of(body)?,
-                None,
-            )
-            .await
-    }
     /// `GET /v1/jwt_templates` — List the defined JWT templates and their claim maps.
     ///
     /// Query parameters: `limit`, `starting_after`.
@@ -3520,6 +4189,45 @@ impl JwtTemplates<'_> {
                 None,
                 None,
             )
+            .await
+    }
+    /// `POST /v1/jwt_templates` — Define a named custom-claims JWT template. These are minted ON
+    /// DEMAND via POST /v1/sessions/{id}/tokens/{template} (Clerk getToken({template}) parity) —
+    /// they do NOT alter the session cookie. To shape the session token itself, use auth_config
+    /// (entitlements → `pla`/`fea`, identityTraits) and public_metadata
+    /// (`progression`/`tier`/`flair`); see session-tokens-and-claims. Claims resolve per session at
+    /// mint time (`{{org.id}}`, `{{org.membership_id}}`, `{{org.role}}` follow the session's active
+    /// organization). Optional `settings.lifetime_seconds` (10–86400, default 60) sets the token
+    /// lifetime. `preset` starts from a starter template (supabase, hasura,
+    /// organization_membership, chatly-visitor, firebase). Every template token carries Atlas's own
+    /// `anon` (true for a guest account) and `token_use: "template"`, which a template can never
+    /// set. Reserved claims and private fields are refused.
+    ///
+    /// Takes [`types::JwtTemplatesCreateBody`]. Returns [`types::JwtTemplatesCreateResponse`].
+    pub async fn create(
+        &self,
+        body: &types::JwtTemplatesCreateBody,
+    ) -> Result<types::JwtTemplatesCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/jwt_templates",
+                &[],
+                body_of(body)?,
+                None,
+            )
+            .await
+    }
+    /// `DELETE /v1/jwt_templates/{id}` — Delete a JWT template so it can no longer be minted.
+    ///
+    /// Returns [`types::JwtTemplatesDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::JwtTemplatesDeleteResponse, BackendError> {
+        let path = format!("/v1/jwt_templates/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `GET /v1/jwt_templates/{id}` — Fetch one JWT template by name.
@@ -3546,21 +4254,27 @@ impl JwtTemplates<'_> {
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
-    /// `DELETE /v1/jwt_templates/{id}` — Delete a JWT template so it can no longer be minted.
-    ///
-    /// Returns [`types::JwtTemplatesDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-    ) -> Result<types::JwtTemplatesDeleteResponse, BackendError> {
-        let path = format!("/v1/jwt_templates/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
-            .await
-    }
 }
 
 impl LegacyAuthConnection<'_> {
+    /// `DELETE /v1/legacy_auth_connection` — Delete the instance's lazy-migration (legacy-auth /
+    /// custom-DB) connection.
+    ///
+    /// Returns [`types::LegacyAuthConnectionDeleteResponse`].
+    pub async fn delete(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::LegacyAuthConnectionDeleteResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/legacy_auth_connection",
+                &[],
+                None,
+                idempotency_key,
+            )
+            .await
+    }
     /// `GET /v1/legacy_auth_connection` — Read the instance's lazy-migration (legacy-auth /
     /// custom-DB) connection. Reports has_signing_secret, never the signing secret. Returns {
     /// configured: false } when none exists.
@@ -3596,24 +4310,6 @@ impl LegacyAuthConnection<'_> {
                 "/v1/legacy_auth_connection",
                 &[],
                 body_of(body)?,
-                idempotency_key,
-            )
-            .await
-    }
-    /// `DELETE /v1/legacy_auth_connection` — Delete the instance's lazy-migration (legacy-auth /
-    /// custom-DB) connection.
-    ///
-    /// Returns [`types::LegacyAuthConnectionDeleteResponse`].
-    pub async fn delete(
-        &self,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::LegacyAuthConnectionDeleteResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/legacy_auth_connection",
-                &[],
-                None,
                 idempotency_key,
             )
             .await
@@ -3659,6 +4355,16 @@ impl Localizations<'_> {
             )
             .await
     }
+    /// `DELETE /v1/localizations/{id}` — Delete a localization override, reverting that locale to
+    /// the base template/copy.
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete(&self, id: &str) -> Result<(), BackendError> {
+        let path = format!("/v1/localizations/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/localizations/{id}` — Read one localization override by id.
     ///
     /// Returns [`types::Localization`].
@@ -3680,16 +4386,6 @@ impl Localizations<'_> {
         let path = format!("/v1/localizations/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/localizations/{id}` — Delete a localization override, reverting that locale to
-    /// the base template/copy.
-    ///
-    /// Returns nothing (`204 No Content`).
-    pub async fn delete(&self, id: &str) -> Result<(), BackendError> {
-        let path = format!("/v1/localizations/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }
@@ -3731,6 +4427,16 @@ impl LogStreams<'_> {
             )
             .await
     }
+    /// `DELETE /v1/log_streams/{id}` — Delete a log stream. Forwarding stops immediately; no
+    /// further events are sent to the sink.
+    ///
+    /// Returns [`types::LogStreamsDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::LogStreamsDeleteResponse, BackendError> {
+        let path = format!("/v1/log_streams/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/log_streams/{id}` — Read one log stream, including its forwarding status, cursor
     /// and last error. Reports secret markers only, never their values.
     ///
@@ -3753,16 +4459,6 @@ impl LogStreams<'_> {
         let path = format!("/v1/log_streams/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/log_streams/{id}` — Delete a log stream. Forwarding stops immediately; no
-    /// further events are sent to the sink.
-    ///
-    /// Returns [`types::LogStreamsDeleteResponse`].
-    pub async fn delete(&self, id: &str) -> Result<types::LogStreamsDeleteResponse, BackendError> {
-        let path = format!("/v1/log_streams/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/log_streams/{id}/test` — Send one synthetic event to the sink with the stream's
@@ -3824,6 +4520,20 @@ impl LogoutNotifyEndpoints<'_> {
             )
             .await
     }
+    /// `DELETE /v1/logout_notify_endpoints/{id}` — Delete a logout fan-out endpoint; its queued
+    /// deliveries go with it.
+    ///
+    /// Returns [`types::LogoutNotifyEndpointsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::LogoutNotifyEndpointsDeleteResponse, BackendError> {
+        let path = format!("/v1/logout_notify_endpoints/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
     /// `GET /v1/logout_notify_endpoints/{id}` — Fetch one logout fan-out endpoint. Another instance
     /// id is 404.
     ///
@@ -3856,20 +4566,6 @@ impl LogoutNotifyEndpoints<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
-            .await
-    }
-    /// `DELETE /v1/logout_notify_endpoints/{id}` — Delete a logout fan-out endpoint; its queued
-    /// deliveries go with it.
-    ///
-    /// Returns [`types::LogoutNotifyEndpointsDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::LogoutNotifyEndpointsDeleteResponse, BackendError> {
-        let path = format!("/v1/logout_notify_endpoints/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
             .await
     }
     /// `GET /v1/logout_notify_endpoints/{id}/deliveries` — The endpoint's delivery log, newest
@@ -3930,6 +4626,18 @@ impl LtiPlatforms<'_> {
             )
             .await
     }
+    /// `DELETE /v1/lti_platforms/{id}` — Remove an LTI 1.3 platform registration.
+    ///
+    /// Returns [`types::LtiPlatformsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::LtiPlatformsDeleteResponse, BackendError> {
+        let path = format!("/v1/lti_platforms/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/lti_platforms/{id}` — Fetch one LTI 1.3 platform registration.
     ///
     /// Returns [`types::LtiPlatform`].
@@ -3951,18 +4659,6 @@ impl LtiPlatforms<'_> {
         let path = format!("/v1/lti_platforms/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/lti_platforms/{id}` — Remove an LTI 1.3 platform registration.
-    ///
-    /// Returns [`types::LtiPlatformsDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-    ) -> Result<types::LtiPlatformsDeleteResponse, BackendError> {
-        let path = format!("/v1/lti_platforms/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }
@@ -4060,9 +4756,50 @@ impl Mcp<'_> {
             .request(HttpMethod::Post, "/v1/mcp", &[], body_of(body)?, None)
             .await
     }
+    /// `POST /v1/mcp/elevations` — Give another API key a short write elevation over the admin MCP
+    /// server. A key with the mcp:read_only_default scope can only use read tools until it presents
+    /// the returned token in the X-Atlas-MCP-Elevation header. Needs the mcp:elevate scope, which
+    /// belongs on a key a person holds, not on the agent. The token is bound to that one key and
+    /// expires by itself (at most 15 minutes).
+    ///
+    /// Takes [`types::McpElevationsBody`]. Returns [`types::McpElevationsResponse`].
+    pub async fn elevations(
+        &self,
+        body: &types::McpElevationsBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpElevationsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/mcp/elevations",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
 }
 
 impl McpConnector<'_> {
+    /// `DELETE /v1/mcp_connector` — Disable the remote MCP connector. Stored preferences (name,
+    /// scopes, hosts) are kept so a later re-enable restores them; existing OAuth access tokens
+    /// stop working immediately.
+    ///
+    /// Returns [`types::McpConnectorDeleteResponse`].
+    pub async fn delete(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::McpConnectorDeleteResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/mcp_connector",
+                &[],
+                None,
+                idempotency_key,
+            )
+            .await
+    }
     /// `GET /v1/mcp_connector` — Read the instance's remote MCP connector: enabled state, exposed
     /// tool scopes, dynamic-registration policy, plus the computed discovery URL, resource
     /// identifier and whether the resource server exists.
@@ -4094,28 +4831,27 @@ impl McpConnector<'_> {
             )
             .await
     }
-    /// `DELETE /v1/mcp_connector` — Disable the remote MCP connector. Stored preferences (name,
-    /// scopes, hosts) are kept so a later re-enable restores them; existing OAuth access tokens
-    /// stop working immediately.
-    ///
-    /// Returns [`types::McpConnectorDeleteResponse`].
-    pub async fn delete(
-        &self,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::McpConnectorDeleteResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/mcp_connector",
-                &[],
-                None,
-                idempotency_key,
-            )
-            .await
-    }
 }
 
 impl MessagingProvidersApi<'_> {
+    /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
+    /// mode (the provider and its key stay). To remove the provider, DELETE
+    /// /v1/messaging_providers/email.
+    ///
+    /// Returns [`types::MessagingProvidersDisableDevelopmentEmailResponse`].
+    pub async fn disable_development_email(
+        &self,
+    ) -> Result<types::MessagingProvidersDisableDevelopmentEmailResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/messaging_providers/email/development",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/messaging_providers/email/development` — Read the email provider in development
     /// mode: whether it is active, the provider, the From address, the subject prefix, the
     /// templates it sends and the limits. When the provider is not in development mode: 200 `{
@@ -4165,19 +4901,25 @@ impl MessagingProvidersApi<'_> {
             )
             .await
     }
-    /// `DELETE /v1/messaging_providers/email/development` — Put the email provider back in standard
-    /// mode (the provider and its key stay). To remove the provider, DELETE
-    /// /v1/messaging_providers/email.
+    /// `DELETE /v1/messaging_providers/email/managed` — Stop using managed email: removes the
+    /// domain from your provider account (and the bounce / complaint webhook Atlas registered
+    /// there, on Resend or Brevo) and the email provider (managed_domain mode) that held your key
+    /// (`provider_removed`). DNS records are left in place. Refused with 409 EMAIL_PROVIDER_IN_USE
+    /// while it is the only way the instance can send email and email-dependent features are on;
+    /// pass force=true to remove it anyway.
     ///
-    /// Returns [`types::MessagingProvidersDisableDevelopmentEmailResponse`].
-    pub async fn disable_development_email(
+    /// Query parameters: `force`.
+    ///
+    /// Returns [`types::MessagingProvidersDeleteManagedEmailResponse`].
+    pub async fn delete_managed_email(
         &self,
-    ) -> Result<types::MessagingProvidersDisableDevelopmentEmailResponse, BackendError> {
+        query: &Query,
+    ) -> Result<types::MessagingProvidersDeleteManagedEmailResponse, BackendError> {
         self.client
             .request(
                 HttpMethod::Delete,
-                "/v1/messaging_providers/email/development",
-                &[],
+                "/v1/messaging_providers/email/managed",
+                &query.as_pairs(),
                 None,
                 None,
             )
@@ -4235,34 +4977,11 @@ impl MessagingProvidersApi<'_> {
             )
             .await
     }
-    /// `DELETE /v1/messaging_providers/email/managed` — Stop using managed email: removes the
-    /// domain from your provider account (and the bounce / complaint webhook Atlas registered
-    /// there, on Resend or Brevo) and the email provider (managed_domain mode) that held your key
-    /// (`provider_removed`). DNS records are left in place. Refused with 409 EMAIL_PROVIDER_IN_USE
-    /// while it is the only way the instance can send email and email-dependent features are on;
-    /// pass force=true to remove it anyway.
-    ///
-    /// Query parameters: `force`.
-    ///
-    /// Returns [`types::MessagingProvidersDeleteManagedEmailResponse`].
-    pub async fn delete_managed_email(
-        &self,
-        query: &Query,
-    ) -> Result<types::MessagingProvidersDeleteManagedEmailResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/messaging_providers/email/managed",
-                &query.as_pairs(),
-                None,
-                None,
-            )
-            .await
-    }
     /// `POST /v1/messaging_providers/email/managed/verify` — Re-check the managed sending domain's
-    /// DNS records now (and, with DNS automation, re-write any that are missing). On Resend it also
-    /// re-registers the bounce / complaint webhook if it is missing (`feedback_webhook`). Returns
-    /// the managed_email object; `verified` is true once email can be sent.
+    /// DNS records now (and, with DNS automation, re-write any that are missing). It also
+    /// re-registers the bounce / complaint webhook on your Resend or Brevo account if it is missing
+    /// (`feedback_webhook`), and marks background DNS automation verified once the domain is.
+    /// Returns the managed_email object; `verified` is true once email can be sent.
     ///
     /// Returns [`types::ManagedEmail`].
     pub async fn verify_managed_email(&self) -> Result<types::ManagedEmail, BackendError> {
@@ -4279,6 +4998,24 @@ impl MessagingProvidersApi<'_> {
 }
 
 impl BetterAuthBridgeApi<'_> {
+    /// `DELETE /v1/migrations/better_auth/bridge` — Remove the Better Auth session-bridge settings
+    /// (the bridge is off and the stored secret is deleted).
+    ///
+    /// Returns [`types::BetterAuthBridgeDeleteResponse`].
+    pub async fn delete(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::BetterAuthBridgeDeleteResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/migrations/better_auth/bridge",
+                &[],
+                None,
+                idempotency_key,
+            )
+            .await
+    }
     /// `GET /v1/migrations/better_auth/bridge` — Read the Better Auth session-bridge settings
     /// (migration window, cookie prefix, live fallback) and exchange counts. Reports
     /// live_fallback.has_secret, never the secret.
@@ -4311,24 +5048,6 @@ impl BetterAuthBridgeApi<'_> {
                 "/v1/migrations/better_auth/bridge",
                 &[],
                 body_of(body)?,
-                idempotency_key,
-            )
-            .await
-    }
-    /// `DELETE /v1/migrations/better_auth/bridge` — Remove the Better Auth session-bridge settings
-    /// (the bridge is off and the stored secret is deleted).
-    ///
-    /// Returns [`types::BetterAuthBridgeDeleteResponse`].
-    pub async fn delete(
-        &self,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::BetterAuthBridgeDeleteResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Delete,
-                "/v1/migrations/better_auth/bridge",
-                &[],
-                None,
                 idempotency_key,
             )
             .await
@@ -4375,6 +5094,16 @@ impl NetworkAcls<'_> {
             )
             .await
     }
+    /// `DELETE /v1/network_acls/{id}` — Delete a network ACL rule. With no rules left, enforcement
+    /// falls back to the ip_allowlist.
+    ///
+    /// Returns [`types::NetworkAclsDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::NetworkAclsDeleteResponse, BackendError> {
+        let path = format!("/v1/network_acls/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/network_acls/{id}` — Read one network ACL rule.
     ///
     /// Returns [`types::NetworkAcl`].
@@ -4396,16 +5125,6 @@ impl NetworkAcls<'_> {
         let path = format!("/v1/network_acls/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/network_acls/{id}` — Delete a network ACL rule. With no rules left, enforcement
-    /// falls back to the ip_allowlist.
-    ///
-    /// Returns [`types::NetworkAclsDeleteResponse`].
-    pub async fn delete(&self, id: &str) -> Result<types::NetworkAclsDeleteResponse, BackendError> {
-        let path = format!("/v1/network_acls/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }
@@ -4520,6 +5239,20 @@ impl OAuthClients<'_> {
             .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
+    /// `DELETE /v1/oauth_clients/{id}` — Delete an OAuth client; its codes and grants cascade with
+    /// it.
+    ///
+    /// Returns [`types::OAuthClientsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::OAuthClientsDeleteResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
     /// `GET /v1/oauth_clients/{id}` — Fetch one OAuth client. Another instance id is 404, never
     /// 403. Never the secret.
     ///
@@ -4549,20 +5282,6 @@ impl OAuthClients<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
-            .await
-    }
-    /// `DELETE /v1/oauth_clients/{id}` — Delete an OAuth client; its codes and grants cascade with
-    /// it.
-    ///
-    /// Returns [`types::OAuthClientsDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::OAuthClientsDeleteResponse, BackendError> {
-        let path = format!("/v1/oauth_clients/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
             .await
     }
     /// `GET /v1/oauth_clients/{id}/backchannel_deliveries` — List the back-channel logout
@@ -4599,6 +5318,38 @@ impl OAuthClients<'_> {
         let path = format!("/v1/oauth_clients/{}/backchannel_logout/test", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/oauth_clients/{id}/organization_access` — Set who may use an application. `open`
+    /// (default): any organization. `restricted`: only organizations granted access (and, when a
+    /// grant lists roles, members holding them); a sign-in outside an entitled organization is
+    /// refused with `access_denied` at the authorize endpoint.
+    ///
+    /// Takes [`types::OAuthClientsSetOrganizationAccessBody`]. Returns [`types::OAuthClientsSetOrganizationAccessResponse`].
+    pub async fn set_organization_access(
+        &self,
+        id: &str,
+        body: &types::OAuthClientsSetOrganizationAccessBody,
+    ) -> Result<types::OAuthClientsSetOrganizationAccessResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/organization_access", seg(id));
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `GET /v1/oauth_clients/{id}/organizations` — The organizations that have access to an
+    /// application, with the application's access mode.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::OAuthClientsOrganizationsResponse`].
+    pub async fn organizations(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::OAuthClientsOrganizationsResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/organizations", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
     /// `POST /v1/oauth_clients/{id}/rotate_secret` — Rotate a confidential client's secret; the new
@@ -4638,6 +5389,82 @@ impl OAuthClients<'_> {
             idempotency_key,
         )
         .await
+    }
+    /// `GET /v1/oauth_clients/{id}/token_exchange_profiles` — List the custom subject_token_type
+    /// URIs an OAuth client may present to the token-exchange grant.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::OAuthClientsTokenExchangeProfilesResponse`].
+    pub async fn token_exchange_profiles(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::OAuthClientsTokenExchangeProfilesResponse, BackendError> {
+        let path = format!("/v1/oauth_clients/{}/token_exchange_profiles", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/oauth_clients/{id}/token_exchange_profiles` — Register a custom subject_token_type
+    /// (a urn: or https URI that is not a standard Atlas or IETF token type) for a confidential
+    /// client. An exchange with it runs your `custom_token_exchange` Action, which validates the
+    /// token and names the user to issue tokens for.
+    ///
+    /// Takes [`types::OAuthClientsTokenExchangeProfilesBody`]. Returns nothing (`204 No Content`).
+    pub async fn token_exchange_profiles(
+        &self,
+        id: &str,
+        body: &types::OAuthClientsTokenExchangeProfilesBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/oauth_clients/{}/token_exchange_profiles", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/oauth_clients/{id}/token_exchange_profiles/{profileId}` — Remove a token
+    /// exchange profile.
+    ///
+    /// Returns nothing (`204 No Content`).
+    pub async fn delete_token_exchange_profiles(
+        &self,
+        id: &str,
+        profile_id: &str,
+    ) -> Result<(), BackendError> {
+        let path = format!(
+            "/v1/oauth_clients/{}/token_exchange_profiles/{}",
+            seg(id),
+            seg(profile_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `PATCH /v1/oauth_clients/{id}/token_exchange_profiles/{profileId}` — Rename or enable /
+    /// disable a token exchange profile.
+    ///
+    /// Takes [`types::OAuthClientsUpdateTokenExchangeProfilesBody`]. Returns nothing (`204 No Content`).
+    pub async fn update_token_exchange_profiles(
+        &self,
+        id: &str,
+        profile_id: &str,
+        body: &types::OAuthClientsUpdateTokenExchangeProfilesBody,
+    ) -> Result<(), BackendError> {
+        let path = format!(
+            "/v1/oauth_clients/{}/token_exchange_profiles/{}",
+            seg(id),
+            seg(profile_id)
+        );
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
     }
 }
 
@@ -4750,18 +5577,37 @@ impl OpenFga<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
-    /// `POST /v1/openfga/stores/{store}/authorization-models` — Write a new authorization model to
-    /// a store.
+    /// `GET /v1/openfga/stores/{store}/assertions/{model}` — Read the stored assertions for a model
+    /// version.
     ///
-    /// Takes [`types::OpenFgaWriteAuthorizationModelBody`]. Returns [`types::OpenFgaWriteAuthorizationModelResponse`].
-    pub async fn write_authorization_model(
+    /// Returns the response JSON (the API documents it as open-ended).
+    pub async fn assertions(&self, store: &str, model: &str) -> Result<Value, BackendError> {
+        let path = format!(
+            "/v1/openfga/stores/{}/assertions/{}",
+            seg(store),
+            seg(model)
+        );
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/openfga/stores/{store}/assertions/{model}` — Replace the stored assertions for a
+    /// model version.
+    ///
+    /// Takes [`types::OpenFgaSetAssertionsBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn set_assertions(
         &self,
         store: &str,
-        body: &types::OpenFgaWriteAuthorizationModelBody,
-    ) -> Result<types::OpenFgaWriteAuthorizationModelResponse, BackendError> {
-        let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
+        model: &str,
+        body: &types::OpenFgaSetAssertionsBody,
+    ) -> Result<Value, BackendError> {
+        let path = format!(
+            "/v1/openfga/stores/{}/assertions/{}",
+            seg(store),
+            seg(model)
+        );
         self.client
-            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
     /// `GET /v1/openfga/stores/{store}/authorization-models` — List the authorization models in a
@@ -4778,6 +5624,20 @@ impl OpenFga<'_> {
         let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
         self.client
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/openfga/stores/{store}/authorization-models` — Write a new authorization model to
+    /// a store.
+    ///
+    /// Takes [`types::OpenFgaWriteAuthorizationModelBody`]. Returns [`types::OpenFgaWriteAuthorizationModelResponse`].
+    pub async fn write_authorization_model(
+        &self,
+        store: &str,
+        body: &types::OpenFgaWriteAuthorizationModelBody,
+    ) -> Result<types::OpenFgaWriteAuthorizationModelResponse, BackendError> {
+        let path = format!("/v1/openfga/stores/{}/authorization-models", seg(store));
+        self.client
+            .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
     /// `GET /v1/openfga/stores/{store}/authorization-models/{mid}` — Read one authorization model
@@ -4925,6 +5785,19 @@ impl OrgLdapConnections<'_> {
             )
             .await
     }
+    /// `DELETE /v1/org_ldap_connections/{id}` — Delete an organization-owned LDAP connection.
+    ///
+    /// Returns [`types::OrgLdapConnectionsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::OrgLdapConnectionsDeleteResponse, BackendError> {
+        let path = format!("/v1/org_ldap_connections/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
     /// `GET /v1/org_ldap_connections/{id}` — Fetch one organization-owned LDAP connection. Another
     /// instance id is 404, never 403. Reports has_bind_password, never the password.
     ///
@@ -4957,19 +5830,6 @@ impl OrgLdapConnections<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
-            .await
-    }
-    /// `DELETE /v1/org_ldap_connections/{id}` — Delete an organization-owned LDAP connection.
-    ///
-    /// Returns [`types::OrgLdapConnectionsDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::OrgLdapConnectionsDeleteResponse, BackendError> {
-        let path = format!("/v1/org_ldap_connections/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
             .await
     }
     /// `POST /v1/org_ldap_connections/{id}/test` — Test an organization-owned LDAP connection:
@@ -5039,6 +5899,61 @@ impl Organizations<'_> {
                 None,
                 None,
             )
+            .await
+    }
+    /// `GET /v1/organizations/{id}/applications` — The OAuth applications an organization has been
+    /// given access to.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::OrganizationsApplicationsResponse`].
+    pub async fn applications(
+        &self,
+        org_id: &str,
+        query: &Query,
+    ) -> Result<types::OrganizationsApplicationsResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/applications", seg(org_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `DELETE /v1/organizations/{id}/applications/{clientId}` — Take an organization's access to
+    /// an application away.
+    ///
+    /// Returns [`types::OrganizationsDeleteApplicationsResponse`].
+    pub async fn delete_applications(
+        &self,
+        org_id: &str,
+        client_id: &str,
+    ) -> Result<types::OrganizationsDeleteApplicationsResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/applications/{}",
+            seg(org_id),
+            seg(client_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `PUT /v1/organizations/{id}/applications/{clientId}` — Give an organization access to an
+    /// application (by client id or id), optionally limited to some organization roles. Idempotent;
+    /// send `enabled: false` to pause access without removing it. Only matters while the
+    /// application is `restricted`.
+    ///
+    /// Takes [`types::OrganizationsSetApplicationsBody`]. Returns [`types::OrganizationsSetApplicationsResponse`].
+    pub async fn set_applications(
+        &self,
+        org_id: &str,
+        client_id: &str,
+        body: &types::OrganizationsSetApplicationsBody,
+    ) -> Result<types::OrganizationsSetApplicationsResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/applications/{}",
+            seg(org_id),
+            seg(client_id)
+        );
+        self.client
+            .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
             .await
     }
     /// `GET /v1/organizations/{id}/audit_streams` — List an organization's registered audit stream
@@ -5132,6 +6047,25 @@ impl Organizations<'_> {
             .request(HttpMethod::Post, &path, &[], None, None)
             .await
     }
+    /// `GET /v1/organizations/{id}/it_alerts` — Recent alerts sent to an organization's IT
+    /// contacts, newest first: a single sign-on signing certificate nearing expiry, failing
+    /// sign-ins, failing SCIM requests. Filter with kind (certificate_expiring, sso_failure,
+    /// scim_error); page with limit and starting_after. Each alert also fired the
+    /// organization.it_alert webhook event. Another instance's or org's id is a 404.
+    ///
+    /// Query parameters: `kind`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::OrganizationsItAlertsResponse`].
+    pub async fn it_alerts(
+        &self,
+        org_id: &str,
+        query: &Query,
+    ) -> Result<types::OrganizationsItAlertsResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/it_alerts", seg(org_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
     /// `PUT /v1/organizations/{id}/metadata` — Replace the organization public and private metadata
     /// bags wholesale.
     ///
@@ -5192,21 +6126,6 @@ impl Organizations<'_> {
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
-    /// `PATCH /v1/organizations/{id}/roles/{roleId}` — Rename one of the organization's own roles
-    /// or replace its permissions. Emits role.updated.
-    ///
-    /// Takes [`types::OrganizationsUpdateRoleBody`]. Returns [`types::OrganizationsUpdateRoleResponse`].
-    pub async fn update_role(
-        &self,
-        org_id: &str,
-        role_id: &str,
-        body: &types::OrganizationsUpdateRoleBody,
-    ) -> Result<types::OrganizationsUpdateRoleResponse, BackendError> {
-        let path = format!("/v1/organizations/{}/roles/{}", seg(org_id), seg(role_id));
-        self.client
-            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
     /// `DELETE /v1/organizations/{id}/roles/{roleId}` — Delete one of the organization's own roles;
     /// ?reassign_to=&lt;role key&gt; moves members and pending invitations first (409 ROLE_IN_USE
     /// without it). Emits role.deleted.
@@ -5223,6 +6142,21 @@ impl Organizations<'_> {
         let path = format!("/v1/organizations/{}/roles/{}", seg(org_id), seg(role_id));
         self.client
             .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `PATCH /v1/organizations/{id}/roles/{roleId}` — Rename one of the organization's own roles
+    /// or replace its permissions. Emits role.updated.
+    ///
+    /// Takes [`types::OrganizationsUpdateRoleBody`]. Returns [`types::OrganizationsUpdateRoleResponse`].
+    pub async fn update_role(
+        &self,
+        org_id: &str,
+        role_id: &str,
+        body: &types::OrganizationsUpdateRoleBody,
+    ) -> Result<types::OrganizationsUpdateRoleResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/roles/{}", seg(org_id), seg(role_id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
     /// `PATCH /v1/organizations/{id}/settings` — Merge a partial object into an organization's
@@ -5281,6 +6215,20 @@ impl Organizations<'_> {
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `DELETE /v1/organizations/{id}/teams/{teamId}` — Delete a team (its memberships go with it;
+    /// the organization memberships stay). Emits team.deleted.
+    ///
+    /// Returns [`types::OrganizationsDeleteTeamResponse`].
+    pub async fn delete_team(
+        &self,
+        org_id: &str,
+        team_id: &str,
+    ) -> Result<types::OrganizationsDeleteTeamResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/teams/{}", seg(org_id), seg(team_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/organizations/{id}/teams/{teamId}` — Fetch one team of the organization.
     ///
     /// Returns [`types::OrganizationsGetTeamResponse`].
@@ -5307,20 +6255,6 @@ impl Organizations<'_> {
         let path = format!("/v1/organizations/{}/teams/{}", seg(org_id), seg(team_id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/organizations/{id}/teams/{teamId}` — Delete a team (its memberships go with it;
-    /// the organization memberships stay). Emits team.deleted.
-    ///
-    /// Returns [`types::OrganizationsDeleteTeamResponse`].
-    pub async fn delete_team(
-        &self,
-        org_id: &str,
-        team_id: &str,
-    ) -> Result<types::OrganizationsDeleteTeamResponse, BackendError> {
-        let path = format!("/v1/organizations/{}/teams/{}", seg(org_id), seg(team_id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `GET /v1/organizations/{id}/teams/{teamId}/members` — List a team's members.
@@ -5421,6 +6355,24 @@ impl Organizations<'_> {
             )
             .await
     }
+    /// `DELETE /v1/organizations/{orgId}/end_users/{userId}` — Remove a reader from an
+    /// organization's end-user pool.
+    ///
+    /// Returns [`types::OrganizationsRemoveEndUserResponse`].
+    pub async fn remove_end_user(
+        &self,
+        org_id: &str,
+        user_id: &str,
+    ) -> Result<types::OrganizationsRemoveEndUserResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/end_users/{}",
+            seg(org_id),
+            seg(user_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `PATCH /v1/organizations/{orgId}/end_users/{userId}` — Approve (active), gate (pending) or
     /// block a reader in an organization end-user pool. Blocking keeps the row for the audit trail.
     ///
@@ -5440,19 +6392,21 @@ impl Organizations<'_> {
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
-    /// `DELETE /v1/organizations/{orgId}/end_users/{userId}` — Remove a reader from an
-    /// organization's end-user pool.
+    /// `DELETE /v1/organizations/{orgId}/groups/{groupId}/roles/{roleId}` — Revoke a role from a
+    /// directory group. Members lose the inherited permissions.
     ///
-    /// Returns [`types::OrganizationsRemoveEndUserResponse`].
-    pub async fn remove_end_user(
+    /// Returns [`types::OrganizationsUnassignGroupRoleResponse`].
+    pub async fn unassign_group_role(
         &self,
         org_id: &str,
-        user_id: &str,
-    ) -> Result<types::OrganizationsRemoveEndUserResponse, BackendError> {
+        group_id: &str,
+        role_id: &str,
+    ) -> Result<types::OrganizationsUnassignGroupRoleResponse, BackendError> {
         let path = format!(
-            "/v1/organizations/{}/end_users/{}",
+            "/v1/organizations/{}/groups/{}/roles/{}",
             seg(org_id),
-            seg(user_id)
+            seg(group_id),
+            seg(role_id)
         );
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
@@ -5478,22 +6432,15 @@ impl Organizations<'_> {
             .request(HttpMethod::Put, &path, &[], None, None)
             .await
     }
-    /// `DELETE /v1/organizations/{orgId}/groups/{groupId}/roles/{roleId}` — Revoke a role from a
-    /// directory group. Members lose the inherited permissions.
+    /// `DELETE /v1/organizations/{orgId}/reader_domain` — Remove the organization's reader domain
+    /// binding and drop its edge router.
     ///
-    /// Returns [`types::OrganizationsUnassignGroupRoleResponse`].
-    pub async fn unassign_group_role(
+    /// Returns [`types::OrganizationsDeleteReaderDomainResponse`].
+    pub async fn delete_reader_domain(
         &self,
         org_id: &str,
-        group_id: &str,
-        role_id: &str,
-    ) -> Result<types::OrganizationsUnassignGroupRoleResponse, BackendError> {
-        let path = format!(
-            "/v1/organizations/{}/groups/{}/roles/{}",
-            seg(org_id),
-            seg(group_id),
-            seg(role_id)
-        );
+    ) -> Result<types::OrganizationsDeleteReaderDomainResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/reader_domain", seg(org_id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
             .await
@@ -5536,19 +6483,6 @@ impl Organizations<'_> {
             )
             .await
     }
-    /// `DELETE /v1/organizations/{orgId}/reader_domain` — Remove the organization's reader domain
-    /// binding and drop its edge router.
-    ///
-    /// Returns [`types::OrganizationsDeleteReaderDomainResponse`].
-    pub async fn delete_reader_domain(
-        &self,
-        org_id: &str,
-    ) -> Result<types::OrganizationsDeleteReaderDomainResponse, BackendError> {
-        let path = format!("/v1/organizations/{}/reader_domain", seg(org_id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
-            .await
-    }
 }
 
 impl Pca<'_> {
@@ -5579,6 +6513,14 @@ impl Pca<'_> {
             )
             .await
     }
+    /// `DELETE /v1/pca/freeze` — Clear the instance-wide PCA kill switch.
+    ///
+    /// Returns [`types::PcaUnfreezeResponse`].
+    pub async fn unfreeze(&self) -> Result<types::PcaUnfreezeResponse, BackendError> {
+        self.client
+            .request(HttpMethod::Delete, "/v1/pca/freeze", &[], None, None)
+            .await
+    }
     /// `POST /v1/pca/freeze` — Engage the instance-wide PCA kill switch: every PCActn is denied
     /// until it is cleared.
     ///
@@ -5595,14 +6537,6 @@ impl Pca<'_> {
                 body_of(body)?,
                 None,
             )
-            .await
-    }
-    /// `DELETE /v1/pca/freeze` — Clear the instance-wide PCA kill switch.
-    ///
-    /// Returns [`types::PcaUnfreezeResponse`].
-    pub async fn unfreeze(&self) -> Result<types::PcaUnfreezeResponse, BackendError> {
-        self.client
-            .request(HttpMethod::Delete, "/v1/pca/freeze", &[], None, None)
             .await
     }
     /// `POST /v1/pca/revocations` — Revoke a capability id under a grant; any PCActn whose chain
@@ -5676,6 +6610,16 @@ impl Permissions<'_> {
             )
             .await
     }
+    /// `DELETE /v1/permissions/{id}` — Delete a permission; it is removed from every role that held
+    /// it.
+    ///
+    /// Returns [`types::PermissionsDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::PermissionsDeleteResponse, BackendError> {
+        let path = format!("/v1/permissions/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `PATCH /v1/permissions/{id}` — Update a permission’s description or metadata.
     ///
     /// Takes [`types::PermissionsUpdateBody`]. Returns [`types::Permission`].
@@ -5687,16 +6631,6 @@ impl Permissions<'_> {
         let path = format!("/v1/permissions/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/permissions/{id}` — Delete a permission; it is removed from every role that held
-    /// it.
-    ///
-    /// Returns [`types::PermissionsDeleteResponse`].
-    pub async fn delete(&self, id: &str) -> Result<types::PermissionsDeleteResponse, BackendError> {
-        let path = format!("/v1/permissions/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }
@@ -5888,6 +6822,21 @@ impl AtlasIdApps<'_> {
 }
 
 impl AtlasIdPublisherApi<'_> {
+    /// `DELETE /v1/platform/atlas_id_publisher` — Remove the publisher claim. Consent screens stop
+    /// naming the publisher and publisher-wide consent stops.
+    ///
+    /// Returns [`types::AtlasIdPublisherDeleteResponse`].
+    pub async fn delete(&self) -> Result<types::AtlasIdPublisherDeleteResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/platform/atlas_id_publisher",
+                &[],
+                None,
+                None,
+            )
+            .await
+    }
     /// `GET /v1/platform/atlas_id_publisher` — The account's Sign in with Atlas publisher: name,
     /// domain, whether it is verified, the DNS TXT record to publish, and skip_consent. Until one
     /// is claimed: 200 `{ object: "atlas_id_publisher", configured: false }` (not a 404).
@@ -5900,27 +6849,6 @@ impl AtlasIdPublisherApi<'_> {
                 "/v1/platform/atlas_id_publisher",
                 &[],
                 None,
-                None,
-            )
-            .await
-    }
-    /// `PUT /v1/platform/atlas_id_publisher` — Claim a publisher name and domain for the account's
-    /// Sign in with Atlas apps. Returns the TXT record (record_name
-    /// `_atlas-publisher.&lt;domain&gt;`) to publish; then call verify. Changing the domain resets
-    /// verification. Once verified, the consent screen of each app whose homepage_url is on that
-    /// domain shows "Published by &lt;name&gt; · verified".
-    ///
-    /// Takes [`types::AtlasIdPublisherSetBody`]. Returns [`types::AtlasIdPublisherSetResponse`].
-    pub async fn set(
-        &self,
-        body: &types::AtlasIdPublisherSetBody,
-    ) -> Result<types::AtlasIdPublisherSetResponse, BackendError> {
-        self.client
-            .request(
-                HttpMethod::Put,
-                "/v1/platform/atlas_id_publisher",
-                &[],
-                body_of(body)?,
                 None,
             )
             .await
@@ -5943,17 +6871,23 @@ impl AtlasIdPublisherApi<'_> {
             )
             .await
     }
-    /// `DELETE /v1/platform/atlas_id_publisher` — Remove the publisher claim. Consent screens stop
-    /// naming the publisher and publisher-wide consent stops.
+    /// `PUT /v1/platform/atlas_id_publisher` — Claim a publisher name and domain for the account's
+    /// Sign in with Atlas apps. Returns the TXT record (record_name
+    /// `_atlas-publisher.&lt;domain&gt;`) to publish; then call verify. Changing the domain resets
+    /// verification. Once verified, the consent screen of each app whose homepage_url is on that
+    /// domain shows "Published by &lt;name&gt; · verified".
     ///
-    /// Returns [`types::AtlasIdPublisherDeleteResponse`].
-    pub async fn delete(&self) -> Result<types::AtlasIdPublisherDeleteResponse, BackendError> {
+    /// Takes [`types::AtlasIdPublisherSetBody`]. Returns [`types::AtlasIdPublisherSetResponse`].
+    pub async fn set(
+        &self,
+        body: &types::AtlasIdPublisherSetBody,
+    ) -> Result<types::AtlasIdPublisherSetResponse, BackendError> {
         self.client
             .request(
-                HttpMethod::Delete,
+                HttpMethod::Put,
                 "/v1/platform/atlas_id_publisher",
                 &[],
-                None,
+                body_of(body)?,
                 None,
             )
             .await
@@ -6034,6 +6968,16 @@ impl Policies<'_> {
             .request(HttpMethod::Post, "/v1/policies", &[], body_of(body)?, None)
             .await
     }
+    /// `DELETE /v1/policies/{id}` — Delete a policy that was never published; one with a published
+    /// version is retired instead (acceptances are evidence and stay).
+    ///
+    /// Returns [`types::PoliciesDeleteResponse`].
+    pub async fn delete(&self, id: &str) -> Result<types::PoliciesDeleteResponse, BackendError> {
+        let path = format!("/v1/policies/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/policies/{id}` — One policy, by id or key.
     ///
     /// Returns [`types::PoliciesGetResponse`].
@@ -6056,16 +7000,6 @@ impl Policies<'_> {
         let path = format!("/v1/policies/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/policies/{id}` — Delete a policy that was never published; one with a published
-    /// version is retired instead (acceptances are evidence and stay).
-    ///
-    /// Returns [`types::PoliciesDeleteResponse`].
-    pub async fn delete(&self, id: &str) -> Result<types::PoliciesDeleteResponse, BackendError> {
-        let path = format!("/v1/policies/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `GET /v1/policies/{id}/acceptances` — Who accepted the policy (optionally one version),
@@ -6117,6 +7051,20 @@ impl Policies<'_> {
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
             .await
     }
+    /// `DELETE /v1/policies/{id}/versions/{versionId}` — Delete a draft (409 for a published
+    /// version: retire it instead).
+    ///
+    /// Returns [`types::PoliciesDeleteVersionResponse`].
+    pub async fn delete_version(
+        &self,
+        id: &str,
+        version_id: &str,
+    ) -> Result<types::PoliciesDeleteVersionResponse, BackendError> {
+        let path = format!("/v1/policies/{}/versions/{}", seg(id), seg(version_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/policies/{id}/versions/{versionId}` — One version, by id or label.
     ///
     /// Returns [`types::PoliciesGetVersionResponse`].
@@ -6143,20 +7091,6 @@ impl Policies<'_> {
         let path = format!("/v1/policies/{}/versions/{}", seg(id), seg(version_id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/policies/{id}/versions/{versionId}` — Delete a draft (409 for a published
-    /// version: retire it instead).
-    ///
-    /// Returns [`types::PoliciesDeleteVersionResponse`].
-    pub async fn delete_version(
-        &self,
-        id: &str,
-        version_id: &str,
-    ) -> Result<types::PoliciesDeleteVersionResponse, BackendError> {
-        let path = format!("/v1/policies/{}/versions/{}", seg(id), seg(version_id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/policies/{id}/versions/{versionId}/publish` — Publish a draft. effective_at (epoch
@@ -6240,6 +7174,19 @@ impl RadiusClients<'_> {
             )
             .await
     }
+    /// `DELETE /v1/radius_clients/{id}` — Delete a RADIUS NAS client. That NAS can no longer
+    /// authenticate against the listener.
+    ///
+    /// Returns [`types::RadiusClientsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::RadiusClientsDeleteResponse, BackendError> {
+        let path = format!("/v1/radius_clients/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/radius_clients/{id}` — Read one RADIUS NAS client. The shared secret is never
     /// included.
     ///
@@ -6263,19 +7210,6 @@ impl RadiusClients<'_> {
         let path = format!("/v1/radius_clients/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/radius_clients/{id}` — Delete a RADIUS NAS client. That NAS can no longer
-    /// authenticate against the listener.
-    ///
-    /// Returns [`types::RadiusClientsDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-    ) -> Result<types::RadiusClientsDeleteResponse, BackendError> {
-        let path = format!("/v1/radius_clients/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }
@@ -6353,15 +7287,6 @@ impl RedirectUrls<'_> {
             )
             .await
     }
-    /// `GET /v1/redirect_urls/{id}` — Fetch one allowlisted redirect URL.
-    ///
-    /// Returns [`types::RedirectUrl`].
-    pub async fn get(&self, id: &str) -> Result<types::RedirectUrl, BackendError> {
-        let path = format!("/v1/redirect_urls/{}", seg(id));
-        self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
-            .await
-    }
     /// `DELETE /v1/redirect_urls/{id}` — Remove a redirect URL from the allowlist.
     ///
     /// Returns [`types::RedirectUrlsDeleteResponse`].
@@ -6372,6 +7297,15 @@ impl RedirectUrls<'_> {
         let path = format!("/v1/redirect_urls/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/redirect_urls/{id}` — Fetch one allowlisted redirect URL.
+    ///
+    /// Returns [`types::RedirectUrl`].
+    pub async fn get(&self, id: &str) -> Result<types::RedirectUrl, BackendError> {
+        let path = format!("/v1/redirect_urls/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
 }
@@ -6415,6 +7349,19 @@ impl ResourceServers<'_> {
             )
             .await
     }
+    /// `DELETE /v1/resource_servers/{id}` — Delete a resource server; its client grants cascade
+    /// with it.
+    ///
+    /// Returns [`types::ResourceServersDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::ResourceServersDeleteResponse, BackendError> {
+        let path = format!("/v1/resource_servers/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/resource_servers/{id}` — Fetch one resource server. Another instance id is 404,
     /// never 403.
     ///
@@ -6437,19 +7384,6 @@ impl ResourceServers<'_> {
         let path = format!("/v1/resource_servers/{}", seg(id));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/resource_servers/{id}` — Delete a resource server; its client grants cascade
-    /// with it.
-    ///
-    /// Returns [`types::ResourceServersDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-    ) -> Result<types::ResourceServersDeleteResponse, BackendError> {
-        let path = format!("/v1/resource_servers/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }
@@ -6567,20 +7501,6 @@ impl Roles<'_> {
             .request(HttpMethod::Post, "/v1/roles", &[], body_of(body)?, None)
             .await
     }
-    /// `PATCH /v1/roles/{id}` — Relabel a role or change its visibility (public/internal). The key
-    /// is immutable once published.
-    ///
-    /// Takes [`types::RolesUpdateBody`]. Returns [`types::Role`].
-    pub async fn update(
-        &self,
-        id: &str,
-        body: &types::RolesUpdateBody,
-    ) -> Result<types::Role, BackendError> {
-        let path = format!("/v1/roles/{}", seg(id));
-        self.client
-            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
     /// `DELETE /v1/roles/{id}` — Delete an unused custom role. A role members hold returns
     /// ROLE_IN_USE.
     ///
@@ -6595,6 +7515,20 @@ impl Roles<'_> {
         let path = format!("/v1/roles/{}", seg(id));
         self.client
             .request(HttpMethod::Delete, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `PATCH /v1/roles/{id}` — Relabel a role or change its visibility (public/internal). The key
+    /// is immutable once published.
+    ///
+    /// Takes [`types::RolesUpdateBody`]. Returns [`types::Role`].
+    pub async fn update(
+        &self,
+        id: &str,
+        body: &types::RolesUpdateBody,
+    ) -> Result<types::Role, BackendError> {
+        let path = format!("/v1/roles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
     /// `PUT /v1/roles/{id}/permissions` — Replace a role permission set. System roles are fixed.
@@ -6655,6 +7589,19 @@ impl ScimProvisioningTargets<'_> {
             )
             .await
     }
+    /// `DELETE /v1/scim_provisioning_targets/{id}` — Delete an outbound SCIM provisioning target.
+    /// Pushing stops immediately; no further users are sent downstream.
+    ///
+    /// Returns [`types::ScimProvisioningTargetsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+    ) -> Result<types::ScimProvisioningTargetsDeleteResponse, BackendError> {
+        let path = format!("/v1/scim_provisioning_targets/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/scim_provisioning_targets/{id}` — Read one outbound SCIM provisioning target,
     /// including its sync status, cursor and last error. Reports has_bearer_token only, never the
     /// bearer value.
@@ -6684,17 +7631,60 @@ impl ScimProvisioningTargets<'_> {
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
-    /// `DELETE /v1/scim_provisioning_targets/{id}` — Delete an outbound SCIM provisioning target.
-    /// Pushing stops immediately; no further users are sent downstream.
+    /// `GET /v1/scim_provisioning_targets/{id}/failures` — The failed-provision inbox: users and
+    /// organizations whose last push to this target failed, with the error and the number of
+    /// consecutive attempts.
     ///
-    /// Returns [`types::ScimProvisioningTargetsDeleteResponse`].
-    pub async fn delete(
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::ScimProvisioningTargetsFailuresResponse`].
+    pub async fn failures(
         &self,
         id: &str,
-    ) -> Result<types::ScimProvisioningTargetsDeleteResponse, BackendError> {
-        let path = format!("/v1/scim_provisioning_targets/{}", seg(id));
+        query: &Query,
+    ) -> Result<types::ScimProvisioningTargetsFailuresResponse, BackendError> {
+        let path = format!("/v1/scim_provisioning_targets/{}/failures", seg(id));
         self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `GET /v1/scim_provisioning_targets/{id}/logs` — The target's provisioning log, newest first
+    /// (30 days): one entry per push with the operation, the downstream status and the error.
+    /// Filter with failures=true or resource_id.
+    ///
+    /// Query parameters: `limit`, `starting_after`, `failures`, `resource_id`.
+    ///
+    /// Returns [`types::ScimProvisioningTargetsLogsResponse`].
+    pub async fn logs(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::ScimProvisioningTargetsLogsResponse, BackendError> {
+        let path = format!("/v1/scim_provisioning_targets/{}/logs", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/scim_provisioning_targets/{id}/retry_failed` — Retry failed users and groups now
+    /// (up to 50), or one with resource_type and resource_id. Each goes through the same sync as
+    /// sync_user and sync_group; the result says how each went.
+    ///
+    /// Takes [`types::ScimProvisioningTargetsRetryFailedBody`]. Returns nothing (`204 No Content`).
+    pub async fn retry_failed(
+        &self,
+        id: &str,
+        body: &types::ScimProvisioningTargetsRetryFailedBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<(), BackendError> {
+        let path = format!("/v1/scim_provisioning_targets/{}/retry_failed", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
             .await
     }
     /// `POST /v1/scim_provisioning_targets/{id}/sync_group` — Force a single group's
@@ -6855,6 +7845,20 @@ impl SessionExchangeApps<'_> {
             )
             .await
     }
+    /// `DELETE /v1/session_exchange_apps/{id}` — Delete a session-exchange app; its queued
+    /// back-channel logout deliveries cascade with it.
+    ///
+    /// Returns [`types::SessionExchangeAppsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::SessionExchangeAppsDeleteResponse, BackendError> {
+        let path = format!("/v1/session_exchange_apps/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
     /// `GET /v1/session_exchange_apps/{id}` — Fetch one session-exchange app. Another instance id
     /// is 404, never 403.
     ///
@@ -6889,23 +7893,24 @@ impl SessionExchangeApps<'_> {
             )
             .await
     }
-    /// `DELETE /v1/session_exchange_apps/{id}` — Delete a session-exchange app; its queued
-    /// back-channel logout deliveries cascade with it.
-    ///
-    /// Returns [`types::SessionExchangeAppsDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::SessionExchangeAppsDeleteResponse, BackendError> {
-        let path = format!("/v1/session_exchange_apps/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
-            .await
-    }
 }
 
 impl Sessions<'_> {
+    /// `PATCH /v1/sessions/{id}/custom_data` — Merge keys into the session's custom data: each key
+    /// in `custom_data` replaces that key, and a key set to null is removed. The merged object must
+    /// stay within 2 KB. Same rules as PUT.
+    ///
+    /// Takes [`types::SessionsUpdateCustomDataBody`]. Returns [`types::Session`].
+    pub async fn update_custom_data(
+        &self,
+        id: &str,
+        body: &types::SessionsUpdateCustomDataBody,
+    ) -> Result<types::Session, BackendError> {
+        let path = format!("/v1/sessions/{}/custom_data", seg(id));
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
     /// `PUT /v1/sessions/{id}/custom_data` — Replace the session's custom data with `custom_data`
     /// (a JSON object of at most 2 KB; null clears it). Only an active session can be changed (409
     /// SESSION_REVOKED otherwise). The data is returned on the session object and on the Frontend
@@ -6922,21 +7927,6 @@ impl Sessions<'_> {
         let path = format!("/v1/sessions/{}/custom_data", seg(id));
         self.client
             .request(HttpMethod::Put, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `PATCH /v1/sessions/{id}/custom_data` — Merge keys into the session's custom data: each key
-    /// in `custom_data` replaces that key, and a key set to null is removed. The merged object must
-    /// stay within 2 KB. Same rules as PUT.
-    ///
-    /// Takes [`types::SessionsUpdateCustomDataBody`]. Returns [`types::Session`].
-    pub async fn update_custom_data(
-        &self,
-        id: &str,
-        body: &types::SessionsUpdateCustomDataBody,
-    ) -> Result<types::Session, BackendError> {
-        let path = format!("/v1/sessions/{}/custom_data", seg(id));
-        self.client
-            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
     /// `POST /v1/sessions/{id}/tokens/{template}` — Mint a named JWT-template token for a session
@@ -7052,6 +8042,16 @@ impl SmsTemplates<'_> {
             )
             .await
     }
+    /// `DELETE /v1/sms_templates/{name}` — Revert an SMS template to the Atlas built-in default
+    /// body.
+    ///
+    /// Returns [`types::SmsTemplate`].
+    pub async fn delete(&self, name: &str) -> Result<types::SmsTemplate, BackendError> {
+        let path = format!("/v1/sms_templates/{}", seg(name));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `GET /v1/sms_templates/{name}` — Read one SMS template: its built-in default and the
     /// instance override.
     ///
@@ -7074,16 +8074,6 @@ impl SmsTemplates<'_> {
         let path = format!("/v1/sms_templates/{}", seg(name));
         self.client
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
-            .await
-    }
-    /// `DELETE /v1/sms_templates/{name}` — Revert an SMS template to the Atlas built-in default
-    /// body.
-    ///
-    /// Returns [`types::SmsTemplate`].
-    pub async fn delete(&self, name: &str) -> Result<types::SmsTemplate, BackendError> {
-        let path = format!("/v1/sms_templates/{}", seg(name));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/sms_templates/{name}/preview` — Render an SMS body with a sample code — never a
@@ -7143,6 +8133,19 @@ impl SsoConnections<'_> {
             )
             .await
     }
+    /// `DELETE /v1/sso_connections/{id}` — Delete an SSO connection and its domain routing.
+    ///
+    /// Returns [`types::SsoConnectionsDeleteResponse`].
+    pub async fn delete(
+        &self,
+        id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::SsoConnectionsDeleteResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
     /// `GET /v1/sso_connections/{id}` — Fetch one SSO connection. Another instance id is 404, never
     /// 403. Reports has_secret, never the secret.
     ///
@@ -7174,19 +8177,6 @@ impl SsoConnections<'_> {
             )
             .await
     }
-    /// `DELETE /v1/sso_connections/{id}` — Delete an SSO connection and its domain routing.
-    ///
-    /// Returns [`types::SsoConnectionsDeleteResponse`].
-    pub async fn delete(
-        &self,
-        id: &str,
-        idempotency_key: Option<&str>,
-    ) -> Result<types::SsoConnectionsDeleteResponse, BackendError> {
-        let path = format!("/v1/sso_connections/{}", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
-            .await
-    }
     /// `POST /v1/sso_connections/{id}/profile_mapping/preview` — Run an OIDC connection's profile
     /// mapping (stored, or the body's) against a pasted sample. Nothing is signed in.
     ///
@@ -7199,6 +8189,19 @@ impl SsoConnections<'_> {
         let path = format!("/v1/sso_connections/{}/profile_mapping/preview", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/sso_connections/{id}/saml_encryption_key` — Turn assertion encryption off (drops
+    /// both key pairs). Refused while saml_require_encrypted_assertions is on.
+    ///
+    /// Returns [`types::SsoConnectionsDeleteSamlEncryptionKeyResponse`].
+    pub async fn delete_saml_encryption_key(
+        &self,
+        id: &str,
+    ) -> Result<types::SsoConnectionsDeleteSamlEncryptionKeyResponse, BackendError> {
+        let path = format!("/v1/sso_connections/{}/saml_encryption_key", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `GET /v1/sso_connections/{id}/saml_encryption_key` — The SAML connection's SP encryption
@@ -7228,19 +8231,6 @@ impl SsoConnections<'_> {
         let path = format!("/v1/sso_connections/{}/saml_encryption_key", seg(id));
         self.client
             .request(HttpMethod::Post, &path, &[], None, idempotency_key)
-            .await
-    }
-    /// `DELETE /v1/sso_connections/{id}/saml_encryption_key` — Turn assertion encryption off (drops
-    /// both key pairs). Refused while saml_require_encrypted_assertions is on.
-    ///
-    /// Returns [`types::SsoConnectionsDeleteSamlEncryptionKeyResponse`].
-    pub async fn delete_saml_encryption_key(
-        &self,
-        id: &str,
-    ) -> Result<types::SsoConnectionsDeleteSamlEncryptionKeyResponse, BackendError> {
-        let path = format!("/v1/sso_connections/{}/saml_encryption_key", seg(id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `DELETE /v1/sso_connections/{id}/saml_encryption_key/previous` — Finish a rotation: stop
@@ -7332,9 +8322,9 @@ impl SsoConnections<'_> {
 
 impl SsoOnboarding<'_> {
     /// `GET /v1/sso_onboarding_profiles` — List self-service SSO onboarding profiles (the templates
-    /// tickets are issued from).
+    /// tickets are issued from). ?name= returns only the profiles with exactly that name.
     ///
-    /// Query parameters: `limit`, `starting_after`.
+    /// Query parameters: `name`, `limit`, `starting_after`.
     ///
     /// Returns [`types::SsoOnboardingListProfilesResponse`].
     pub async fn list_profiles(
@@ -7352,7 +8342,8 @@ impl SsoOnboarding<'_> {
             .await
     }
     /// `POST /v1/sso_onboarding_profiles` — Create a self-service SSO onboarding profile: allowed
-    /// connection types and an optional bound organization.
+    /// connection types, an optional bound organization, and an optional `return_url` (where
+    /// "Finish" on the hosted setup page sends the admin; https on one of your allowed origins).
     ///
     /// Takes [`types::SsoOnboardingCreateProfileBody`]. Returns [`types::SsoOnboardingProfile`].
     pub async fn create_profile(
@@ -7370,16 +8361,6 @@ impl SsoOnboarding<'_> {
             )
             .await
     }
-    /// `GET /v1/sso_onboarding_profiles/{id}` — Fetch one onboarding profile. Another instance id
-    /// is 404, never 403.
-    ///
-    /// Returns [`types::SsoOnboardingProfile`].
-    pub async fn get_profile(&self, id: &str) -> Result<types::SsoOnboardingProfile, BackendError> {
-        let path = format!("/v1/sso_onboarding_profiles/{}", seg(id));
-        self.client
-            .request(HttpMethod::Get, &path, &[], None, None)
-            .await
-    }
     /// `DELETE /v1/sso_onboarding_profiles/{id}` — Delete an onboarding profile; its issued tickets
     /// cascade away with it.
     ///
@@ -7393,8 +8374,21 @@ impl SsoOnboarding<'_> {
             .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
+    /// `GET /v1/sso_onboarding_profiles/{id}` — Fetch one onboarding profile. Another instance id
+    /// is 404, never 403.
+    ///
+    /// Returns [`types::SsoOnboardingProfile`].
+    pub async fn get_profile(&self, id: &str) -> Result<types::SsoOnboardingProfile, BackendError> {
+        let path = format!("/v1/sso_onboarding_profiles/{}", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
     /// `POST /v1/sso_onboarding_profiles/{id}/tickets` — Issue a scoped, one-time, expiring
     /// onboarding ticket for one organization. Returns the token and hosted URL exactly once.
+    /// `expires_in_seconds` defaults to 259200 (3 days) and is clamped into \[300, 2592000\] (5
+    /// minutes to 30 days); `expires_in` says what was granted. `return_url` overrides the
+    /// profile's for this ticket.
     ///
     /// Takes [`types::SsoOnboardingCreateTicketBody`]. Returns [`types::SsoOnboardingCreateTicketResponse`].
     pub async fn create_ticket(
@@ -7521,6 +8515,27 @@ impl Usage<'_> {
             .request(HttpMethod::Get, "/v1/usage", &query.as_pairs(), None, None)
             .await
     }
+    /// `GET /v1/usage/connections` — Usage records for connections: relay calls, action runs, agent
+    /// token and action use, and MCP gateway calls, counted from the audit trail over a range of up
+    /// to 92 days. Never reads what was sent or received.
+    ///
+    /// Query parameters: `from`, `to`, `group_by`, `limit`, `starting_after`.
+    ///
+    /// Returns [`types::UsageConnectionsResponse`].
+    pub async fn connections(
+        &self,
+        query: &Query,
+    ) -> Result<types::UsageConnectionsResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Get,
+                "/v1/usage/connections",
+                &query.as_pairs(),
+                None,
+                None,
+            )
+            .await
+    }
 }
 
 impl ImportExport<'_> {
@@ -7545,8 +8560,17 @@ impl ImportExport<'_> {
     /// `POST /v1/user_imports` — Bulk-create users from an array, deduping by verified email,
     /// through the same path sign-up uses. Plaintext passwords are Argon2id-hashed; Argon2id,
     /// bcrypt, PBKDF2/scrypt (Django, passlib), Firebase scrypt (with
-    /// password_hash_config.firebase) and Better Auth scrypt hashes are imported verbatim and
-    /// upgraded on first sign-in; other formats are rejected per row. Each row may also carry
+    /// password_hash_config.firebase) and Better Auth scrypt hashes are imported verbatim. A hash
+    /// that does not describe itself is imported by naming it: password_hash_algorithm (scrypt,
+    /// pbkdf2, md5, sha1, sha256, sha512, their _salted forms, hmac_sha256, bcrypt, …) with
+    /// password_hash_params (scrypt n or log_n / r / p / key_length; pbkdf2 digest / iterations /
+    /// key_length; md5 and sha* salt_position prefix|suffix; encoding and salt_encoding
+    /// hex|base64|base64url|utf8) and password_salt; the hash may be the bare digest or
+    /// `&lt;salt&gt;$&lt;hash&gt;` / `&lt;name&gt;$&lt;salt&gt;$&lt;hash&gt;` (e.g.
+    /// `scrypt$&lt;salt&gt;$&lt;hash&gt;` with the parameters given separately). Every imported
+    /// hash is checked with a constant-time compare and upgraded to Argon2id on the first
+    /// successful sign-in; a format that cannot be checked is rejected per row
+    /// (unsupported_password_hash, the message names the field). Each row may also carry
     /// external_id, image_url (alias profile_image_url: an https URL; an invalid one fails the row
     /// with invalid_image_url), created_at, phone_number / phone_numbers and
     /// organization_memberships (org by id, external id or slug, plus a role);
@@ -7691,6 +8715,22 @@ impl Users<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
+    /// `GET /v1/users/{id}/consents` — List a user's recorded consents with their versions and
+    /// timestamps.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::UsersListConsentsResponse`].
+    pub async fn list_consents(
+        &self,
+        user_id: &str,
+        query: &Query,
+    ) -> Result<types::UsersListConsentsResponse, BackendError> {
+        let path = format!("/v1/users/{}/consents", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
     /// `POST /v1/users/{id}/consents` — Record a versioned consent grant (or withdrawal, `status:
     /// "withdrawn"`) for a user. Append-only: a change of standing — e.g. re-accepting a version
     /// after withdrawing it — adds a new current record; repeating the current standing returns the
@@ -7714,20 +8754,40 @@ impl Users<'_> {
             )
             .await
     }
-    /// `GET /v1/users/{id}/consents` — List a user's recorded consents with their versions and
-    /// timestamps.
+    /// `POST /v1/users/{id}/contain` — Contain an account in one action: sign-in disabled, password
+    /// invalidated (a new one is required), sessions and OIDC sessions ended, personal API tokens,
+    /// API keys, agent grants, device keys, desktop devices, remembered devices and temporary
+    /// passes revoked. Sends `user.banned` (and the Shared Signals account-disabled event) and
+    /// `user.contained`, and writes one audit record. Idempotent.
     ///
-    /// Query parameters: `limit`, `starting_after`.
-    ///
-    /// Returns [`types::UsersListConsentsResponse`].
-    pub async fn list_consents(
+    /// Takes [`types::UsersContainBody`]. Returns [`types::UsersContainResponse`].
+    pub async fn contain(
         &self,
         user_id: &str,
-        query: &Query,
-    ) -> Result<types::UsersListConsentsResponse, BackendError> {
-        let path = format!("/v1/users/{}/consents", seg(user_id));
+        body: &types::UsersContainBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::UsersContainResponse, BackendError> {
+        let path = format!("/v1/users/{}/contain", seg(user_id));
         self.client
-            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/directives` — Lift a previously imposed directive from a user.
+    ///
+    /// Returns [`types::UsersClearDirectivesResponse`].
+    pub async fn clear_directives(
+        &self,
+        user_id: &str,
+    ) -> Result<types::UsersClearDirectivesResponse, BackendError> {
+        let path = format!("/v1/users/{}/directives", seg(user_id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/users/{id}/directives` — Impose a cross-property directive on a user (e.g.
@@ -7750,18 +8810,6 @@ impl Users<'_> {
                 body_of(body)?,
                 idempotency_key,
             )
-            .await
-    }
-    /// `DELETE /v1/users/{id}/directives` — Lift a previously imposed directive from a user.
-    ///
-    /// Returns [`types::UsersClearDirectivesResponse`].
-    pub async fn clear_directives(
-        &self,
-        user_id: &str,
-    ) -> Result<types::UsersClearDirectivesResponse, BackendError> {
-        let path = format!("/v1/users/{}/directives", seg(user_id));
-        self.client
-            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
     /// `POST /v1/users/{id}/email_addresses` — Add an email address to a user. Starts unverified.
@@ -7935,6 +8983,33 @@ impl Users<'_> {
         let path = format!("/v1/users/{}/identities/{}", seg(user_id), seg(identity_id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/users/{id}/merge` — Merge another user INTO this one (the one kept). Emails,
+    /// phones, social accounts, MFA factors, passkeys, API tokens, devices, organization and group
+    /// memberships, app roles, consents, billing subscriptions and credits move across (a
+    /// membership the target already has is left as it is, and the target's role wins); metadata
+    /// merges key by key with the target winning; blank profile fields are filled. The source
+    /// user's sessions end and it is deleted, firing `user.deleted` and `user.merged`. Refused when
+    /// the users are the same, the source is banned and the target is not, or the target is a
+    /// guest. `dry_run` reports what would move. Needs users:write and users:delete.
+    ///
+    /// Takes [`types::UsersMergeBody`]. Returns the response JSON (the API documents it as open-ended).
+    pub async fn merge(
+        &self,
+        user_id: &str,
+        body: &types::UsersMergeBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<Value, BackendError> {
+        let path = format!("/v1/users/{}/merge", seg(user_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
             .await
     }
     /// `PUT /v1/users/{id}/metadata` — Replace the metadata bags wholesale. Each bag present
@@ -8171,6 +9246,39 @@ impl Users<'_> {
             .request(HttpMethod::Get, &path, &[], None, None)
             .await
     }
+    /// `POST /v1/users/{id}/referral/resync` — Re-report one user to the referral platform: their
+    /// sign-up call is sent again now (same customerRef, original signed-up time, the stored
+    /// arrival context, the user's current email and name) and the answer (code, link, partner) is
+    /// applied to the user. For a user whose earlier answer is final on the platform (e.g.
+    /// enroll_email_taken) but has since been fixed there. A code the user already has is kept. 404
+    /// for an unknown user; 422 REFERRALS_NOT_CONFIGURED when referral attribution is off. With
+    /// `?dry_run=true` nothing is sent.
+    ///
+    /// Returns [`types::UsersResyncResponse`].
+    pub async fn resync(
+        &self,
+        user_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::UsersResyncResponse, BackendError> {
+        let path = format!("/v1/users/{}/referral/resync", seg(user_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
+    /// `POST /v1/users/{id}/release` — Release a contained account. The user can sign in again and
+    /// still owes the password change.
+    ///
+    /// Returns [`types::UsersReleaseResponse`].
+    pub async fn release(
+        &self,
+        user_id: &str,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::UsersReleaseResponse, BackendError> {
+        let path = format!("/v1/users/{}/release", seg(user_id));
+        self.client
+            .request(HttpMethod::Post, &path, &[], None, idempotency_key)
+            .await
+    }
     /// `POST /v1/users/{id}/reset_mfa` — Remove every second factor and its recovery codes.
     ///
     /// Returns [`types::UsersResetMfaResponse`].
@@ -8266,6 +9374,63 @@ impl Users<'_> {
         let path = format!("/v1/users/{}/state", seg(user_id));
         self.client
             .request(HttpMethod::Get, &path, &[], None, None)
+            .await
+    }
+    /// `GET /v1/users/{id}/temporary_access` — The user's active temporary access passes (never the
+    /// codes).
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::UsersTemporaryAccessResponse`].
+    pub async fn temporary_access(
+        &self,
+        user_id: &str,
+        query: &Query,
+    ) -> Result<types::UsersTemporaryAccessResponse, BackendError> {
+        let path = format!("/v1/users/{}/temporary_access", seg(user_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/users/{id}/temporary_access` — Issue a temporary access pass: a time-limited code
+    /// (60 seconds to 7 days, one use by default) that signs the user in with `strategy:
+    /// "temporary_access_pass"`, counts as MFA for that sign-in, and (unless `require_enrolment` is
+    /// false) makes them register a passkey or second factor. Optionally bound to an IP. The code
+    /// is shown once.
+    ///
+    /// Takes [`types::UsersTemporaryAccessBody`]. Returns [`types::UsersTemporaryAccessResponse2`].
+    pub async fn temporary_access(
+        &self,
+        user_id: &str,
+        body: &types::UsersTemporaryAccessBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::UsersTemporaryAccessResponse2, BackendError> {
+        let path = format!("/v1/users/{}/temporary_access", seg(user_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/temporary_access/{pass_id}` — Revoke a temporary access pass.
+    ///
+    /// Returns [`types::UsersDeleteTemporaryAccessResponse`].
+    pub async fn delete_temporary_access(
+        &self,
+        user_id: &str,
+        pass_id: &str,
+    ) -> Result<types::UsersDeleteTemporaryAccessResponse, BackendError> {
+        let path = format!(
+            "/v1/users/{}/temporary_access/{}",
+            seg(user_id),
+            seg(pass_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
             .await
     }
 }

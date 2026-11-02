@@ -159,6 +159,30 @@ async fn rejects_wrong_issuer() {
 }
 
 #[tokio::test]
+async fn previous_issuers_are_accepted_and_nothing_else() {
+    let km = primary();
+    let old = "https://acme-fapi.atlasauth.net";
+    let backend = AtlasBackend::builder(ISSUER)
+        .static_jwks(jwks_for(km, "kid-1"))
+        .previous_issuers([old])
+        .build()
+        .unwrap();
+    assert!(backend.verify(&sign_rs256(km, "kid-1", &valid_claims())).await.is_ok());
+
+    let mut claims = valid_claims();
+    claims["iss"] = json!(old);
+    assert_eq!(backend.verify(&sign_rs256(km, "kid-1", &claims)).await.unwrap().sub, "user_1");
+
+    claims["iss"] = json!("https://evil.example.com");
+    assert_eq!(backend.verify(&sign_rs256(km, "kid-1", &claims)).await, Err(VerifyError::Invalid));
+
+    // Without the option the old issuer is refused.
+    claims["iss"] = json!(old);
+    let strict = static_backend(km, "kid-1");
+    assert_eq!(strict.verify(&sign_rs256(km, "kid-1", &claims)).await, Err(VerifyError::Invalid));
+}
+
+#[tokio::test]
 async fn rejects_expired() {
     let km = primary();
     let backend = static_backend(km, "kid-1");

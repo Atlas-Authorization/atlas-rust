@@ -24,6 +24,7 @@ mod client;
 mod design;
 mod error;
 mod instance;
+mod jwt_connections;
 mod machines;
 mod pagination;
 mod platform;
@@ -77,13 +78,15 @@ pub use instance::{
     RotateWebhookSecretBody, WebhookDeliveryReceipt, WebhookEndpoint, WebhookEndpointList, WebhookEndpoints,
     WebhookSecret,
 };
+pub use jwt_connections::{JwtConnection, JwtConnectionBody, JwtConnections};
 pub use pagination::{collect, CursorPage, CursorParams, Query};
 pub use platform_api::{
     AccountDomain, AccountDomainList, AccountDomains, AtlasIdProvisionedAccount, AtlasIdProvisionedAccountApp,
     AtlasIdProvisionedAccountList, AtlasIdProvisionedAccountRemoved, AtlasIdProvisionedAccounts,
     CreateAtlasIdProvisionedAccountBody, RotateAtlasIdProvisionedPasswordBody,
     AtlasIdApp, AtlasIdAppBranding, AtlasIdAppBrandingInput, AtlasIdAppCopy, AtlasIdAppList,
-    AtlasIdApps, AtlasIdPublisherApi, CreateAtlasIdAppBody, CreatePlatformAppBody, PlatformApi, PlatformApp, PlatformApps,
+    AtlasIdApps, AtlasIdPublisherApi, CreateAtlasIdAppBody, CreatePlatformAppBody, InitialSecret, InitialSecretSibling,
+    PlatformApi, PlatformApp, PlatformApps,
     RotateAtlasIdAppSecretBody, RotatePlatformSecretBody, UpdateAtlasIdAppBody, UpdatePlatformAppBody,
 };
 pub use machines::{
@@ -94,9 +97,10 @@ pub use machines::{
 pub use resources::{
     BrowserTicket, CreateSessionBody, TestingSignInUrl, AllGrantsRevocation, ApiKey, ApiKeyToken, ApiKeyWithSecret, ApiKeys, Billing, BillingPlan,
     BillingSubscription, CreateApiKeyBody, CreateBillingPlanBody, CreateOrganizationBody,
-    CreateUserBody, CustomDomain, DeletedObject, Domains, Grant, GrantRevocation, Grants,
+    CreateUserBody, CustomDomain, CustomDomainVerification, DeletedObject, Domains, Grant, GrantRevocation, Grants,
     EndUserPoolPolicy, ImportApiKey, Invitation, Invitations, ListPage, Metadata, MintApiKeyTokenBody,
-    MintedSession, OrgDomain, OrgPolicy, OrgPolicyPatch,
+    MintedSession, OrgDomain, OrgDomainDnsTxt, OrgDomainEmailVerification, OrgDomainVerificationMethods,
+    OrgDomainWellKnown, OrgPolicy, OrgPolicyPatch, OrganizationSso, OrganizationSsoConnection,
     OrgDomains, OrgInvitations, OrgMemberships, Organization, OrganizationInvitation,
     OrganizationMembership, OrganizationPolicy, Organizations, RevokedApiKey, Session, Sessions,
     UpdateApiKeyBody, UpdateOrganizationBody, UpdateUserBody, User, Users,

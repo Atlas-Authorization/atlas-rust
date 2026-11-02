@@ -2,6 +2,21 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.28.0 — 2026-11-01
+
+### Added
+
+- **Trusted-JWT connections.** `jwt_connections()`: `list`, `get`, `create` (with `Idempotency-Key`), `update`, `delete` at `/v1/jwt_connections`, with typed `JwtConnection` (`login_url`, `status`, `jwks_uri`, `issuer`, `audience`, `email_claim`, `max_age_seconds`, `default_role_id`) and `JwtConnectionBody`.
+- **Organizations.** `CreateOrganizationBody` gains `external_id`, `public_metadata`, `private_metadata`, `owner_email` and `role_mappings`, and an empty `created_by` is no longer sent (an organization with no members yet); `UpdateOrganizationBody` gains `external_id` and `role_mappings` (`Some(None)` clears). `Organization` gains `external_id`, `role_mappings`, `owner_invitation`, `sso` (`OrganizationSso`: `connections`, `scim_base_url`) and `domain`. New `organizations().list_with(&Query)` (`external_id`, `metadata[key]=value`), `find_by_domain(domain_or_email, include_unverified)` (`GET /v1/organizations/by_domain/{domain}`) and `get_policy(id)`.
+- **Organization domain verification.** `domains(org_id).verify_with(domain_id, method, code)` (`dns_txt`, `well_known`, `email`) and `send_verification_email(domain_id, address)`; `OrgDomain` gains `verification_methods` (`OrgDomainVerificationMethods`), `verification_method`, `verified_at` and `sent_to`.
+- **Path mounts.** `domains().create_path_mount(hostname, base_path, idempotency_key)` (`POST /v1/domains` with `method: "path"`); `CustomDomain` gains `method`, `cname_target`, `base_path`, `routing`, `frontend_api_url`, `verification` (`CustomDomainVerification`), `instructions` and `issuer`.
+- **Webhook endpoints.** `UpdateWebhookEndpointBody::secret` (your own signing secret on create); `RotateWebhookSecretBody::secret` / `with_secret`; `WebhookTestResult` gains `event_type` and `error_kind`.
+- **Webhook events.** `EventType::SsoConnectionActivated`, `SsoOnboardingTicketCompleted`, `ScimGroupCreated`, `ScimGroupUpdated`, `ScimGroupDeleted`, `ScimGroupMemberAdded`, `ScimGroupMemberRemoved`; `UserReferralAttributedEvent` gains `source`, `atlas_id_sub` and `atlas_id_app_id`.
+- **Imported password hashes.** `CreateUserBody` gains `password_hash`, `password_hash_algorithm`, `password_hash_params`, `password_salt` and `password_hasher`.
+- **Platform apps.** `platform().apps().reveal_initial_secret(app_id, dry_run)` (`POST /v1/platform/apps/{id}/initial_secret/reveal`) returns `InitialSecret` (with `sibling_instance`).
+- **Cookie consent.** `CookieConsent::host_aliases`, `SetCookieConsentBody::host_aliases` and `instance().set_cookie_consent_host_aliases(..)`.
+- **Token verification.** `AtlasBackend::builder(..).previous_issuers([..])` also accepts earlier issuers of the same instance (`atlas_previous_issuers` in discovery) while it moves to a new sign-in host; `iss` must equal the issuer or one of these.
+
 ## 0.27.0 — 2026-10-30
 
 ### Added
