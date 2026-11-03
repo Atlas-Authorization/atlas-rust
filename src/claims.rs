@@ -39,6 +39,20 @@ pub struct Claims {
     /// Whether the session satisfied MFA.
     #[serde(default)]
     pub mfa: Option<bool>,
+    /// The server's MFA verdict: true after a second factor or an enterprise
+    /// SSO sign-in. Read it through [`Claims::mfa_satisfied`], which falls back
+    /// to the older claims on tokens minted before it existed.
+    #[serde(default)]
+    pub mfa_satisfied: Option<bool>,
+    /// Authentication context class (`urn:atlas:acr:mfa` after a second factor).
+    #[serde(default)]
+    pub acr: Option<String>,
+    /// Authentication methods (`pwd`, `otp`, `mfa`, ...).
+    #[serde(default)]
+    pub amr: Option<Vec<String>>,
+    /// The session's last activity when this token was minted, epoch seconds.
+    #[serde(default)]
+    pub last_active_at: Option<i64>,
     /// Active organization id.
     #[serde(default)]
     pub org_id: Option<String>,
@@ -91,6 +105,20 @@ pub struct Claims {
 }
 
 impl Claims {
+    /// Whether the session satisfies a "requires MFA" rule. The server's
+    /// `mfa_satisfied` is final whenever present (true or false); older tokens
+    /// fall back to `mfa`, then `acr` = `urn:atlas:acr:mfa` or `amr` containing
+    /// `mfa`, then an enterprise SSO sign-in (`sso_connection_id`).
+    pub fn mfa_satisfied(&self) -> bool {
+        if let Some(v) = self.mfa_satisfied {
+            return v;
+        }
+        self.mfa == Some(true)
+            || self.acr.as_deref() == Some("urn:atlas:acr:mfa")
+            || self.amr.as_ref().is_some_and(|m| m.iter().any(|x| x == "mfa"))
+            || self.sso_connection_id.is_some()
+    }
+
     /// Whether `org_role` equals `role`.
     pub fn has_role(&self, role: &str) -> bool {
         self.org_role.as_deref() == Some(role)
@@ -169,3 +197,30 @@ fn claim_strings<'a>(extra: &'a Map<String, Value>, name: &str) -> Vec<&'a str> 
         .map(|items| items.iter().filter_map(Value::as_str).collect())
         .unwrap_or_default()
 }
+
+#[cfg(test)]
+mod mfa_satisfied_tests {
+    use super::Claims;
+
+    fn claims(extra: serde_json::Value) -> Claims {
+        let mut v = serde_json::json!({ "iss": "https://fapi.example", "sub": "user_1", "exp": 9_999_999_999i64 });
+        v.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        serde_json::from_value(v).unwrap()
+    }
+
+    #[test]
+    fn server_verdict_is_final() {
+        assert!(!claims(serde_json::json!({ "mfa_satisfied": false, "mfa": true, "sso_connection_id": "sso_1" })).mfa_satisfied());
+        assert!(claims(serde_json::json!({ "mfa_satisfied": true })).mfa_satisfied());
+    }
+
+    #[test]
+    fn older_tokens_fall_back() {
+        assert!(claims(serde_json::json!({ "mfa": true })).mfa_satisfied());
+        assert!(claims(serde_json::json!({ "amr": ["pwd", "mfa"] })).mfa_satisfied());
+        assert!(claims(serde_json::json!({ "acr": "urn:atlas:acr:mfa" })).mfa_satisfied());
+        assert!(claims(serde_json::json!({ "sso_connection_id": "sso_1" })).mfa_satisfied());
+        assert!(!claims(serde_json::json!({ "amr": ["pwd"] })).mfa_satisfied());
+    }
+}
+

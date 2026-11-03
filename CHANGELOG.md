@@ -2,6 +2,13 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.32.0 — 2026-11-03
+
+### Added
+
+- Catalog regenerated from the live API: organization and SSO onboarding profile upserts (`by_external_id`, `by_name`), staged signing-key rotation (`signing_keys/next`, `signing_key_policy`), uniform webhook/hook test results, Sign in with Atlas app health, redirect URI environments, test sign-in expiry and default legal links, cookie consent `frontend_mode`, and the Cookie Munch `executor_connection_id`.
+- `Claims` fields `mfa_satisfied`, `acr`, `amr`, `last_active_at`, and `Claims::mfa_satisfied()` (the server's verdict is final when present; older tokens fall back to `mfa`, `acr`/`amr`, then SSO).
+
 ## 0.31.0 — 2026-11-02
 
 ### Added

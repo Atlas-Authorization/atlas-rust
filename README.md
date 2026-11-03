@@ -24,7 +24,7 @@ On [crates.io](https://crates.io/crates/atlasauth):
 ```toml
 # Cargo.toml
 [dependencies]
-atlasauth = "0.31"
+atlasauth = "0.32"
 ```
 
 Requires Rust 1.70+. The default `reqwest-transport` feature pulls in `reqwest`
@@ -243,7 +243,7 @@ token is refused. It covers one process; with several instances, record the
 ## Management API (`backend` feature)
 
 ```toml
-atlasauth = { version = "0.31", features = ["backend"] }
+atlasauth = { version = "0.32", features = ["backend"] }
 ```
 
 `BackendClient` covers the whole Backend API with your secret key, and the
@@ -887,7 +887,7 @@ own transport by implementing `JwksSource` (for session verification) and/or
 `HttpPost` (for API-key verification):
 
 ```toml
-atlasauth = { version = "0.31", default-features = false }
+atlasauth = { version = "0.32", default-features = false }
 ```
 
 ```rust
@@ -926,7 +926,7 @@ MIT.
 Two more framework integrations, off by default, both over the same `AtlasBackend` verifier (local RS256 against the cached JWKS, issuer, expiry, `azp` allowlist). A missing or invalid credential is a 401; a verifier that was never registered fails closed with a 500.
 
 ```toml
-atlasauth = { version = "0.31", features = ["actix"] }   # or "rocket"
+atlasauth = { version = "0.32", features = ["actix"] }   # or "rocket"
 ```
 
 ```rust

@@ -2234,6 +2234,12 @@ pub struct AtlasIdPublisherGetResponse {
     pub verification: AtlasIdPublisherGetResponseVerification,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_checked_at: Option<i64>,
+    /// Account-wide default privacy policy link for apps that set none (null = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_privacy_policy_url: Option<String>,
+    /// Account-wide default terms of service link for apps that set none (null = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_terms_of_service_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<i64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2248,6 +2254,64 @@ pub struct AtlasIdPublisherGetResponse {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub struct AtlasIdPublisherGetResponseVerification {
+    #[serde(default)]
+    pub record_name: String,
+    /// Always `TXT`.
+    #[serde(default)]
+    pub record_type: String,
+    #[serde(default)]
+    pub record_value: String,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+
+/// The response of `PATCH /v1/platform/atlas_id_publisher` (kept typed: the API now documents
+/// it as either the claimed publisher or `configured: false` with the two default links).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherUpdateResponse {
+    /// Always `atlas_id_publisher`.
+    #[serde(default)]
+    pub object: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub configured: Option<Value>,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub domain: String,
+    #[serde(default)]
+    pub verified: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verified_at: Option<i64>,
+    #[serde(default)]
+    pub skip_consent: bool,
+    #[serde(default)]
+    pub verification: AtlasIdPublisherUpdateResponseVerification,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_checked_at: Option<i64>,
+    /// Account-wide default privacy policy link for apps that set none (null = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_privacy_policy_url: Option<String>,
+    /// Account-wide default terms of service link for apps that set none (null = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_terms_of_service_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<i64>,
+    /// Fields this version of the crate does not know about, kept verbatim.
+    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).
+    #[serde(flatten)]
+    pub extra: Map<String, Value>,
+}
+
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct AtlasIdPublisherUpdateResponseVerification {
     #[serde(default)]
     pub record_name: String,
     /// Always `TXT`.

@@ -12,6 +12,16 @@
    "    pub fn release() -> Self {",
    "        Self::default()",
    "    }"
+  ],
+  "AtlasIdPublisherUpdateBody": [
+   "    /// Set skip_consent (the 0.31 constructor). For the default legal links alone,",
+   "    /// start from `Self::default()` so skip_consent is not sent.",
+   "    pub fn new(skip_consent: impl Into<bool>) -> Self {",
+   "        Self {",
+   "            skip_consent: Some(skip_consent.into()),",
+   "            ..Default::default()",
+   "        }",
+   "    }"
   ]
  },
  "field_types": {
@@ -177,6 +187,7 @@
   "GET /v1/messaging_providers/email/development": "DevelopmentEmail",
   "GET /v1/messaging_providers/email/managed": "ManagedEmail",
   "GET /v1/platform/atlas_id_publisher": "AtlasIdPublisherGetResponse",
+  "PATCH /v1/platform/atlas_id_publisher": "AtlasIdPublisherUpdateResponse",
   "POST /v1/fraud/lookup": "FraudLookupResponse",
   "POST /v1/risk_events/{id}/feedback": "RiskEvent"
  }
