@@ -2,6 +2,13 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.31.0 — 2026-11-02
+
+### Added
+
+- `sso_onboarding().update(id, SsoOnboardingUpdateBody)` (`PATCH /v1/sso_onboarding_profiles/{id}`).
+- Generated types follow the current API: `managed_by` on webhook endpoints (read, create and update) and `connection.rejected_call_kinds` on the referral settings.
+
 ## 0.30.0 — 2026-11-02
 
 ### Added
