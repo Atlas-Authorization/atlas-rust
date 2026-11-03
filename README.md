@@ -926,7 +926,7 @@ MIT.
 Two more framework integrations, off by default, both over the same `AtlasBackend` verifier (local RS256 against the cached JWKS, issuer, expiry, `azp` allowlist). A missing or invalid credential is a 401; a verifier that was never registered fails closed with a 500.
 
 ```toml
-atlasauth = { version = "0.29", features = ["actix"] }   # or "rocket"
+atlasauth = { version = "0.31", features = ["actix"] }   # or "rocket"
 ```
 
 ```rust

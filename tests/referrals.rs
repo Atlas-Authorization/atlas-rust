@@ -46,7 +46,8 @@ async fn referral_settings_get_update_and_test() {
     assert_eq!(security.on_high_risk, "flag");
     assert_eq!(security.max_referred_signups_per_ip_hour, 5);
     let connection = view.connection.expect("connection");
-    assert_eq!(connection.failed_calls_7d, Some(2));
+    assert_eq!(connection.failed_calls_7d, 2);
+    assert!(connection.rejected_call_kinds.is_empty());
     assert_eq!(
         connection.last_test.expect("last test").http_status,
         Some(404)

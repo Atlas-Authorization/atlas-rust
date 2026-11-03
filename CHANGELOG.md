@@ -9,6 +9,10 @@ All notable changes to the `atlasauth` crate are documented here.
 - `sso_onboarding().update(id, SsoOnboardingUpdateBody)` (`PATCH /v1/sso_onboarding_profiles/{id}`).
 - Generated types follow the current API: `managed_by` on webhook endpoints (read, create and update) and `connection.rejected_call_kinds` on the referral settings.
 
+### Changed
+
+- The referral settings' `connection.failed_calls_7d` and `connection.retrying_calls` are now `i64` (always present), not `Option<i64>`.
+
 ## 0.30.0 — 2026-11-02
 
 ### Added
