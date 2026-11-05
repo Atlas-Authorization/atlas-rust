@@ -1020,6 +1020,10 @@ fn decode_instance() {
     round_trip::<types::InstanceUpdateBeforeUserCreateHookResponse>(
         r#"{"enabled":true,"fail_closed":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","recent":{"calls_24h":7,"denied_24h":7,"failed_24h":7,"last_failed_at":7,"p95_latency_ms":7,"timeouts_24h":7},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
     );
+    // DELETE /v1/instance/hooks/before_user_create
+    round_trip::<types::InstanceDeleteBeforeUserCreateResponse>(
+        r#"{"enabled":true,"fail_closed":true,"last_call":{"at":7,"error":"x","status":"ok"},"object":"before_user_create_hook","recent":{"calls_24h":7,"denied_24h":7,"failed_24h":7,"last_failed_at":7,"p95_latency_ms":7,"timeouts_24h":7},"signing_secret_set":true,"timeout_ms":7,"updated_at":7,"url":"x"}"#,
+    );
     // GET /v1/instance/hooks/before_user_create/calls
     round_trip::<types::InstanceListBeforeUserCreateCallsResponse>(
         r#"{"data":[{"answer":{"deny":true,"external_id":"x","private_metadata_keys":["x"],"public_metadata_keys":["x"],"reason":"x","unsafe_metadata_keys":["x"]},"created_at":7,"error":"x","http_status":7,"id":"x","latency_ms":7,"object":"before_user_create_hook_call","status":"ok","test":true,"user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
@@ -1027,6 +1031,10 @@ fn decode_instance() {
     // POST /v1/instance/hooks/before_user_create/test
     round_trip::<types::InstanceTestBeforeUserCreateHookResponse>(
         r#"{"answer":{"deny":true,"external_id":"x","private_metadata_set":true,"public_metadata":{"k":"v"},"reason":"x","unsafe_metadata":{"k":"v"}},"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"ok":true,"status":"success"}"#,
+    );
+    // POST /v1/instance/integrations/{product}/deliveries/redeliver
+    round_trip::<types::InstanceRedeliverResponse>(
+        r#"{"endpoint_id":"x","events_considered":7,"has_more":true,"integration":"x","next_since":7,"object":"integration_redelivery","queued":7,"retention":{"k":"v"},"since":7,"url":"x"}"#,
     );
     // PUT /v1/instance/kerberos_secret
     round_trip::<types::InstanceSetKerberosSecretResponse>(
@@ -1110,11 +1118,15 @@ fn decode_instance() {
     );
     // GET /v1/instance/referrals
     round_trip::<types::InstanceGetReferralsResponse>(
-        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"rejected_call_kinds":[{"at":7,"call_id":"x","http_status":7,"kind":"x","suppressed":true,"url":"x"}],"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","context_cookies":["x"],"enabled":true,"endpoint_url":"x","forward_lifecycle":true,"hosted_panel":"link","inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","one_click":{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"},"one_click_presets":[{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"}],"partner_portal_url":"x","program_id":"x","provider":"x","provider_aliases":["x"],"providers":[{"aliases":["x"],"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"default_context_cookie":"x","default_context_cookies":["x"],"docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"report_linked_atlas_id_signups":true,"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
+        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"capabilities":{"accounts":true,"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_failed_call":{"at":7,"error":"x","http_status":7,"id":"x","kind":"x"},"last_ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"rejected_call_kinds":[{"at":7,"call_id":"x","http_status":7,"kind":"x","suppressed":true,"url":"x"}],"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","context_cookies":["x"],"enabled":true,"endpoint_url":"x","forward_lifecycle":true,"hosted_panel":"link","inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","one_click":{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"},"one_click_presets":[{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"}],"partner_portal_url":"x","program_id":"x","provider":"x","provider_aliases":["x"],"providers":[{"aliases":["x"],"capabilities":{"accounts":true,"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"default_context_cookie":"x","default_context_cookies":["x"],"docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"report_linked_atlas_id_signups":true,"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"]}"#,
     );
     // PATCH /v1/instance/referrals
     round_trip::<types::InstanceUpdateReferralsResponse>(
-        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"rejected_call_kinds":[{"at":7,"call_id":"x","http_status":7,"kind":"x","suppressed":true,"url":"x"}],"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","context_cookies":["x"],"enabled":true,"endpoint_url":"x","forward_lifecycle":true,"hosted_panel":"link","inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","one_click":{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"},"one_click_presets":[{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"}],"partner_portal_url":"x","program_id":"x","provider":"x","provider_aliases":["x"],"providers":[{"aliases":["x"],"capabilities":{"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"default_context_cookie":"x","default_context_cookies":["x"],"docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"report_linked_atlas_id_signups":true,"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"],"warnings":[{"code":"renamed","field":"x","from":"x","message":"x","to":{"any":1}}]}"#,
+        r#"{"api_key_set":true,"auto_enroll_users":true,"browser_sources":["referalli"],"browser_sources_default":true,"capabilities":{"accounts":true,"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"code_lookup_url":"x","connection":{"alert":{"at":7,"call_id":"x","code":"signature_rejected","message":"x"},"failed_calls_7d":7,"last_failed_call":{"at":7,"error":"x","http_status":7,"id":"x","kind":"x"},"last_ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"last_success_at":7,"last_test":{"at":7,"error":"x","http_status":7,"ok":true},"rejected_call_kinds":[{"at":7,"call_id":"x","http_status":7,"kind":"x","suppressed":true,"url":"x"}],"retrying_calls":7},"connection_id":"x","consent_category":"x","consent_fallback_category":"x","consent_provider":"auto","context_cookie":"x","context_cookies":["x"],"enabled":true,"endpoint_url":"x","forward_lifecycle":true,"hosted_panel":"link","inbound":{"endpoint_id":"x","last_event":{"at":7,"outcome":"applied","type":"x"},"secret_set":true,"url":"x"},"include_referral_claims":true,"link_template":"x","mirror_to_public_metadata":true,"missing":["x"],"object":"referral_settings","one_click":{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"},"one_click_presets":[{"available":true,"id":"x","name":"x","provider":"x","redirect_uri":"x","scope":"x"}],"partner_portal_url":"x","program_id":"x","provider":"x","provider_aliases":["x"],"providers":[{"aliases":["x"],"capabilities":{"accounts":true,"alias":true,"auto_enroll":true,"erase":true,"export":true,"identity":true,"inbound":true,"origins":true,"partner":true,"ping":true,"signal":true,"signup":true,"user":true,"widget_token":true},"default_context_cookie":"x","default_context_cookies":["x"],"docs_url":"x","id":"x","name":"x","needs":["endpoint_url"]}],"report_linked_atlas_id_signups":true,"security":{"challenge_referred_signups":"always","hold_until_email_verified":true,"max_referred_signups_per_ip_hour":7,"on_high_risk":"flag"},"signing_secret_set":true,"signup_code_field":true,"timeout_ms":7,"tracking_token":"x","updated_at":7,"url_params":["x"],"warnings":[{"code":"renamed","field":"x","from":"x","message":"x","to":{"any":1}}]}"#,
+    );
+    // POST /v1/instance/referrals/accounts/resync
+    round_trip::<types::InstanceResyncResponse>(
+        r#"{"backfill_id":"x","calls_queued":7,"next_starting_after":"x","object":"referral_accounts_resync","organizations_scanned":7,"organizations_without_owner":7,"truncated":true}"#,
     );
     // POST /v1/instance/referrals/backfill
     round_trip::<types::InstanceStartReferralBackfillResponse>(
@@ -1146,7 +1158,7 @@ fn decode_instance() {
     );
     // POST /v1/instance/referrals/test
     round_trip::<types::InstanceTestReferralsResponse>(
-        r#"{"body_problems":[{"kind":"signup","unknown_fields":["x"]}],"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"method":"ping","ok":true,"ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"warnings":["x"]}"#,
+        r#"{"body_problems":[{"kind":"signup","unknown_fields":["x"]}],"error":{"code":"x","message":"x"},"http_status":7,"latency_ms":7,"method":"ping","ok":true,"ping":{"advertised_capabilities":{"k":true},"at":7,"auto_enroll_users":true,"clock_skew_ms":7,"clock_skew_warning":true,"connection_id":"x","error":"x","error_code":"x","http_status":7,"latency_ms":7,"ok":true,"org_name":"x","program_id":"x","program_name":"x","server_time":"x"},"signup_test":{"error":{"code":"x","message":"x"},"http_status":7,"ok":true},"warnings":["x"]}"#,
     );
     // POST /v1/instance/secret_keys
     round_trip::<types::InstanceCreateSecretKeyResponse>(
@@ -1214,11 +1226,11 @@ fn decode_invitations() {
 fn decode_jobs() {
     // GET /v1/jobs
     round_trip::<types::JobsListResponse>(
-        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_accounts":[{"connected_at":7,"email_verified":true,"first_name":"x","id":"x","image_url":"x","last_name":"x","object":"external_account","provider":"x","provider_email":"x","provider_user_id":"x"}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","required_factors":["x"],"status":"active","updated_at":7,"username":"x","version":7,"warnings":["x"]}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_accounts":[{"connected_at":7,"email_verified":true,"first_name":"x","id":"x","image_url":"x","last_name":"x","object":"external_account","provider":"x","provider_email":"x","provider_user_id":"x"}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","required_factors":["x"],"status":"active","updated_at":7,"username":"x","version":7,"warnings":["x"]}],"results":[{"email_address":"x","outcome":"created","user_id":"x","warnings":[{"code":"x","message":"x"}]}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7,"warnings":[{"code":"x","count":7,"external_ids":["x"],"message":"x"}]}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // GET /v1/jobs/{id}
     round_trip::<types::Job>(
-        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_accounts":[{"connected_at":7,"email_verified":true,"first_name":"x","id":"x","image_url":"x","last_name":"x","object":"external_account","provider":"x","provider_email":"x","provider_user_id":"x"}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","required_factors":["x"],"status":"active","updated_at":7,"username":"x","version":7,"warnings":["x"]}],"results":[{"email_address":"x","outcome":"created","user_id":"x"}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7}"#,
+        r#"{"completed_at":7,"created_at":7,"error_count":7,"failed":7,"id":"x","object":"job","processed":7,"result":[{"ban_note":"x","ban_reason":"x","banned":true,"created_at":7,"deleted_at":7,"email_addresses":[{"email_address":"x","id":"x","object":"email_address","primary":true,"verification":{"status":"verified","strategy":"x"},"verified":true}],"external_accounts":[{"connected_at":7,"email_verified":true,"first_name":"x","id":"x","image_url":"x","last_name":"x","object":"external_account","provider":"x","provider_email":"x","provider_user_id":"x"}],"external_id":"x","first_name":"x","id":"x","image_url":"x","is_anonymous":true,"last_name":"x","last_sign_in_at":7,"locked":true,"mfa_enabled":true,"object":"user","password_enabled":true,"primary_email":"x","primary_email_address_id":"x","public_metadata":{"k":"v"},"referral":{"flagged":true,"matched_via":"x","notes":["x"],"partner_external_ref":"x","partner_id":"x","referral_status":"x","referrer_external_id":"x","referrer_user_id":"x","risk_level":"low","status":"pending"},"referral_code":"x","referral_link":"x","required_factors":["x"],"status":"active","updated_at":7,"username":"x","version":7,"warnings":["x"]}],"results":[{"email_address":"x","outcome":"created","user_id":"x","warnings":[{"code":"x","message":"x"}]}],"status":"x","succeeded":7,"total":7,"type":"x","updated_at":7,"warnings":[{"code":"x","count":7,"external_ids":["x"],"message":"x"}]}"#,
     );
     // GET /v1/jobs/{id}/errors
     round_trip::<types::JobsListErrorsResponse>(r#"{"data":[{"k":"v"}],"object":"list"}"#);
@@ -1337,6 +1349,22 @@ fn decode_lti_platforms() {
     // DELETE /v1/lti_platforms/{id}
     round_trip::<types::LtiPlatformsDeleteResponse>(
         r#"{"deleted":true,"id":"x","object":"lti_platform"}"#,
+    );
+}
+
+#[test]
+fn decode_machines() {
+    // GET /v1/machines/{id}/grants
+    round_trip::<types::MachinesListGrantsResponse>(
+        r#"{"data":[{"created_at":7,"id":"x","machine_id":"x","object":"machine_grant","resource_server_id":"x","scopes":["x"],"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/machines/{id}/grants
+    round_trip::<types::MachineGrant>(
+        r#"{"created_at":7,"id":"x","machine_id":"x","object":"machine_grant","resource_server_id":"x","scopes":["x"],"updated_at":7}"#,
+    );
+    // DELETE /v1/machines/{id}/grants/{grantId}
+    round_trip::<types::MachinesDeleteGrantResponse>(
+        r#"{"deleted":true,"id":"x","object":"machine_grant"}"#,
     );
 }
 
@@ -1784,6 +1812,18 @@ fn decode_organizations() {
     round_trip::<types::OrganizationsItAlertsResponse>(
         r#"{"data":[{"connection_id":"x","contacts_notified":7,"created_at":7,"days_left":7,"id":"x","kind":"x","object":"organization_it_alert","organization_id":"x","title":"x"}],"has_more":true,"object":"list"}"#,
     );
+    // GET /v1/organizations/{id}/machine_memberships
+    round_trip::<types::OrganizationsListMachineMembershipsResponse>(
+        r#"{"data":[{"created_at":7,"id":"x","machine_id":"x","object":"machine_membership","organization_id":"x","role":"x","role_id":"x","updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+    );
+    // POST /v1/organizations/{id}/machine_memberships
+    round_trip::<types::MachineMembership>(
+        r#"{"created_at":7,"id":"x","machine_id":"x","object":"machine_membership","organization_id":"x","role":"x","role_id":"x","updated_at":7}"#,
+    );
+    // DELETE /v1/organizations/{id}/machine_memberships/{machineId}
+    round_trip::<types::OrganizationsDeleteMachineMembershipsResponse>(
+        r#"{"deleted":true,"id":"x","object":"machine_membership"}"#,
+    );
     // GET /v1/organizations/{id}/roles
     round_trip::<types::OrganizationsListRolesResponse>(
         r#"{"data":[{"created_at":7,"description":"x","id":"x","is_system":true,"key":"x","member_count":7,"name":"x","object":"role","organization_id":"x","permissions":["x"],"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
@@ -2098,11 +2138,11 @@ fn decode_refresh_tokens() {
 fn decode_resource_servers() {
     // GET /v1/resource_servers
     round_trip::<types::ResourceServersListResponse>(
-        r#"{"data":[{"access_token_format":"jwt","created_at":7,"id":"x","identifier":"x","introspection_client_ids":["x"],"name":"x","object":"resource_server","publish_resource_metadata":true,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7,"scopes":[{"description":"x","value":"x"}],"signing_alg":"RS256","token_ttl_seconds":7,"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"access_token_format":"jwt","created_at":7,"id":"x","identifier":"x","introspection_client_ids":["x"],"name":"x","object":"resource_server","publish_resource_metadata":true,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7,"scope_presets":{"k":["x"]},"scopes":[{"description":"x","value":"x"}],"signing_alg":"RS256","token_ttl_seconds":7,"updated_at":7}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/resource_servers
     round_trip::<types::ResourceServer>(
-        r#"{"access_token_format":"jwt","created_at":7,"id":"x","identifier":"x","introspection_client_ids":["x"],"name":"x","object":"resource_server","publish_resource_metadata":true,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7,"scopes":[{"description":"x","value":"x"}],"signing_alg":"RS256","token_ttl_seconds":7,"updated_at":7}"#,
+        r#"{"access_token_format":"jwt","created_at":7,"id":"x","identifier":"x","introspection_client_ids":["x"],"name":"x","object":"resource_server","publish_resource_metadata":true,"refresh_token_absolute_ttl_seconds":7,"refresh_token_idle_ttl_seconds":7,"scope_presets":{"k":["x"]},"scopes":[{"description":"x","value":"x"}],"signing_alg":"RS256","token_ttl_seconds":7,"updated_at":7}"#,
     );
     // DELETE /v1/resource_servers/{id}
     round_trip::<types::ResourceServersDeleteResponse>(
@@ -2286,7 +2326,7 @@ fn decode_session_exchange_apps() {
 fn decode_sessions() {
     // PUT /v1/sessions/{id}/custom_data
     round_trip::<types::Session>(
-        r#"{"abandon_at":7,"created_at":7,"custom_data":{"k":"v"},"expire_at":7,"id":"x","idle_expires_at":7,"impersonated_by":"x","last_active_at":7,"last_active_organization_id":"x","object":"session","status":"x","user_id":"x"}"#,
+        r#"{"abandon_at":7,"created_at":7,"custom_data":{"k":"v"},"expire_at":7,"id":"x","idle_expires_at":7,"impersonated_by":"x","last_active_at":7,"last_active_organization_id":"x","object":"session","revoked_at":7,"revoked_reason":"x","status":"x","user_id":"x"}"#,
     );
     // GET /v1/sessions/{id}/status
     round_trip::<types::SessionsStatusResponse>(
@@ -2480,6 +2520,10 @@ fn decode_users() {
     round_trip::<types::UsersByEmailsResponse>(
         r#"{"data":[{"email_address":"x","user_id":"x","verified":true}],"object":"x"}"#,
     );
+    // POST /v1/users/{id}/account_claim
+    round_trip::<types::UsersAccountClaimResponse>(
+        r#"{"object":"account_claim","protection":"password_hold","user_id":"x"}"#,
+    );
     // GET /v1/users/{id}/app_roles
     round_trip::<types::UsersGetAppRolesResponse>(
         r#"{"object":"user_app_roles","permissions":["x"],"role_keys":["x"],"roles":[{"created_at":7,"description":"x","id":"x","key":"x","name":"x","object":"app_role","permissions":["x"],"updated_at":7,"users_count":7}],"user_id":"x"}"#,
@@ -2604,7 +2648,7 @@ fn decode_users() {
     );
     // GET /v1/users/{id}/sessions
     round_trip::<types::UsersListSessionsResponse>(
-        r#"{"data":[{"abandon_at":7,"created_at":7,"custom_data":{"k":"v"},"expire_at":7,"id":"x","idle_expires_at":7,"impersonated_by":"x","last_active_at":7,"last_active_organization_id":"x","object":"session","status":"x","user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
+        r#"{"data":[{"abandon_at":7,"created_at":7,"custom_data":{"k":"v"},"expire_at":7,"id":"x","idle_expires_at":7,"impersonated_by":"x","last_active_at":7,"last_active_organization_id":"x","object":"session","revoked_at":7,"revoked_reason":"x","status":"x","user_id":"x"}],"has_more":true,"next_cursor":"x","object":"list"}"#,
     );
     // POST /v1/users/{id}/sessions/revoke
     round_trip::<types::UsersRevokeSessionsResponse>(

@@ -2476,6 +2476,16 @@ async fn every_catalog_operation_hits_its_route() {
         true,
     ));
     c.instance()
+        .delete_before_user_create(Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/instance/hooks/before_user_create".into(),
+        B::None,
+        true,
+    ));
+    c.instance()
         .list_before_user_create_calls(&q)
         .await
         .unwrap();
@@ -2491,6 +2501,20 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/instance/hooks/before_user_create/test".into(),
         B::None,
         false,
+    ));
+    c.instance()
+        .redeliver(
+            "p0_product",
+            &types::InstanceRedeliverBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/integrations/p0_product/deliveries/redeliver".into(),
+        B::Obj,
+        true,
     ));
     c.instance()
         .set_kerberos_secret(&types::InstanceSetKerberosSecretBody::default())
@@ -2689,6 +2713,16 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((
         HttpMethod::Patch,
         "/v1/instance/referrals".into(),
+        B::Obj,
+        true,
+    ));
+    c.instance()
+        .resync(&types::InstanceResyncBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/referrals/accounts/resync".into(),
         B::Obj,
         true,
     ));
@@ -3148,6 +3182,37 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((
         HttpMethod::Delete,
         "/v1/lti_platforms/p0_id".into(),
+        B::None,
+        false,
+    ));
+    c.machines().list_grants("p0_id", &q).await.unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/machines/p0_id/grants?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.machines()
+        .create_grant(
+            "p0_id",
+            &types::MachinesCreateGrantBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/machines/p0_id/grants".into(),
+        B::Obj,
+        true,
+    ));
+    c.machines()
+        .delete_grant("p0_id", "p1_grant_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/machines/p0_id/grants/p1_grant_id".into(),
         B::None,
         false,
     ));
@@ -4181,6 +4246,54 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((
         HttpMethod::Get,
         "/v1/organizations/p0_id/it_alerts?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .list_machine_memberships("p0_id", &q)
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Get,
+        "/v1/organizations/p0_id/machine_memberships?limit=2".into(),
+        B::None,
+        false,
+    ));
+    c.organizations()
+        .create_machine_membership(
+            "p0_id",
+            &types::OrganizationsCreateMachineMembershipBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/organizations/p0_id/machine_memberships".into(),
+        B::Obj,
+        true,
+    ));
+    c.organizations()
+        .update_machine_memberships(
+            "p0_id",
+            "p1_machine_id",
+            &types::OrganizationsUpdateMachineMembershipsBody::default(),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Patch,
+        "/v1/organizations/p0_id/machine_memberships/p1_machine_id".into(),
+        B::Obj,
+        false,
+    ));
+    c.organizations()
+        .delete_machine_memberships("p0_id", "p1_machine_id")
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/machine_memberships/p1_machine_id".into(),
         B::None,
         false,
     ));
@@ -5838,6 +5951,20 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         false,
     ));
+    c.users()
+        .account_claim(
+            "p0_id",
+            &types::UsersAccountClaimBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/users/p0_id/account_claim".into(),
+        B::Obj,
+        true,
+    ));
     c.users().get_app_roles("p0_id").await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -6128,6 +6255,21 @@ async fn every_catalog_operation_hits_its_route() {
     expected.push((
         HttpMethod::Post,
         "/v1/users/p0_id/password".into(),
+        B::Obj,
+        true,
+    ));
+    c.users()
+        .delete_password(
+            "p0_id",
+            &types::UsersDeletePasswordBody::default(),
+            &q,
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/users/p0_id/password?limit=2".into(),
         B::Obj,
         true,
     ));
@@ -6546,4 +6688,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 734 operations, 705 typed; 734 calls.
+// 746 operations, 717 typed; 746 calls.

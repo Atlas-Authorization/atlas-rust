@@ -5437,6 +5437,26 @@ impl Instance<'_> {
             )
             .await
     }
+    /// `DELETE /v1/instance/hooks/before_user_create` — Turn the before_user_create hook off and
+    /// clear its url and signing secret, the same as PATCH with {enabled:false, url:null,
+    /// signing_secret:null}. Audited. Idempotent: a hook that is already clear answers 200 the same
+    /// way. timeout_ms and fail_closed are kept.
+    ///
+    /// Returns [`types::InstanceDeleteBeforeUserCreateResponse`].
+    pub async fn delete_before_user_create(
+        &self,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceDeleteBeforeUserCreateResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Delete,
+                "/v1/instance/hooks/before_user_create",
+                &[],
+                None,
+                idempotency_key,
+            )
+            .await
+    }
     /// `GET /v1/instance/hooks/before_user_create/calls` — The hook's delivery log, newest first,
     /// kept 30 days: every call (sign-ups and tests, flagged) with its status, HTTP code, latency,
     /// error and what the hook answered (external_id and metadata keys only). A failed or timed-out
@@ -5478,6 +5498,37 @@ impl Instance<'_> {
                 &[],
                 None,
                 None,
+            )
+            .await
+    }
+    /// `POST /v1/instance/integrations/{product}/deliveries/redeliver` — Re-send what the
+    /// integration's event receiver never got: every event since `since` with no successful
+    /// delivery and no retry still scheduled, including events recorded while the receiver was
+    /// disabled. Each goes out signed and addressed as of now, with its original event id. Switches
+    /// a disabled receiver back on. At most 1,000 events per call (`has_more` + `next_since` to
+    /// continue). Running it again queues nothing new, including two calls at once with no
+    /// Idempotency-Key. 409 when `since` is older than the 90-day event retention; past the 30-day
+    /// delivery log Atlas cannot tell what was delivered, so an older `since` can re-send delivered
+    /// events. 404 when the integration has no event receiver. Honours Idempotency-Key.
+    ///
+    /// Takes [`types::InstanceRedeliverBody`]. Returns [`types::InstanceRedeliverResponse`].
+    pub async fn redeliver(
+        &self,
+        product: &str,
+        body: &types::InstanceRedeliverBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceRedeliverResponse, BackendError> {
+        let path = format!(
+            "/v1/instance/integrations/{}/deliveries/redeliver",
+            seg(product)
+        );
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
             )
             .await
     }
@@ -5908,6 +5959,35 @@ impl Instance<'_> {
             .request(
                 HttpMethod::Patch,
                 "/v1/instance/referrals",
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `POST /v1/instance/referrals/accounts/resync` — Send every organization's owner to the
+    /// referral platform once (an `accounts` call per organization: accountRef = the organization's
+    /// external_id, else its id; ownerCustomerRef = the owner's customerRef). The owner is the
+    /// organization's creator while they hold the creator role or org:admin, else the
+    /// longest-standing member holding one of those roles; organizations with no such member are
+    /// counted in organizations_without_owner and skipped. Calls go out at about 10 per second
+    /// through the delivery log (kind `accounts`), oldest first, up to 10,000 organizations per
+    /// request (continue with `starting_after` = `next_starting_after`); the platform treats a
+    /// repeat as a no-op. Atlas already sends these on its own when an organization is created, its
+    /// external_id changes or its owner changes, and once when the platform first advertises
+    /// `accounts`: use this after restoring data or to be sure. Requires referrals to be on and the
+    /// platform to advertise `accounts` (422 REFERRALS_NOT_CONFIGURED otherwise).
+    ///
+    /// Takes [`types::InstanceResyncBody`]. Returns [`types::InstanceResyncResponse`].
+    pub async fn resync(
+        &self,
+        body: &types::InstanceResyncBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::InstanceResyncResponse, BackendError> {
+        self.client
+            .request(
+                HttpMethod::Post,
+                "/v1/instance/referrals/accounts/resync",
                 &[],
                 body_of(body)?,
                 idempotency_key,
@@ -6912,6 +6992,60 @@ impl LtiPlatforms<'_> {
         id: &str,
     ) -> Result<types::LtiPlatformsDeleteResponse, BackendError> {
         let path = format!("/v1/lti_platforms/{}", seg(id));
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
+}
+
+impl Machines<'_> {
+    /// `GET /v1/machines/{id}/grants` — List the resource servers a machine may obtain tokens for,
+    /// and up to which scopes.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::MachinesListGrantsResponse`].
+    pub async fn list_grants(
+        &self,
+        id: &str,
+        query: &Query,
+    ) -> Result<types::MachinesListGrantsResponse, BackendError> {
+        let path = format!("/v1/machines/{}/grants", seg(id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/machines/{id}/grants` — Authorize a machine for a resource server and its scopes.
+    /// 409 if it already has a grant there.
+    ///
+    /// Takes [`types::MachinesCreateGrantBody`]. Returns [`types::MachineGrant`].
+    pub async fn create_grant(
+        &self,
+        id: &str,
+        body: &types::MachinesCreateGrantBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::MachineGrant, BackendError> {
+        let path = format!("/v1/machines/{}/grants", seg(id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/machines/{id}/grants/{grantId}` — Revoke a machine's grant. No new tokens for
+    /// that resource server; a token already issued lasts until it expires.
+    ///
+    /// Returns [`types::MachinesDeleteGrantResponse`].
+    pub async fn delete_grant(
+        &self,
+        id: &str,
+        grant_id: &str,
+    ) -> Result<types::MachinesDeleteGrantResponse, BackendError> {
+        let path = format!("/v1/machines/{}/grants/{}", seg(id), seg(grant_id));
         self.client
             .request(HttpMethod::Delete, &path, &[], None, None)
             .await
@@ -8959,6 +9093,80 @@ impl Organizations<'_> {
             .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
             .await
     }
+    /// `GET /v1/organizations/{id}/machine_memberships` — List the machines that are members of an
+    /// organization. Separate from user memberships.
+    ///
+    /// Query parameters: `limit`, `starting_after`.
+    ///
+    /// Returns [`types::OrganizationsListMachineMembershipsResponse`].
+    pub async fn list_machine_memberships(
+        &self,
+        org_id: &str,
+        query: &Query,
+    ) -> Result<types::OrganizationsListMachineMembershipsResponse, BackendError> {
+        let path = format!("/v1/organizations/{}/machine_memberships", seg(org_id));
+        self.client
+            .request(HttpMethod::Get, &path, &query.as_pairs(), None, None)
+            .await
+    }
+    /// `POST /v1/organizations/{id}/machine_memberships` — Make a machine a member of an
+    /// organization with a role. Holds no seat. 409 if it is already a member.
+    ///
+    /// Takes [`types::OrganizationsCreateMachineMembershipBody`]. Returns [`types::MachineMembership`].
+    pub async fn create_machine_membership(
+        &self,
+        org_id: &str,
+        body: &types::OrganizationsCreateMachineMembershipBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::MachineMembership, BackendError> {
+        let path = format!("/v1/organizations/{}/machine_memberships", seg(org_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `PATCH /v1/organizations/{id}/machine_memberships/{machineId}` — Change a machine's role in
+    /// an organization. New tokens carry the new role.
+    ///
+    /// Takes [`types::OrganizationsUpdateMachineMembershipsBody`]. Returns [`types::MachineMembership`].
+    pub async fn update_machine_memberships(
+        &self,
+        org_id: &str,
+        machine_id: &str,
+        body: &types::OrganizationsUpdateMachineMembershipsBody,
+    ) -> Result<types::MachineMembership, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/machine_memberships/{}",
+            seg(org_id),
+            seg(machine_id)
+        );
+        self.client
+            .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
+            .await
+    }
+    /// `DELETE /v1/organizations/{id}/machine_memberships/{machineId}` — Remove a machine from an
+    /// organization. New tokens no longer carry its role there.
+    ///
+    /// Returns [`types::OrganizationsDeleteMachineMembershipsResponse`].
+    pub async fn delete_machine_memberships(
+        &self,
+        org_id: &str,
+        machine_id: &str,
+    ) -> Result<types::OrganizationsDeleteMachineMembershipsResponse, BackendError> {
+        let path = format!(
+            "/v1/organizations/{}/machine_memberships/{}",
+            seg(org_id),
+            seg(machine_id)
+        );
+        self.client
+            .request(HttpMethod::Delete, &path, &[], None, None)
+            .await
+    }
     /// `PUT /v1/organizations/{id}/metadata` — Replace the organization public and private metadata
     /// bags wholesale.
     ///
@@ -10442,7 +10650,7 @@ impl ResourceServers<'_> {
             .await
     }
     /// `POST /v1/resource_servers` — Register a resource server (API): its audience identifier,
-    /// scopes and token TTL.
+    /// scopes, scope presets and token TTL.
     ///
     /// Takes [`types::ResourceServersCreateBody`]. Returns [`types::ResourceServer`].
     pub async fn create(
@@ -10470,7 +10678,8 @@ impl ResourceServers<'_> {
             .await
     }
     /// `PATCH /v1/resource_servers/{id}` — Update a resource server. The identifier (audience) is
-    /// immutable.
+    /// immutable, and a scope that a preset names cannot be removed without changing the preset in
+    /// the same request.
     ///
     /// Takes [`types::ResourceServersUpdateBody`]. Returns [`types::ResourceServer`].
     pub async fn update(
@@ -10483,8 +10692,8 @@ impl ResourceServers<'_> {
             .request(HttpMethod::Patch, &path, &[], body_of(body)?, None)
             .await
     }
-    /// `DELETE /v1/resource_servers/{id}` — Delete a resource server; its client grants cascade
-    /// with it.
+    /// `DELETE /v1/resource_servers/{id}` — Delete a resource server; its client and machine grants
+    /// go with it.
     ///
     /// Returns [`types::ResourceServersDeleteResponse`].
     pub async fn delete(
@@ -12182,7 +12391,10 @@ impl ImportExport<'_> {
     /// with invalid_image_url), created_at, phone_number / phone_numbers and
     /// organization_memberships (org by id, external id or slug, plus a role);
     /// create_organizations:true creates a missing org. Per-row failures are recorded, never fatal.
-    /// Body: an array of users, or { users, upsert?, notify?, create_organizations?,
+    /// password_policy "until_email_verified" holds the password of a row without email_verified
+    /// true until an email on the account is proven by any route; a correct password is refused
+    /// until then with password_not_yet_usable (a wrong one gets the normal failure). Body: an
+    /// array of users, or { users, upsert?, notify?, create_organizations?, password_policy?,
     /// password_hash_config? }. An import never notifies the imported users: with notify false (the
     /// default) no email, SMS or push is sent as a consequence of the import, whatever templates
     /// are configured; notify:true is reserved for future welcome messages and currently sends
@@ -12232,6 +12444,32 @@ impl Users<'_> {
                 &[],
                 body_of(body)?,
                 None,
+            )
+            .await
+    }
+    /// `POST /v1/users/{id}/account_claim` — Protect one existing unverified user, so a proof of
+    /// its address reaches it instead of making a second account. Body: `password_policy` must be
+    /// `until_email_verified`. A user with a password gets the same hold an import gives. A user
+    /// with no credential is marked as yours, and a proof of its address then claims it. Naming the
+    /// exact user id is what makes this safe, so nothing matches by address. Answers 409
+    /// ACCOUNT_NOT_CLAIMABLE with `meta.reasons` when the user has a verified address or anything
+    /// else that signs in, and 422 when it has no email address. Safe to repeat.
+    ///
+    /// Takes [`types::UsersAccountClaimBody`]. Returns [`types::UsersAccountClaimResponse`].
+    pub async fn account_claim(
+        &self,
+        user_id: &str,
+        body: &types::UsersAccountClaimBody,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::UsersAccountClaimResponse, BackendError> {
+        let path = format!("/v1/users/{}/account_claim", seg(user_id));
+        self.client
+            .request(
+                HttpMethod::Post,
+                &path,
+                &[],
+                body_of(body)?,
+                idempotency_key,
             )
             .await
     }
@@ -12728,6 +12966,33 @@ impl Users<'_> {
                 HttpMethod::Post,
                 &path,
                 &[],
+                body_of(body)?,
+                idempotency_key,
+            )
+            .await
+    }
+    /// `DELETE /v1/users/{id}/password` — Remove a user's password: password_enabled becomes false
+    /// and the old password stops working at once. Also allowed when it is the user's only sign-in
+    /// method. Idempotent: on a user with no password nothing changes and the answer is the same.
+    /// Signs the user out of their sessions unless sign_out_of_other_sessions is false (in the
+    /// body, or as a query parameter for clients that cannot send a body on DELETE).
+    ///
+    /// Query parameters: `sign_out_of_other_sessions`.
+    ///
+    /// Takes [`types::UsersDeletePasswordBody`]. Returns [`types::User`].
+    pub async fn delete_password(
+        &self,
+        user_id: &str,
+        body: &types::UsersDeletePasswordBody,
+        query: &Query,
+        idempotency_key: Option<&str>,
+    ) -> Result<types::User, BackendError> {
+        let path = format!("/v1/users/{}/password", seg(user_id));
+        self.client
+            .request(
+                HttpMethod::Delete,
+                &path,
+                &query.as_pairs(),
                 body_of(body)?,
                 idempotency_key,
             )

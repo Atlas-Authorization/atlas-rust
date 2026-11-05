@@ -181,7 +181,7 @@ for _k in PINS['generate_despite_handwritten']:
 # Existing namespaces we EXTEND (struct, has-extra-field) -> how to reach parent id.
 EXISTING = {
     'Users': None, 'Organizations': None, 'Instance': None, 'Billing': None, 'ApiKeys': None,
-    'Sessions': None, 'Invitations': None, 'OrgSettingsSchemaApi': None,
+    'Sessions': None, 'Invitations': None, 'OrgSettingsSchemaApi': None, 'Machines': None,
     'MessagingProvidersApi': None, 'AtlasIdApps': None, 'AtlasIdPublisherApi': None, 'PlatformApi': None,
     # hand-written in catalog_ext.rs / suite.rs
     'Abac': None, 'AccessPolicies': None, 'Agents': None, 'AppCatalog': None, 'AuthzDecisions': None, 'Connections': None, 'DesktopMfa': None, 'Devices': None, 'Iga': None, 'McpGateways': None, 'PartnerLinks': None, 'Ssf': None, 'Vc': None, 'Workflows': None,
@@ -195,6 +195,7 @@ NS = [
     ('/v1/billing', 'Billing', None, None),
     ('/v1/api_keys', 'ApiKeys', None, None),
     ('/v1/sessions', 'Sessions', None, None),
+    ('/v1/machines', 'Machines', None, None),
     ('/v1/invitations', 'Invitations', None, None),
     ('/v1/organization_settings_schema', 'OrgSettingsSchemaApi', None, None),
     ('/v1/messaging_providers', 'MessagingProvidersApi', None, None),
@@ -325,6 +326,11 @@ KEEP_OPTIONAL = {
 
 # Exact (METHOD, template-path) -> method name overrides.
 OVR = {
+    ('GET', '/v1/machines/{id}/grants'): 'list_grants',
+    ('POST', '/v1/machines/{id}/grants'): 'create_grant',
+    ('DELETE', '/v1/machines/{id}/grants/{grantId}'): 'delete_grant',
+    ('GET', '/v1/organizations/{id}/machine_memberships'): 'list_machine_memberships',
+    ('POST', '/v1/organizations/{id}/machine_memberships'): 'create_machine_membership',
     ('GET', '/v1/workflows/{id}/runs/{runId}'): 'get_run',
     ('GET', '/v1/administrative_units/{id}/members'): 'list_members',
     ('POST', '/v1/administrative_units/{id}/members'): 'create_member',
@@ -1431,7 +1437,7 @@ open(os.path.join(ROOT, 'src/backend/catalog.rs'), 'w').write('\n'.join(lines) +
 
 # ── emit tests/catalog.rs ───────────────────────────────────────────────────
 ACCESSOR = {'Users': 'users', 'Organizations': 'organizations', 'Instance': 'instance', 'Billing': 'billing',
-            'ApiKeys': 'api_keys', 'Sessions': 'sessions', 'Invitations': 'invitations',
+            'ApiKeys': 'api_keys', 'Machines': 'machines', 'Sessions': 'sessions', 'Invitations': 'invitations',
             'OrgSettingsSchemaApi': 'org_settings_schema', 'MessagingProvidersApi': 'messaging_providers',
             'AtlasIdApps': 'platform().atlas_id_apps', 'AtlasIdPublisherApi': 'platform().atlas_id_publisher',
             'PlatformApi': 'platform',
