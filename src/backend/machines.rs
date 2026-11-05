@@ -85,9 +85,11 @@ pub struct MachineOrgMembership {
     pub extra: Map<String, Value>,
 }
 
-/// `{ valid, machine_id?, name? }` from `POST /v1/m2m_tokens/verify`. `valid`
-/// is false for an unknown, rotated, or revoked secret, never a leak of which
-/// machines exist.
+/// `{ valid, machine_id?, name?, ... }` from `POST /v1/m2m_tokens/verify`. `valid`
+/// is false for an unknown, rotated, or revoked secret or JWT, never a leak of
+/// which machines exist. What a machine JWT carries (`audience`, `scopes`,
+/// `organization_id`, `org_role`, `org_permissions`, `expires_at`) and what the
+/// machine holds now (`grants`, `organization_memberships`) are in `extra`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct M2mVerification {
     #[serde(default)]
@@ -453,7 +455,7 @@ impl Machines<'_> {
 
     // ── M2M-token verification (sk_) ────────────────────────────────────────
 
-    /// `POST /v1/m2m_tokens/verify` — resolve a presented machine secret to its
+    /// `POST /v1/m2m_tokens/verify` — resolve a presented machine secret or JWT to its
     /// machine (Clerk `verifyM2MToken`).
     pub async fn verify_m2m_token(&self, token: &str) -> Result<M2mVerification, BackendError> {
         let body = serde_json::json!({ "token": token });
