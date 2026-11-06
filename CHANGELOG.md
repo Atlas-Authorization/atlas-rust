@@ -2,6 +2,16 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.33.0 — 2026-11-06
+
+### Added
+
+- Catalog and types regenerated from the live API, including machine grants and organization membership, storage declarations, signing key policy, integration event redelivery and executor keys.
+
+### Fixed
+
+- The catalog no longer overflows the stack in its generated test.
+
 ## 0.32.0 — 2026-11-03
 
 ### Added
