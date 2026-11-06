@@ -1345,7 +1345,7 @@ use super::resources::{body_of, seg};
 use super::types;
 #[allow(unused_imports)]
 use super::{
-    Abac, AccessPolicies, Agents, ApiKeys, AppCatalog, AtlasIdApps, AtlasIdPublisherApi, AuthzDecisions, Billing, Connections, DesktopMfa, Devices, Iga, Instance, Invitations, McpGateways, MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PartnerLinks, PlatformApi, Sessions, Ssf, Users, Vc, Workflows,
+    Abac, AccessPolicies, Agents, ApiKeys, AppCatalog, AtlasIdApps, AtlasIdPublisherApi, AuthzDecisions, Billing, Connections, DesktopMfa, Devices, Iga, Instance, Invitations, Machines, McpGateways, MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PartnerLinks, PlatformApi, Sessions, Ssf, Users, Vc, Workflows,
 };
 ''']
 

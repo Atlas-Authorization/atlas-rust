@@ -35,8 +35,8 @@ use super::types;
 use super::{
     Abac, AccessPolicies, Agents, ApiKeys, AppCatalog, AtlasIdApps, AtlasIdPublisherApi,
     AuthzDecisions, Billing, Connections, DesktopMfa, Devices, Iga, Instance, Invitations,
-    McpGateways, MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PartnerLinks,
-    PlatformApi, Sessions, Ssf, Users, Vc, Workflows,
+    Machines, McpGateways, MessagingProvidersApi, OrgSettingsSchemaApi, Organizations,
+    PartnerLinks, PlatformApi, Sessions, Ssf, Users, Vc, Workflows,
 };
 
 /// The community Actions gallery: browse, install and update Action templates. Reached via [`BackendClient::action_gallery`].
