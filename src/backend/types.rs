@@ -22221,7 +22221,7 @@ impl LocalizationsUpdateBody {
 pub struct LogStreamsCreateBody {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Known values: `http`, `datadog`, `splunk`, `s3`, `gcs`, `azure_blob`, `aws_eventbridge`, `kinesis_firehose`, `cloudwatch_logs`, `elastic`, `sumo_logic`, `new_relic`, `azure_event_hubs`, `sentinel`, `gcp_pubsub`, `bigquery`, `snowflake`, `loki`, `otlp`, `kafka`.
+    /// Known values: `http`, `datadog`, `splunk`, `s3`, `gcs`, `azure_blob`, `aws_eventbridge`, `kinesis_firehose`, `cloudwatch_logs`, `elastic`, `sumo_logic`, `new_relic`, `azure_event_hubs`, `sentinel`, `gcp_pubsub`, `bigquery`, `snowflake`, `loki`, `otlp`, `kafka`, `watchtower`, `axiom`, `betterstack`, `honeycomb`, `sentry`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -54756,7 +54756,7 @@ pub struct LogStream {
     pub id: String,
     #[serde(default)]
     pub name: String,
-    /// Known values: `http`, `datadog`, `splunk`, `s3`, `gcs`, `azure_blob`, `aws_eventbridge`, `kinesis_firehose`, `cloudwatch_logs`, `elastic`, `sumo_logic`, `new_relic`, `azure_event_hubs`, `sentinel`, `gcp_pubsub`, `bigquery`, `snowflake`, `loki`, `otlp`, `kafka`.
+    /// Known values: `http`, `datadog`, `splunk`, `s3`, `gcs`, `azure_blob`, `aws_eventbridge`, `kinesis_firehose`, `cloudwatch_logs`, `elastic`, `sumo_logic`, `new_relic`, `azure_event_hubs`, `sentinel`, `gcp_pubsub`, `bigquery`, `snowflake`, `loki`, `otlp`, `kafka`, `watchtower`, `axiom`, `betterstack`, `honeycomb`, `sentry`.
     #[serde(default)]
     pub r#type: String,
     #[serde(default)]
