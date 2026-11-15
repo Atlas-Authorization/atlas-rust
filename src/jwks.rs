@@ -62,45 +62,69 @@ pub struct Jwk {
 }
 
 impl Jwk {
-    /// The one algorithm this key verifies (RS256 for an RSA key, ES256 for a
-    /// P-256 key), or `None` for a key Atlas never signs with or whose own `alg`
-    /// contradicts its type.
+    /// The algorithm this key verifies, from its type: an RSA key is RS256 (or PS256 when its own `alg` says
+    /// so), a P-256 EC key ES256, a P-384 EC key ES384, an Ed25519 OKP key EdDSA. `None` for a key Atlas never
+    /// signs with, or whose own `alg` contradicts its type.
     pub fn signing_alg(&self) -> Option<jsonwebtoken::Algorithm> {
-        let alg = match (self.kty.as_deref(), self.crv.as_deref()) {
-            (Some("RSA"), _) => jsonwebtoken::Algorithm::RS256,
-            (Some("EC"), Some("P-256")) => jsonwebtoken::Algorithm::ES256,
+        use jsonwebtoken::Algorithm as A;
+        let (alg, allowed): (A, &[&str]) = match (self.kty.as_deref(), self.crv.as_deref()) {
+            (Some("RSA"), _) => match self.alg.as_deref() {
+                Some("PS256") => (A::PS256, &["PS256"]),
+                _ => (A::RS256, &["RS256"]),
+            },
+            (Some("EC"), Some("P-256")) => (A::ES256, &["ES256"]),
+            (Some("EC"), Some("P-384")) => (A::ES384, &["ES384"]),
+            (Some("OKP"), Some("Ed25519")) => (A::EdDSA, &["EdDSA", "Ed25519"]),
             _ => return None,
         };
         match self.alg.as_deref() {
             None => Some(alg),
-            Some(declared) if (declared == "RS256" && alg == jsonwebtoken::Algorithm::RS256)
-                || (declared == "ES256" && alg == jsonwebtoken::Algorithm::ES256) => Some(alg),
+            Some(declared) if allowed.contains(&declared) => Some(alg),
             Some(_) => None,
+        }
+    }
+
+    /// Whether this key can verify `alg`: its type fits the algorithm (RSA: RS256 or PS256, P-256: ES256,
+    /// P-384: ES384, Ed25519: EdDSA) and its own `alg`, when present, is the same. A key of one family never
+    /// verifies another family's algorithm, so a token cannot choose its way past the key type.
+    fn verifies(&self, alg: jsonwebtoken::Algorithm) -> bool {
+        use jsonwebtoken::Algorithm as A;
+        let declared = self.alg.as_deref();
+        match (self.kty.as_deref(), self.crv.as_deref(), alg) {
+            (Some("RSA"), _, A::RS256) => declared.is_none() || declared == Some("RS256"),
+            (Some("RSA"), _, A::PS256) => declared.is_none() || declared == Some("PS256"),
+            (Some("EC"), Some("P-256"), A::ES256) => declared.is_none() || declared == Some("ES256"),
+            (Some("EC"), Some("P-384"), A::ES384) => declared.is_none() || declared == Some("ES384"),
+            (Some("OKP"), Some("Ed25519"), A::EdDSA) => declared.is_none() || declared == Some("EdDSA") || declared == Some("Ed25519"),
+            _ => false,
         }
     }
 
     /// The decoding key for `alg`, when this key verifies exactly that algorithm.
     pub(crate) fn decoding_key(&self, alg: jsonwebtoken::Algorithm) -> Option<jsonwebtoken::DecodingKey> {
-        if self.signing_alg() != Some(alg) {
+        use jsonwebtoken::{Algorithm as A, DecodingKey as K};
+        if !self.verifies(alg) {
             return None;
         }
         match alg {
-            jsonwebtoken::Algorithm::RS256 => {
-                jsonwebtoken::DecodingKey::from_rsa_components(self.n.as_deref()?, self.e.as_deref()?).ok()
-            }
-            jsonwebtoken::Algorithm::ES256 => {
-                jsonwebtoken::DecodingKey::from_ec_components(self.x.as_deref()?, self.y.as_deref()?).ok()
-            }
+            A::RS256 | A::PS256 => K::from_rsa_components(self.n.as_deref()?, self.e.as_deref()?).ok(),
+            A::ES256 | A::ES384 => K::from_ec_components(self.x.as_deref()?, self.y.as_deref()?).ok(),
+            A::EdDSA => K::from_ed_components(self.x.as_deref()?).ok(),
             _ => None,
         }
     }
 }
 
-/// The JWS algorithms Atlas signs tokens with: an instance key is RS256 (the
-/// default) or ES256, and an API may use either. Every verifier in this crate is
-/// pinned to exactly this list — `none` and HMAC never verify — and the token's
-/// `kid` selects one published key whose type fixes which of the two applies.
-pub const SIGNING_ALGS: [jsonwebtoken::Algorithm; 2] = [jsonwebtoken::Algorithm::RS256, jsonwebtoken::Algorithm::ES256];
+/// The JWS algorithms Atlas signs tokens with: an instance key is RS256 (the default), ES256, ES384, PS256 or
+/// EdDSA. Every verifier in this crate is pinned to exactly this list: `none` and HMAC never verify, and the
+/// token's `kid` selects one published key whose type fixes which algorithm applies.
+pub const SIGNING_ALGS: [jsonwebtoken::Algorithm; 5] = [
+    jsonwebtoken::Algorithm::RS256,
+    jsonwebtoken::Algorithm::ES256,
+    jsonwebtoken::Algorithm::ES384,
+    jsonwebtoken::Algorithm::PS256,
+    jsonwebtoken::Algorithm::EdDSA,
+];
 
 /// Decode `token` with the first key of `set` (matching `kid` when given) that
 /// verifies `alg`. `alg` must be one of [`SIGNING_ALGS`].

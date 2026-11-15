@@ -82,7 +82,7 @@ async fn session_verifier_accepts_es256_and_pins_algorithms() {
     assert!(b.verify(&es256(&claims, "rs-1")).await.is_err(), "ES256 under the RSA kid");
     let hs = encode(&Header::new(Algorithm::HS256), &claims, &EncodingKey::from_secret(b"secret")).unwrap();
     assert!(b.verify(&hs).await.is_err(), "HS256");
-    assert_eq!(SIGNING_ALGS, [Algorithm::RS256, Algorithm::ES256]);
+    assert_eq!(SIGNING_ALGS, [Algorithm::RS256, Algorithm::ES256, Algorithm::ES384, Algorithm::PS256, Algorithm::EdDSA]);
 }
 
 fn access(extra: Value) -> Value {

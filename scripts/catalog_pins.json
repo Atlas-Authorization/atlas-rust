@@ -40,11 +40,14 @@
   "ConfigChangelogEntryChangesItem.section": "Option<String>",
   "FraudLookupBody.device": "Option<Value>",
   "InstanceGetResponse.auth_config_resolved": "Option<InstanceGetResponseAuthConfigResolved>",
+  "InstanceUpdateBeforeUserCreateHookBody.enabled": "Option<bool>",
   "InstanceUpdateBody.auth_config": "Option<InstanceUpdateBodyAuthConfig>",
   "InstanceUpdateReferralsBody.context_cookie": "Option<Option<String>>",
   "InstanceUpdateResponse.auth_config_resolved": "Option<InstanceUpdateResponseAuthConfigResolved>",
   "JwtTemplatesUpdateBody.claims": "HashMap<String, String>",
   "LegacyAuthConnectionSetBody.verify_url": "String",
+  "ResourceServersCreateBody.signing_alg": "Option<String>",
+  "ResourceServersUpdateBody.signing_alg": "Option<String>",
   "RiskBasedMfa.baseline": "Option<Value>",
   "RiskBasedMfa.fraud": "Option<Value>",
   "RiskBasedMfa.level_actions": "Option<Value>",
@@ -190,5 +193,14 @@
   "PATCH /v1/platform/atlas_id_publisher": "AtlasIdPublisherUpdateResponse",
   "POST /v1/fraud/lookup": "FraudLookupResponse",
   "POST /v1/risk_events/{id}/feedback": "RiskEvent"
+ },
+ "deprecated_fields": {
+  "PermissionsUpdateBody": [
+   {
+    "json": "key",
+    "ty": "String",
+    "note": "The API no longer accepts a permission key change; the value is ignored."
+   }
+  ]
  }
 }

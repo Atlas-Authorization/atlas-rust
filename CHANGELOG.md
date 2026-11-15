@@ -2,6 +2,33 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.34.0 — 2026-11-14
+
+### Added
+
+- **Relying party** (features `rp`, `rp-axum`, `rp-actix`): hosted-redirect sign-in with PKCE S256, state and nonce in a sealed flow cookie, ID-token verification against the issuer JWKS, step-up (`require_recent_auth`), session keep-alive (`touch_if_due`), `revoke_session`, `end_app_session` and `sign_out`, plus Axum and actix-web routes behind `RpHooks`.
+- **Local mirrors** (`backend`): `mirror::KeyMirror` for end-user API keys, `mirror::SidRevocationList` for revoked sessions and `mirror::ResourceRoleMirror` for resource-scoped roles, each with an in-memory store, staleness bounds and webhook application.
+- `web_bot_auth` (feature `web-bot-auth`): RFC 9421 Web Bot Auth verification, signing, a key-directory cache and allow / block decisions.
+- `webhook_dedupe::WebhookDeduper` and `verify_transaction_token`.
+- `client::MachineSession` (feature `machine`): enrol once, persist the identity (`MemoryMachineStore`, `FileMachineStore`), mint audience, scope and organization specific machine tokens with a cache; `MachineClient::token_with` / `mint_token_with`.
+- `Claims::authenticated_within`, `Claims::used_multi_factor`, `Claims::mfa_org_satisfied` and the free functions `authenticated_within`, `used_multi_factor`, `mfa_satisfied`, `mfa_org_satisfied`.
+- Observability: the `tracing` feature wraps every management-client request in an `atlas.request` span; `doctor::run` checks keys, clock, JWKS, status and the secret key.
+- Resilience: `BackendClientBuilder::resilience(ResilienceConfig)` honours `Retry-After`, adds jitter to the backoff and can read the status endpoint before retrying a 5xx.
+- Session-token, ID-token, logout-token and transaction-token verification accepts RS256, ES256, ES384, PS256 and EdDSA, with the key type checked against the header algorithm.
+- `mirror::SidListRevocation::status_list`: the signed session status list as the revocation source (`mirror::StatusListSource`, `verify_status_list_token`), verified against the instance JWKS with RS256, PS256, ES256, ES384 or EdDSA; the paged feed stays the fallback when the list is unavailable, was cut short, or does not verify.
+- `webhook_dedupe::sqlx_store::SqlxWebhookStore` (feature `webhook-dedupe-sqlx`): a PostgreSQL, SQLite or MySQL dedupe store through sqlx.
+- `client::DpopKey` and `MachineSession::dpop_key`: DPoP-bound machine tokens (RFC 9449, Ed25519): the token request carries a proof, tokens come back `DPoP`-typed with `cnf.jkt`, and `dpop_proof` signs the proof for each call to your API.
+- Feature `tracing-metrics`: `atlas_requests_total`, `atlas_request_duration_seconds` and `atlas_request_retries_total` through the `metrics` facade, labelled with method, route template and status.
+- Catalog and types regenerated from the final API description: every operation of the Backend and Platform APIs is covered, with typed requests and responses.
+
+### Changed
+
+- `SIGNING_ALGS` lists five algorithms (it was two); `Jwk::signing_alg` follows the key type.
+- A 429 or 503 with a `Retry-After` header waits for it (up to 60 seconds) instead of the doubling backoff; retries use jitter.
+- `PermissionsUpdateBody.key` stays, now `#[deprecated]`: the API no longer accepts a permission key change and ignores it.
+- Request fields the API marks optional (and not nullable) gain `clear_<field>()`, which sends an explicit JSON `null`; omitting the field remains the default.
+- `rust-version` is set to 1.95 (it was 1.70): the lowest compiler that builds the default and framework features together, since current actix, rocket and their dependencies need a recent toolchain. With only the default features the crate itself still needs just 1.70.
+
 ## 0.33.0 — 2026-11-06
 
 ### Added
