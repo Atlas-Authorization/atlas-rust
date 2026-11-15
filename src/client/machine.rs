@@ -29,6 +29,7 @@ use serde::Deserialize;
 use tokio::sync::Mutex as AsyncMutex;
 
 use crate::clock::{system_clock, Clock};
+use crate::client::machine_dpop::DpopKey;
 use crate::http::{HttpMethod, HttpRequest, HttpTransport};
 
 /// An Ed25519 keypair a device enrols and signs challenges with. The private
@@ -161,11 +162,23 @@ impl MachineClient {
     }
 
     async fn post(&self, path: &str, body: serde_json::Value) -> Result<String, MachineError> {
-        let url = format!("{}{}", self.base_url.trim_end_matches('/'), path);
-        let req = HttpRequest::new(HttpMethod::Post, url)
+        self.post_dpop(path, body, None).await
+    }
+
+    /// The full URL of an endpoint, as a DPoP proof's `htu` names it.
+    fn url_of(&self, path: &str) -> String {
+        format!("{}{}", self.base_url.trim_end_matches('/'), path)
+    }
+
+    async fn post_dpop(&self, path: &str, body: serde_json::Value, dpop: Option<(&DpopKey, u64)>) -> Result<String, MachineError> {
+        let url = self.url_of(path);
+        let mut req = HttpRequest::new(HttpMethod::Post, url.clone())
             .header("content-type", "application/json")
             .header("accept", "application/json")
             .body(body.to_string());
+        if let Some((key, now_ms)) = dpop {
+            req = req.header("dpop", key.proof("POST", &url, None, None, now_ms)?);
+        }
         let resp = self.transport.send(req).await?;
         if !(200..300).contains(&resp.status) {
             return Err(MachineError::Api {
@@ -246,6 +259,77 @@ impl MachineClient {
         serde_json::from_str(&raw).map_err(|e| MachineError::Malformed(e.to_string()))
     }
 
+    /// [`token`](Self::token) for a specific audience, scopes and organization: the answer is the full
+    /// response (`token`, `token_type`, `expires_in`, `audience`, `scope`, `constraints`, `organization_id`).
+    pub async fn token_with(
+        &self,
+        machine_id: &str,
+        nonce: &str,
+        signature: &str,
+        request: &MachineTokenRequest,
+    ) -> Result<serde_json::Value, MachineError> {
+        self.token_with_dpop(machine_id, nonce, signature, request, None).await
+    }
+
+    /// [`token_with`](Self::token_with) bound to a DPoP key: the token request carries a `DPoP` proof, the
+    /// minted token carries `cnf.jkt` and comes back with `token_type` `DPoP`. `dpop` is the key and the
+    /// current epoch ms.
+    pub async fn token_with_dpop(
+        &self,
+        machine_id: &str,
+        nonce: &str,
+        signature: &str,
+        request: &MachineTokenRequest,
+        dpop: Option<(&DpopKey, u64)>,
+    ) -> Result<serde_json::Value, MachineError> {
+        let mut body = serde_json::json!({ "machine_id": machine_id, "nonce": nonce, "signature": signature });
+        if let Some(a) = &request.audience {
+            body["audience"] = serde_json::json!(a);
+        }
+        if !request.scopes.is_empty() {
+            body["scopes"] = serde_json::json!(request.scopes);
+        }
+        if !request.scope_presets.is_empty() {
+            body["scope_presets"] = serde_json::json!(request.scope_presets);
+        }
+        if let Some(o) = &request.organization_id {
+            body["organization_id"] = serde_json::json!(o);
+        }
+        let raw = self.post_dpop("/v1/machines/token", body, dpop).await?;
+        serde_json::from_str(&raw).map_err(|e| MachineError::Malformed(e.to_string()))
+    }
+
+    /// [`mint_token_with`](Self::mint_token_with) bound to a DPoP key (see [`token_with_dpop`](Self::token_with_dpop)).
+    pub async fn mint_token_with_dpop(
+        &self,
+        machine_id: &str,
+        keypair: &MachineKeypair,
+        request: &MachineTokenRequest,
+        dpop: Option<(&DpopKey, u64)>,
+    ) -> Result<serde_json::Value, MachineError> {
+        let challenge = self.challenge(machine_id).await?;
+        if challenge.nonce.is_empty() {
+            return Err(MachineError::Malformed("challenge returned no nonce".into()));
+        }
+        let signature = keypair.sign_challenge(&challenge.nonce);
+        self.token_with_dpop(machine_id, &challenge.nonce, &signature, request, dpop).await
+    }
+
+    /// [`mint_token`](Self::mint_token) for a specific audience, scopes and organization.
+    pub async fn mint_token_with(
+        &self,
+        machine_id: &str,
+        keypair: &MachineKeypair,
+        request: &MachineTokenRequest,
+    ) -> Result<serde_json::Value, MachineError> {
+        let challenge = self.challenge(machine_id).await?;
+        if challenge.nonce.is_empty() {
+            return Err(MachineError::Malformed("challenge returned no nonce".into()));
+        }
+        let signature = keypair.sign_challenge(&challenge.nonce);
+        self.token_with(machine_id, &challenge.nonce, &signature, request).await
+    }
+
     /// The whole mint in one call: fetch a challenge, sign it with `keypair`, and
     /// exchange the signature for a token.
     pub async fn mint_token(
@@ -260,6 +344,19 @@ impl MachineClient {
         let signature = keypair.sign_challenge(&challenge.nonce);
         self.token(machine_id, &challenge.nonce, &signature).await
     }
+}
+
+/// What a machine token is for.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MachineTokenRequest {
+    /// The resource server (API) the token is for; becomes the token's `aud`.
+    pub audience: Option<String>,
+    /// Scopes within the grant. Needs `audience`.
+    pub scopes: Vec<String>,
+    /// Scope preset names of the resource server. Needs `audience`.
+    pub scope_presets: Vec<String>,
+    /// The organization context; defaults to the machine's own organization.
+    pub organization_id: Option<String>,
 }
 
 /// How close to expiry (ms) the manager re-mints a machine token.

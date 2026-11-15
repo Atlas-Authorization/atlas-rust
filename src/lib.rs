@@ -6,7 +6,7 @@
 //!
 //! It does two things a Rust server needs:
 //!
-//! 1. **Verify a session token locally** against the instance JWKS — RS256 only,
+//! 1. **Verify a session token locally** against the instance JWKS — RS256, ES256, ES384, PS256 or EdDSA (the key type must fit the header algorithm),
 //!    with an explicit issuer, `exp`/`nbf`/`iat` checks, and an in-process JWKS
 //!    cache keyed by URL that refetches on an unknown `kid` at most once a
 //!    minute. No outbound call on the hot path.
@@ -63,8 +63,32 @@ mod transport;
 
 // The richer transport trait the management client and native-client flows
 // share. Compiled only when one of those features is on.
-#[cfg(any(feature = "backend", feature = "client"))]
+#[cfg(any(feature = "backend", feature = "client", feature = "rp", feature = "web-bot-auth"))]
 pub mod http;
+
+mod recent_auth;
+mod txn_token;
+
+#[cfg(feature = "rp")]
+pub mod rp;
+
+#[cfg(feature = "rp-axum")]
+pub mod rp_axum;
+
+#[cfg(feature = "rp-actix")]
+pub mod rp_actix;
+
+#[cfg(feature = "web-bot-auth")]
+pub mod web_bot_auth;
+
+#[cfg(feature = "backend")]
+pub mod mirror;
+
+#[cfg(feature = "backend")]
+pub mod webhook_dedupe;
+
+#[cfg(feature = "backend")]
+pub mod doctor;
 
 /// P0-2 — the typed Backend-API management client, the typed webhook verifier,
 /// and the cursor-pagination helper. See the `backend` feature.
@@ -130,6 +154,8 @@ pub use sealed_box::{
     generate_seal_key_pair, open_sealed_box, open_sealed_secret, seal_box, SealKeyPair, SealedBoxError,
 };
 pub use claims::Claims;
+pub use recent_auth::{authenticated_within, mfa_org_satisfied, mfa_satisfied, used_multi_factor};
+pub use txn_token::{verify_transaction_token, TxnTokenClaims, TxnTokenOptions};
 pub use oidc_claims::{
     oidc_authorize_url_with_organization, oidc_organization_of, oidc_organizations_of, oidc_sso_of, OidcOrganization,
     OidcOrganizationMembership, OidcSsoContext, OIDC_ORGANIZATION_PARAM, OIDC_SCOPE_ORGANIZATIONS,
@@ -159,5 +185,5 @@ pub use verify::{AtlasBackend, AtlasBackendBuilder, AtlasBackendOptions, CLOCK_S
 #[cfg(feature = "reqwest-transport")]
 pub use transport::ReqwestTransport;
 
-#[cfg(any(feature = "backend", feature = "client"))]
+#[cfg(any(feature = "backend", feature = "client", feature = "rp", feature = "web-bot-auth"))]
 pub use http::{HttpBytesResponse, HttpFullResponse, HttpMethod, HttpRequest, HttpTransport};

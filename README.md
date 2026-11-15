@@ -27,7 +27,7 @@ On [crates.io](https://crates.io/crates/atlasauth):
 atlasauth = "0.32"
 ```
 
-Requires Rust 1.70+. The default `reqwest-transport` feature pulls in `reqwest`
+Requires Rust 1.95+ (the optional `webhook-dedupe-sqlx` feature needs sqlx's newer minimum). The default `reqwest-transport` feature pulls in `reqwest`
 (rustls) for the built-in HTTP transport; disable it to supply your own.
 
 ## Token verification
@@ -123,6 +123,58 @@ let backend = AtlasBackend::builder("https://your-instance-fapi.atlasauth.net")
 # let _ = backend;
 # Ok(()) }
 ```
+
+## Signing algorithms
+
+Instances can sign session tokens with RS256, ES256, ES384, PS256 or EdDSA. Every verifier in the crate (session
+tokens, the relying party's ID tokens, logout tokens, transaction tokens) accepts exactly those five. The key's
+type must fit the algorithm in the token header (an RSA key verifies RS256 or PS256, a P-256 key ES256, a P-384 key
+ES384, an Ed25519 key EdDSA); a key whose own `alg` differs is skipped, and `none` and HS* never verify.
+
+## Relying party (`rp`, `rp-axum`, `rp-actix` features)
+
+Sign users in through Atlas's hosted page and keep your own session. `RelyingParty` builds the authorize redirect
+(PKCE S256, state and nonce in one sealed, short-lived cookie), finishes the callback (code exchange, ID-token
+verification against the issuer's JWKS), asks the same user to authenticate again for a step-up
+(`require_recent_auth`), keeps the Atlas session alive (`touch_if_due`) and signs out (`sign_out`). The
+`rp-axum` and `rp-actix` features add ready-made routes: implement `RpHooks::on_signed_in` to create your session.
+
+```rust
+let rp = RelyingParty::new(RelyingPartyConfig::new(issuer, client_id, redirect_uri, session_secret).client_secret(client_secret))?;
+let started = rp.start(query, StartOverrides::default()).await?;   // 302 to started.location, set started.set_cookies
+let done = rp.callback(query, cookie_header).await?;               // done.user.sub, done.user.sid, done.redirect
+```
+
+## Local mirrors, Web Bot Auth, webhook dedupe (backend / web-bot-auth features)
+
+- `mirror::KeyMirror`: end-user API keys verified against a local table (sha256 hash, scopes, expiry, IP allowlist)
+  with Atlas as the minting and revocation backstop; `mirror::SidRevocationList` rejects tokens of revoked
+  sessions; `mirror::ResourceRoleMirror` answers `can(subject, permission, resource)` with the server's
+  inheritance rules. Each takes a small store trait (in-memory included) and a `sync()` on a timer.
+- `mirror::SidListRevocation { status_list: Some(Arc::new(StatusListSource::new(jwks_url, jwks_source, Some(issuer)))), .. }`
+  uses the signed session status list (one small signed answer, verified against the instance JWKS) and falls back to the
+  paged feed when it is unavailable, was cut short, or does not verify.
+- `web_bot_auth`: verify and sign RFC 9421 Web Bot Auth requests with a cached key directory and allow / block lists.
+- `webhook_dedupe::WebhookDeduper`: verify a webhook and drop a retried delivery by its signed `atlas-id`. Feature
+  `webhook-dedupe-sqlx` adds `sqlx_store::SqlxWebhookStore` (PostgreSQL, SQLite, MySQL; use it from a multi-thread tokio runtime).
+- `client::MachineSession` (feature `machine`): enrol once, keep the identity in a store, mint audience-scoped
+  machine tokens and cache them. `.dpop_key(DpopKey::generate())` binds the tokens to a DPoP key (`cnf.jkt`); sign each
+  call to your API with `session.dpop_proof(&token.token, "GET", url, None)` and send `Authorization: DPoP <token>`.
+- `verify_transaction_token`, `Claims::authenticated_within`, `Claims::used_multi_factor`, `mfa_org_satisfied`.
+
+## Observability and resilience
+
+- Feature `tracing`: every management-client request runs inside an `atlas.request` span with `http.method`,
+  `http.route` (ids collapsed to `{id}`), `http.status_code`, `atlas.retries` and `atlas.duration_ms`. Bridge to
+  OpenTelemetry with `tracing-opentelemetry`. Without the feature there is no dependency and no code.
+- Feature `tracing-metrics` (implies `tracing`): `atlas_requests_total{method,route,status}`,
+  `atlas_request_duration_seconds{method,route}` and `atlas_request_retries_total{method,route}` through the `metrics`
+  facade; install the recorder you like (Prometheus, an OpenTelemetry bridge). Route labels are templates, never ids.
+- `BackendClientBuilder::resilience(ResilienceConfig)`: `Retry-After` on 429 and 503 is honoured (up to a cap),
+  retries back off with jitter, and with `status_aware` a 5xx reads the public status endpoint first (fail fast during
+  a declared major outage, slower backoff while degraded).
+- `doctor::run`: checks key shapes, clock skew against the API, JWKS reachability, service status, URL schemes and
+  that the secret key is accepted; the report never contains a key.
 
 ## Identity & email helpers
 

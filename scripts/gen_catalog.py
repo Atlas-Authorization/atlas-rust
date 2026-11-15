@@ -172,6 +172,21 @@ for f in sorted(glob.glob(os.path.join(ROOT, 'src/backend/*.rs'))):
             for p in paths:
                 handwritten.add((m.upper(), re.sub(r'\{[^}]*\}', '{}', p).split('?')[0]))
 missing = spec_ops - handwritten
+# Handwritten method names per impl struct: a generated op must never reuse one (E0592 duplicate definitions).
+handwritten_fns = set()
+for f in sorted(glob.glob(os.path.join(ROOT, 'src/backend/*.rs'))):
+    if os.path.basename(f) in GENERATED:
+        continue
+    _cur = None
+    for line in open(f).read().split('\n'):
+        im = re.match(r"impl(?:<[^>]*>)?\s+(?:[\w:]+\s+for\s+)?(\w+)", line)
+        if im:
+            _cur = im.group(1)
+        elif line.startswith('}'):
+            _cur = None
+        fm = re.match(r'    (?:pub(?:\([a-z]+\))? )?(?:async )?fn (\w+)', line)
+        if fm and _cur:
+            handwritten_fns.add((_cur, fm.group(1)))
 # Operations a hand-written helper shares a route with but that stay generated.
 for _k in PINS['generate_despite_handwritten']:
     _m, _p = _k.split(' ', 1)
@@ -315,6 +330,55 @@ NS = [
     ('/v1/workflow_triggers', 'WorkflowTriggers', 'workflow_triggers', 'Workflow triggers'),
     ('/v1/workflows', 'Workflows', None, None),
     ('/v1/wsfed_connections', 'WsFedConnections', 'wsfed_connections', 'WS-Federation connections'),
+    ('/v1/abuse_signals', 'AbuseSignals', 'abuse_signals', 'Abuse signals'),
+    ('/v1/agent_delegations', 'AgentDelegations', 'agent_delegations', 'Agent delegations'),
+    ('/v1/approval_requests', 'ApprovalRequests', 'approval_requests', 'Approval requests'),
+    ('/v1/atlas_id_apps', 'AtlasIdAppAdoption', 'atlas_id_app_adoption', 'Atlas ID app adoption'),
+    ('/v1/audit/chain', 'AuditChain', 'audit_chain', 'The tamper-evident audit chain'),
+    ('/v1/authz', 'Authz', 'authz', 'Authorization explain, what-if and RBAC checks'),
+    ('/v1/changes', 'Changes', 'changes', 'The change feed'),
+    ('/v1/compliance', 'Compliance', 'compliance', 'Compliance posture and reports'),
+    ('/v1/config/limits', 'ConfigLimits', 'config_limits', 'Configuration limits'),
+    ('/v1/connection_provider_changes', 'ConnectionProviderChanges', 'connection_provider_changes', 'Provider change notices'),
+    ('/v1/connection_provider_event_log', 'ConnectionProviderEventLog', 'connection_provider_event_log', 'The provider event log'),
+    ('/v1/connection_provider_topics', 'ConnectionProviderTopics', 'connection_provider_topics', 'Provider notification topics'),
+    ('/v1/connection_providers', 'ConnectionProviders', 'connection_providers', 'Per-provider connection policy'),
+    ('/v1/connection_reconnect_settings', 'ConnectionReconnectSettings', 'connection_reconnect_settings', 'Connection reconnect settings'),
+    ('/v1/cookie_consents', 'CookieConsents', 'cookie_consents', 'Cookie consent records'),
+    ('/v1/dev', 'Dev', 'dev', 'Development-instance helpers'),
+    ('/v1/dsr_console', 'DsrConsole', 'dsr_console', 'The data subject request console'),
+    ('/v1/entitlements/consume', 'EntitlementConsumption', 'entitlement_consumption', 'Entitlement consumption'),
+    ('/v1/erasure_connector_catalog', 'ErasureConnectorCatalog', 'erasure_connector_catalog', 'The erasure connector catalog'),
+    ('/v1/erasure_connectors', 'ErasureConnectors', 'erasure_connectors', 'Erasure connectors'),
+    ('/v1/flows', 'Flows', 'flows', 'Sign-up and sign-in flows: experiments, messages and runs'),
+    ('/v1/grants/{grantType}', 'GrantUsage', 'grant_usage', 'Grant consumption, leases, refunds and usage'),
+    ('/v1/impersonations', 'Impersonations', 'impersonations', 'Impersonation sessions and approvals'),
+    ('/v1/legal_holds', 'LegalHolds', 'legal_holds', 'Legal holds'),
+    ('/v1/machine_trust_policies', 'MachineTrustPolicies', 'machine_trust_policies', 'Machine trust policies'),
+    ('/v1/message_receivers', 'MessageReceivers', 'message_receivers', 'Inbound message receivers'),
+    ('/v1/messages', 'Messages', 'messages', 'The message log'),
+    ('/v1/mfa_campaigns', 'MfaCampaigns', 'mfa_campaigns', 'MFA enrolment campaigns'),
+    ('/v1/migrations/status', 'MigrationStatus', 'migration_status', 'Migration status'),
+    ('/v1/migrations/{source}', 'MigrationVerify', 'migration_verify', 'Migration verification'),
+    ('/v1/oauth_grants', 'OauthGrants', 'oauth_grants', 'OAuth grant import'),
+    ('/v1/oauth_publishers', 'OauthPublishers', 'oauth_publishers', 'OAuth publishers'),
+    ('/v1/org_role_sets', 'OrgRoleSets', 'org_role_sets', 'Organization role sets'),
+    ('/v1/org_templates', 'OrgTemplates', 'org_templates', 'Organization templates'),
+    ('/v1/passkey_campaigns', 'PasskeyCampaigns', 'passkey_campaigns', 'Passkey enrolment campaigns'),
+    ('/v1/platform/apps/{id}/instances/{instanceId}/clones', 'AppClones', 'app_clones', 'Instance clones'),
+    ('/v1/platform/apps/{id}/narrow_secret_keys', 'NarrowSecretKeys', 'narrow_secret_keys', 'Narrow secret keys for a platform app'),
+    ('/v1/rate_limit_overrides', 'RateLimitOverrides', 'rate_limit_overrides', 'Rate-limit overrides'),
+    ('/v1/rate_limit_policies', 'RateLimitPolicies', 'rate_limit_policies', 'Rate-limit policies'),
+    ('/v1/referral_reward_rules', 'ReferralRewardRules', 'referral_reward_rules', 'Referral reward rules'),
+    ('/v1/referral_rewards', 'ReferralRewards', 'referral_rewards', 'Referral rewards'),
+    ('/v1/region', 'Region', 'region', 'Data region and failover'),
+    ('/v1/resource_role_assignments', 'ResourceRoleAssignmentChanges', 'resource_role_assignment_changes', 'Resource role assignment changes'),
+    ('/v1/risk_signals', 'RiskSignals', 'risk_signals', 'Risk signals'),
+    ('/v1/security_advisories', 'SecurityAdvisory', 'security_advisory', 'Security advisory detail'),
+    ('/v1/step_up', 'StepUp', 'step_up', 'Step-up policies and assertions'),
+    ('/v1/suppressions', 'Suppressions', 'suppressions', 'Message suppressions'),
+    ('/v1/web_bot_auth', 'WebBotAuth', 'web_bot_auth', 'Web Bot Auth settings and key directories'),
+    ('/v1/webhook_endpoints/{id}/dlq', 'WebhookDlq', 'webhook_dlq', 'Webhook dead-letter queue'),
 ]
 
 # (struct, json field) pairs that stay Option<T> although the spec now marks
@@ -322,6 +386,11 @@ NS = [
 # callers that match on the Option.
 KEEP_OPTIONAL = {
     ('Session', 'idle_expires_at'),
+    ('MachinesCreateGrantBody', 'resource_server_id'),
+    ('PermissionsCreateBody', 'key'),
+    ('InstanceUpdateBeforeUserCreateHookBody', 'enabled'),
+    ('ResourceServersCreateBody', 'signing_alg'),
+    ('ResourceServersUpdateBody', 'signing_alg'),
 }
 
 # Exact (METHOD, template-path) -> method name overrides.
@@ -992,6 +1061,12 @@ class TypeGen:
                 else:
                     f.update(ty=pin, nullable=False, required=True)
             st['fields'].append(f)
+        # Published fields the API no longer documents stay (deprecated), so callers keep compiling.
+        for dep in PINS.get('deprecated_fields', {}).get(name, []):
+            if not any(x['json'] == dep['json'] for x in st['fields']):
+                USED_PINS.add(f'deprecated_fields:{name}.{dep["json"]}')
+                st['fields'].append(dict(json=dep['json'], ident=dep.get('ident', dep['json']), ty=dep['ty'], nullable=False, required=False,
+                                         doc=dep['note'], enum=None, schema={}, deprecated=dep['note']))
         self.in_progress.discard(name)
         return name
 
@@ -1041,6 +1116,8 @@ class TypeGen:
                 for l in dl:
                     out.append(f'    ///{" " + l if l else ""}')
                 out.append(f'    #[serde({", ".join(attrs)})]')
+                if f.get('deprecated'):
+                    out.append(f'    #[deprecated(note = "{f["deprecated"]}")]')
                 out.append(f'    pub {f["ident"]}: {decl},')
             out.append('    /// Fields this version of the crate does not know about, kept verbatim.')
             out.append('    /// In a request, keys set here are sent as-is (a forward-compatible escape hatch).')
@@ -1072,6 +1149,9 @@ class TypeGen:
             raw = f['ident'][2:] if f['ident'].startswith('r#') else f['ident']
             wrap = {'plain': 'v.into()', 'opt': 'Some(v.into())', 'opt2': 'Some(Some(v.into()))'}[kind]
             out.append(f'    /// Set `{f["json"]}`.')
+            if f.get('deprecated'):
+                out.append(f'    #[deprecated(note = "{f["deprecated"]}")]')
+                out.append('    #[allow(deprecated)]')
             out.append(f'    pub fn with_{raw}(mut self, v: impl Into<{f["ty"]}>) -> Self {{')
             out.append(f'        self.{f["ident"]} = {wrap};')
             out.append('        self')
@@ -1080,6 +1160,15 @@ class TypeGen:
                 out.append(f'    /// Send `{f["json"]}: null` to clear it.')
                 out.append(f'    pub fn clear_{raw}(mut self) -> Self {{')
                 out.append(f'        self.{f["ident"]} = Some(None);')
+                out.append('        self')
+                out.append('    }')
+            elif kind == 'opt':
+                # The field is not nullable in the schema: an explicit `null` still rides in `extra`
+                # (the field itself is left unset, so it is omitted and `extra` supplies the key).
+                out.append(f'    /// Send `{f["json"]}: null` (an explicit JSON null) instead of omitting it.')
+                out.append(f'    pub fn clear_{raw}(mut self) -> Self {{')
+                out.append(f'        self.{f["ident"]} = None;')
+                out.append(f'        self.extra.insert("{f["json"]}".to_string(), Value::Null);')
                 out.append('        self')
                 out.append('    }')
         out.append('    /// Set a field this version of the crate does not know about.')
@@ -1188,7 +1277,7 @@ for p, pops in sorted(d['paths'].items()):
             USED_PINS.add(f'no_idempotency:{M} {p}')
         hdr = [x.get('name') for x in o.get('parameters', []) if x.get('in') == 'header']
         rs = json_request_schema(o)
-        ops.append(dict(M=M, p=p, st=st, acc=acc, doc=doc, name=name, params=params, q=q,
+        ops.append(dict(o=o, pre=pre, M=M, p=p, st=st, acc=acc, doc=doc, name=name, params=params, q=q,
                         idem='Idempotency-Key' in hdr and f'{M} {p}' not in PINS['no_idempotency'], body='req' if rs is not None else None,
                         req_schema=rs, resp=json_response(o),
                         summary=(o.get('summary') or '').strip()))
@@ -1209,15 +1298,40 @@ DEPRECATED_OPS = {
     ('POST', '/v1/sign_in_tokens/{id}/revoke'): 'use `sessions().create_browser_ticket()` (sunset 2027-04-01)',
 }
 
-seen = {}
-collisions = []
+def _alt_names(op, rel):
+    """Disambiguated names for an operation whose default name collides: a verb-prefixed one, then one built from the last two path words."""
+    segs = [x for x in rel.split('/') if x]
+    lits = [snake(x) for x in segs if not x.startswith('{')]
+    word = lits[-1] if lits else 'item'
+    trailing_param = bool(segs) and segs[-1].startswith('{')
+    if op['M'] == 'GET':
+        verb = 'get' if trailing_param or not (is_list_response(op['o']) or op['name'].startswith('list')) else 'list'
+    else:
+        verb = {'POST': 'create', 'PUT': 'set', 'PATCH': 'update', 'DELETE': 'delete'}[op['M']]
+    two = '_'.join(lits[-2:])
+    return [f'{verb}_{word}', f'{verb}_{two}', f'{two}']
+
+# A new operation whose default name collides gets a stable alternative (the first that is free);
+# published operations are never renamed because only unpublished (generated) ones reach this point.
+by_name = {}
 for op in ops:
-    k = (op['st'], op['name'])
-    if k in seen:
-        collisions.append(f"COLLISION {k} {seen[k]} {op['M']} {op['p']}")
-    seen[k] = (op['M'], op['p'])
-if collisions:
-    sys.exit('\n'.join(collisions) + '\nadd an OVR name for each')
+    by_name.setdefault((op['st'], op['name']), []).append(op)
+taken = {(op['st'], op['name']) for op in ops} | handwritten_fns
+for key, group in sorted(by_name.items()):
+    hw = key in handwritten_fns  # the handwritten method keeps the name: every generated op moves
+    if len(group) < 2 and not hw:
+        continue
+    # the shortest path keeps the default name (the collection route); the others move.
+    group.sort(key=lambda o: (len(o['p']), o['M'] != 'GET', o['p']))
+    for op in (group if hw else group[1:]):
+        rel = op['p'][len(op['pre']):]
+        for cand in _alt_names(op, rel):
+            if (op['st'], cand) not in taken:
+                op['name'] = op['fn'] = cand
+                taken.add((op['st'], cand))
+                break
+        else:
+            sys.exit(f"cannot name {op['M']} {op['p']}: add an OVR name")
 
 # Resolve request/response types. Requests first so request-only inline
 # structs get their builder setters.
@@ -1267,7 +1381,7 @@ types_rs = ['''// @generated by scripts/gen_catalog.py from the public OpenAPI d
 //! are sent as-is. Enumerations are `String`s (known values are listed on the
 //! field) so a new server value never breaks decoding.
 
-#![allow(clippy::too_many_arguments, clippy::large_enum_variant, clippy::derive_partial_eq_without_eq)]
+#![allow(clippy::too_many_arguments, clippy::large_enum_variant, clippy::derive_partial_eq_without_eq, deprecated)]
 
 use std::collections::HashMap;
 

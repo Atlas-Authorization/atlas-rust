@@ -19,7 +19,7 @@ use super::client::BackendClient;
 use super::error::BackendError;
 use super::pagination::Query;
 use super::resources::{body_of, seg};
-use super::{types, types_ext};
+use super::types_ext;
 #[allow(unused_imports)]
 use super::{
     Actions, AttackProtection, Fga, Instance, Integrations, OAuthClients, OpenFga,

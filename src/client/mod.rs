@@ -27,6 +27,10 @@ mod store;
 
 #[cfg(feature = "machine")]
 mod machine;
+#[cfg(feature = "machine")]
+mod machine_dpop;
+#[cfg(feature = "machine")]
+mod machine_session;
 
 pub use error::{DevicePollError, OAuthError, RefreshRefusal, SessionError};
 pub use native_session::{
@@ -62,7 +66,14 @@ pub use store::EncryptedFileStore;
 #[cfg(feature = "machine")]
 pub use machine::{
     Challenge, Enrollment, MachineClient, MachineError, MachineKeypair, MachineToken,
-    MachineTokenManager, MACHINE_REFRESH_LEAD_MS,
+    MachineTokenManager, MachineTokenRequest, MACHINE_REFRESH_LEAD_MS,
+};
+#[cfg(feature = "machine")]
+pub use machine_dpop::DpopKey;
+#[cfg(feature = "machine")]
+pub use machine_session::{
+    FileMachineStore, MachineAccessToken, MachineEnrolOptions, MachineEnrolResult, MachineIdentity, MachineIdentityStore,
+    MachineSession, MemoryMachineStore,
 };
 
 #[cfg(any(

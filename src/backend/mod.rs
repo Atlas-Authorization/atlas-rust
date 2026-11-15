@@ -28,6 +28,11 @@ mod jwt_connections;
 mod machines;
 mod pagination;
 mod platform;
+mod resilience;
+#[doc(hidden)]
+pub(crate) mod resilience_support {
+    pub(crate) use super::resilience::{http_date_to_epoch, local_now_seconds};
+}
 mod platform_api;
 mod policies;
 mod resources;
@@ -80,6 +85,7 @@ pub use instance::{
 };
 pub use jwt_connections::{JwtConnection, JwtConnectionBody, JwtConnections};
 pub use pagination::{collect, CursorPage, CursorParams, Query};
+pub use resilience::ResilienceConfig;
 pub use platform_api::{
     AccountDomain, AccountDomainList, AccountDomains, AtlasIdProvisionedAccount, AtlasIdProvisionedAccountApp,
     AtlasIdProvisionedAccountList, AtlasIdProvisionedAccountRemoved, AtlasIdProvisionedAccounts,

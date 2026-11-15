@@ -1,8 +1,12 @@
 [package]
 name = "atlasauth"
-version = "0.33.0"
+version = "0.34.0"
 edition = "2021"
-rust-version = "1.70"
+# 1.95: found by bisecting CI over `cargo check` of the default and framework features (1.94 and below fail:
+# ref-swap 0.1.x needs the stabilised `atomic_try_update`; rocket_http 0.5.2 and current actix need 1.89 or
+# newer). The crate's own code needs only 1.70. The optional `webhook-dedupe-sqlx` feature needs sqlx's own
+# (newer) MSRV; CI checks 1.95 without it.
+rust-version = "1.95"
 license = "MIT"
 description = "Official Atlas backend verification crate: local RS256 session-token verification against a cached JWKS, plus API-key verification. The Rust peer of @atlasauth/backend, atlas-go, and the Ruby SDK."
 repository = "https://github.com/Atlas-Authorization/atlas-rust"
@@ -82,6 +86,30 @@ machine = ["client", "dep:ed25519-dalek", "dep:rand"]
 # `crypto_box` crate; nothing hand-rolled).
 sealed-box = ["dep:crypto_box", "dep:rand"]
 
+# Hosted-redirect OIDC relying party: start / callback / touch_if_due / sign_out, PKCE S256,
+# state + nonce, ID-token verification against the issuer JWKS, and a sealed flow cookie
+# (XChaCha20-Poly1305 under an HKDF-derived key). Transport-agnostic; the framework
+# adapters below add handlers and extractors.
+rp = ["dep:url", "dep:rand", "dep:chacha20poly1305", "dep:hkdf"]
+rp-axum = ["rp", "axum"]
+rp-actix = ["rp", "actix"]
+
+# Web Bot Auth verification and signing (RFC 9421 message signatures, Ed25519, with the
+# key directory fetched over the injected transport).
+web-bot-auth = ["dep:ed25519-dalek", "dep:url"]
+
+# Opt-in `tracing` spans around every management-client request (method, route template,
+# status, retries, duration). Absent: no dependency and no code.
+tracing = ["dep:tracing"]
+
+# SQL webhook-dedupe store (`atlasauth::webhook_dedupe::sqlx_store`): PostgreSQL, SQLite or MySQL through
+# sqlx's `Any` driver. Pulls sqlx and a multi-thread tokio runtime; needs sqlx's own (newer) MSRV.
+webhook-dedupe-sqlx = ["backend", "dep:sqlx", "tokio/rt-multi-thread"]
+
+# Prometheus-style metrics through the `metrics` facade, on top of the `tracing` spans: requests,
+# duration and retries. Absent: no dependency and no code.
+tracing-metrics = ["tracing", "dep:metrics"]
+
 [dependencies]
 jsonwebtoken = "9"
 serde = { version = "1", features = ["derive"] }
@@ -108,6 +136,15 @@ tower = { version = "0.5", default-features = false, optional = true }
 # actix-web 4 extractor and Rocket 0.5 request guard (`actix` / `rocket` features).
 actix-web = { version = "4", default-features = false, features = ["macros"], optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
+
+# SQL driver for the dedupe store (`webhook-dedupe-sqlx` feature). Runtime-tokio, no TLS: bring your own.
+sqlx = { version = "0.8", default-features = false, features = ["any", "runtime-tokio", "postgres", "sqlite", "mysql"], optional = true }
+
+# Metrics facade (`tracing-metrics` feature): the application installs the recorder (Prometheus, OpenTelemetry bridge).
+metrics = { version = "0.24", default-features = false, optional = true }
+
+# Spans for the management client (`tracing` feature).
+tracing = { version = "0.1", default-features = false, optional = true }
 
 # Ed25519 keypair + detached signatures for the public machine flow (`machine`
 # feature). `pem` gives SPKI/PKCS#8 PEM import+export (the wire format the enrol
@@ -146,6 +183,8 @@ tokio = { version = "1", features = ["macros", "rt", "rt-multi-thread"] }
 rsa = "0.9"
 # ES256 keys for the verifier tests.
 p256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
+metrics-util = { version = "0.19", default-features = false, features = ["debugging"] }
+p384 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
 rand = "0.8"
 base64 = "0.22"
 # Used by the backend tests to produce a known-good webhook signature.

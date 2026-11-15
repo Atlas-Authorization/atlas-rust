@@ -17,6 +17,7 @@ use crate::error::{ConfigError, TransportError};
 use crate::http::{HttpMethod, HttpRequest, HttpTransport};
 
 use super::error::{AtlasApiError, AtlasErrorItem, BackendError};
+use super::resilience::{advice_from_status, backoff_ms, now_ms, parse_retry_after, ResilienceConfig, ResilienceState, StatusAdvice};
 
 /// The default BAPI origin. Override per self-hosted instance via the builder.
 pub const DEFAULT_API_URL: &str = "https://api.atlasauth.net";
@@ -72,6 +73,7 @@ pub struct BackendClient {
     traceparent: Option<String>,
     dry_run: bool,
     secret_recipient: Option<String>,
+    resilience: ResilienceState,
 }
 
 /// Builder for a [`BackendClient`].
@@ -85,6 +87,7 @@ pub struct BackendClientBuilder {
     on_unknown_fields: Option<UnknownFieldsHook>,
     traceparent: Option<String>,
     secret_recipient: Option<String>,
+    resilience: ResilienceConfig,
 }
 
 impl BackendClientBuilder {
@@ -99,7 +102,14 @@ impl BackendClientBuilder {
             on_unknown_fields: None,
             traceparent: None,
             secret_recipient: None,
+            resilience: ResilienceConfig::default(),
         }
+    }
+
+    /// How retries wait: `Retry-After`, jitter and the status endpoint. See [`ResilienceConfig`].
+    pub fn resilience(mut self, config: ResilienceConfig) -> Self {
+        self.resilience = config;
+        self
     }
 
     /// Send a W3C `traceparent` header on every request, so Atlas stores the
@@ -191,6 +201,7 @@ impl BackendClientBuilder {
             traceparent: self.traceparent,
             dry_run: false,
             secret_recipient: self.secret_recipient,
+            resilience: ResilienceState { config: self.resilience, ..Default::default() },
         })
     }
 }
@@ -362,6 +373,29 @@ impl BackendClient {
         extra_headers: &[(&str, String)],
         retry: bool,
     ) -> Result<String, BackendError> {
+        let obs = Observe::new(method, path);
+        let fut = self.send_loop(&obs, method, path, query, payload, idempotency_key, extra_headers, retry);
+        #[cfg(feature = "tracing")]
+        {
+            use tracing::Instrument;
+            return fut.instrument(obs.span.clone()).await;
+        }
+        #[cfg(not(feature = "tracing"))]
+        fut.await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn send_loop(
+        &self,
+        obs: &Observe,
+        method: HttpMethod,
+        path: &str,
+        query: &[(&str, String)],
+        payload: Payload,
+        idempotency_key: Option<&str>,
+        extra_headers: &[(&str, String)],
+        retry: bool,
+    ) -> Result<String, BackendError> {
         let max_retries = if retry { self.max_retries } else { 0 };
         let dry = self.dry_run && method != HttpMethod::Get;
         let mut query_all: Vec<(&str, String)> = query.to_vec();
@@ -415,10 +449,12 @@ impl BackendClient {
                         attempt += 1;
                         continue;
                     }
+                    obs.done(0, attempt);
                     return Err(BackendError::Transport(transport_err));
                 }
                 Ok(resp) => {
                     if (200..300).contains(&resp.status) {
+                        obs.done(resp.status, attempt);
                         if let (Some(hook), Some(list)) =
                             (&self.on_unknown_fields, resp.header(ATLAS_UNKNOWN_FIELDS_HEADER))
                         {
@@ -433,12 +469,17 @@ impl BackendClient {
                         }
                         return Ok(resp.body);
                     }
-                    // 5xx and 429 are transient: retry while budget remains.
+                    // 5xx and 429 are transient: retry while budget remains and the policy allows.
                     if (resp.status >= 500 || resp.status == 429) && attempt < max_retries {
-                        self.backoff(attempt).await;
-                        attempt += 1;
-                        continue;
+                        if let Some(delay) = self.retry_delay(resp.status, resp.header("retry-after"), attempt).await {
+                            if delay > 0 {
+                                tokio::time::sleep(Duration::from_millis(delay)).await;
+                            }
+                            attempt += 1;
+                            continue;
+                        }
                     }
+                    obs.done(resp.status, attempt);
                     return Err(BackendError::Api(to_api_error(resp.status, &resp.body)));
                 }
             }
@@ -595,11 +636,44 @@ impl BackendClient {
     }
 
     async fn backoff(&self, attempt: u32) {
-        if self.base_delay_ms == 0 {
-            return;
+        let delay = backoff_ms(self.base_delay_ms, attempt, self.resilience.config.jitter);
+        if delay > 0 {
+            tokio::time::sleep(Duration::from_millis(delay)).await;
         }
-        let delay = self.base_delay_ms.saturating_mul(1u64 << attempt.min(16));
-        tokio::time::sleep(Duration::from_millis(delay)).await;
+    }
+
+    /// How long to wait before retrying a 429 / 5xx, or `None` to give up now (see [`ResilienceConfig`]).
+    async fn retry_delay(&self, status: u16, retry_after: Option<&str>, attempt: u32) -> Option<u64> {
+        let cfg = &self.resilience.config;
+        if cfg.honour_retry_after && (status == 429 || status == 503) {
+            if let Some(ms) = retry_after.and_then(|v| parse_retry_after(v, now_ms())) {
+                return (ms <= cfg.max_retry_after_ms).then_some(ms);
+            }
+        }
+        let mut delay = backoff_ms(self.base_delay_ms, attempt, cfg.jitter);
+        if cfg.status_aware && status >= 500 {
+            match self.status_advice().await {
+                StatusAdvice::FailFast => return None,
+                StatusAdvice::Degraded => delay = delay.saturating_mul(2),
+                StatusAdvice::Normal => {}
+            }
+        }
+        Some(delay)
+    }
+
+    /// The status endpoint's advice, cached; any failure reads as normal.
+    async fn status_advice(&self) -> StatusAdvice {
+        let ttl = self.resilience.config.status_cache_ms;
+        if let Some(a) = self.resilience.status.get(ttl) {
+            return a;
+        }
+        let req = HttpRequest::new(HttpMethod::Get, format!("{}/v1/status", self.base())).header("accept", "application/json");
+        let advice = match self.transport.send(req).await {
+            Ok(r) if (200..300).contains(&r.status) => advice_from_status(&r.body),
+            _ => StatusAdvice::Normal,
+        };
+        self.resilience.status.set(advice);
+        advice
     }
 }
 
@@ -684,4 +758,79 @@ pub(crate) fn encode_component(s: &str) -> String {
 #[allow(dead_code)]
 pub(crate) fn transport_error(msg: impl Into<String>) -> TransportError {
     TransportError::new(msg)
+}
+
+
+/// Per-request observation: a `tracing` span when the `tracing` feature is on, nothing otherwise.
+struct Observe {
+    #[cfg(feature = "tracing")]
+    span: tracing::Span,
+    #[cfg(feature = "tracing")]
+    started: std::time::Instant,
+    #[cfg(feature = "tracing-metrics")]
+    method: &'static str,
+    #[cfg(feature = "tracing-metrics")]
+    route: String,
+}
+
+/// The route template of a concrete path: id-looking segments (`user_01H...`, long hex or digits) become `{id}`,
+/// so a span's route stays low-cardinality. shortcut: a heuristic, not the server's route table.
+#[cfg(feature = "tracing")]
+fn route_template(path: &str) -> String {
+    path.split('/')
+        .map(|seg| {
+            let prefixed = seg.split_once('_').is_some_and(|(p, rest)| (1..=8).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_lowercase()) && rest.len() >= 6 && rest.bytes().all(|b| b.is_ascii_alphanumeric()));
+            let opaque = seg.len() >= 16 && seg.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-');
+            if prefixed || opaque || (!seg.is_empty() && seg.bytes().all(|b| b.is_ascii_digit())) { "{id}" } else { seg }
+        })
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+impl Observe {
+    #[allow(unused_variables)]
+    fn new(method: HttpMethod, path: &str) -> Self {
+        #[cfg(feature = "tracing")]
+        {
+            let span = tracing::info_span!(
+                "atlas.request",
+                http.method = method.as_str(),
+                http.route = %route_template(path),
+                http.status_code = tracing::field::Empty,
+                atlas.retries = tracing::field::Empty,
+                atlas.duration_ms = tracing::field::Empty,
+            );
+            return Observe {
+                span,
+                started: std::time::Instant::now(),
+                #[cfg(feature = "tracing-metrics")]
+                method: method.as_str(),
+                #[cfg(feature = "tracing-metrics")]
+                route: route_template(path),
+            };
+        }
+        #[cfg(not(feature = "tracing"))]
+        Observe {}
+    }
+
+    /// Record the outcome: the final HTTP status (0: the request never completed) and how many retries it took.
+    #[allow(unused_variables)]
+    fn done(&self, status: u16, retries: u32) {
+        #[cfg(feature = "tracing")]
+        {
+            self.span.record("http.status_code", status);
+            self.span.record("atlas.retries", retries);
+            self.span.record("atlas.duration_ms", self.started.elapsed().as_millis() as u64);
+        }
+        // Metrics through the `metrics` facade; the application installs the recorder. Labels are the route
+        // template (never the expanded path), the method and the final status (`0`: it never completed).
+        #[cfg(feature = "tracing-metrics")]
+        {
+            metrics::counter!("atlas_requests_total", "method" => self.method, "route" => self.route.clone(), "status" => status.to_string()).increment(1);
+            metrics::histogram!("atlas_request_duration_seconds", "method" => self.method, "route" => self.route.clone()).record(self.started.elapsed().as_secs_f64());
+            if retries > 0 {
+                metrics::counter!("atlas_request_retries_total", "method" => self.method, "route" => self.route.clone()).increment(retries as u64);
+            }
+        }
+    }
 }
