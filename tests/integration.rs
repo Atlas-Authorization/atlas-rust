@@ -302,12 +302,12 @@ async fn optional_audience_backwards_compatible() {
     // without aud is rejected.
     let backend = AtlasBackend::builder(ISSUER)
         .static_jwks(jwks_for(km, "kid-1"))
-        .audience("https://api.gaiadesk.com")
+        .audience("https://api.example.com")
         .build()
         .unwrap();
 
     let mut with_aud = valid_claims();
-    with_aud["aud"] = json!("https://api.gaiadesk.com");
+    with_aud["aud"] = json!("https://api.example.com");
     assert!(backend
         .verify(&sign_rs256(km, "kid-1", &with_aud))
         .await
@@ -315,7 +315,7 @@ async fn optional_audience_backwards_compatible() {
 
     // aud as an array containing the expected value also matches.
     let mut arr = valid_claims();
-    arr["aud"] = json!(["https://other", "https://api.gaiadesk.com"]);
+    arr["aud"] = json!(["https://other", "https://api.example.com"]);
     assert!(backend.verify(&sign_rs256(km, "kid-1", &arr)).await.is_ok());
 
     // Wrong aud is rejected.
