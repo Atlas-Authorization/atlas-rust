@@ -2,6 +2,12 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.35.1 — 2026-11-23
+
+### Fixed
+
+- A request that fails with a connection reset before any response is retried once, after a short jittered delay, when it is a GET, PUT or DELETE or carries an idempotency key. A transport failure is no longer retried for a write without an idempotency key, and a timeout is never retried. The built-in transport now reports the whole cause chain in `TransportError`.
+
 ## 0.35.0 — 2026-11-22
 
 ### Added

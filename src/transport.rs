@@ -44,7 +44,7 @@ impl JwksSource for ReqwestTransport {
                 .header("accept", "application/json")
                 .send()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             if !resp.status().is_success() {
                 return Err(TransportError::new(format!(
                     "JWKS fetch failed ({})",
@@ -54,7 +54,7 @@ impl JwksSource for ReqwestTransport {
             let text = resp
                 .text()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             serde_json::from_str::<Jwks>(&text)
                 .map_err(|e| TransportError::new(format!("JWKS is malformed: {e}")))
         })
@@ -88,12 +88,12 @@ impl crate::http::HttpTransport for ReqwestTransport {
             let resp = builder
                 .send()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             let status = resp.status().as_u16();
             let body = resp
                 .text()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             Ok(crate::http::HttpResponse { status, body })
         })
     }
@@ -123,7 +123,7 @@ impl crate::http::HttpTransport for ReqwestTransport {
             let resp = builder
                 .send()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             let status = resp.status().as_u16();
             let headers = resp
                 .headers()
@@ -133,7 +133,7 @@ impl crate::http::HttpTransport for ReqwestTransport {
             let body = resp
                 .text()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             Ok(crate::http::HttpFullResponse { status, body, headers })
         })
     }
@@ -160,7 +160,7 @@ impl crate::http::HttpTransport for ReqwestTransport {
             let resp = builder
                 .send()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             let status = resp.status().as_u16();
             let headers = resp
                 .headers()
@@ -170,7 +170,7 @@ impl crate::http::HttpTransport for ReqwestTransport {
             let body = resp
                 .bytes()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?
+                .map_err(|e| TransportError::new(describe(&e)))?
                 .to_vec();
             Ok(crate::http::HttpBytesResponse { status, body, headers })
         })
@@ -193,13 +193,27 @@ impl HttpPost for ReqwestTransport {
                 .body(body)
                 .send()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             let status = resp.status().as_u16();
             let text = resp
                 .text()
                 .await
-                .map_err(|e| TransportError::new(e.to_string()))?;
+                .map_err(|e| TransportError::new(describe(&e)))?;
             Ok(HttpResponse { status, body: text })
         })
     }
+}
+
+/// The error with its whole cause chain ("error sending request: connection closed before message completed"),
+/// so a reset can be told from a timeout.
+fn describe(e: &reqwest::Error) -> String {
+    use std::error::Error;
+    let mut out = if e.is_timeout() { format!("timeout: {e}") } else { e.to_string() };
+    let mut src = e.source();
+    while let Some(s) = src {
+        out.push_str(": ");
+        out.push_str(&s.to_string());
+        src = s.source();
+    }
+    out
 }
