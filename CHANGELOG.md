@@ -2,6 +2,12 @@
 
 All notable changes to the `atlasauth` crate are documented here.
 
+## 0.35.0 — 2026-11-22
+
+### Added
+
+- **Key-pair API keys** (`backend` feature). `sign_api_key_assertion(private_key_pem, key_id, audience, &ApiKeyAssertionOptions { ttl_seconds, scope, jti })` signs the short-lived JWT a key-pair key presents (ES256 for P-256, EdDSA for Ed25519). `CreateApiKeyBody` takes `credential`, `audience` and `public_key`; `ApiKey` and `ApiKeyWithSecret` carry `credential`, `audience`, `key_id` and, for a generated pair, `private_key` once; `MintApiKeyTokenBody::assertion` and `ApiKeysVerifyBody` (`token` via `extra`) present an assertion instead of a secret. `KeyMirror::verify_assertion` verifies an assertion locally with the server's refusal codes (`InvalidCode`); `MirroredApiKey` carries `credential`, `public_key_pem`, `audience`, `max_token_lifetime_seconds` and `enabled` (a disabled key is refused by `verify` and `verify_assertion`), and `apply_webhook` copies `enabled`. A store may implement `claim_assertion_jti` to share used ids between processes. `ApiKeyVerifier::verify_assertion` verifies an assertion at Atlas with the same caches, never caching past the assertion's `exp`, and not caching the positive verdict of an assertion with a `jti` (it is single-use at Atlas).
+
 ## 0.34.0 — 2026-11-14
 
 ### Added

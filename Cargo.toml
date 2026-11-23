@@ -1,6 +1,6 @@
 [package]
 name = "atlasauth"
-version = "0.34.0"
+version = "0.35.0"
 edition = "2021"
 # 1.95: found by bisecting CI over `cargo check` of the default and framework features (1.94 and below fail:
 # ref-swap 0.1.x needs the stabilised `atomic_try_update`; rocket_http 0.5.2 and current actix need 1.89 or

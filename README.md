@@ -377,6 +377,29 @@ Error codes worth branching on are in `atlasauth::backend::codes`
 `EMAIL_DELIVERY_NOT_CONFIGURED`, `EMAIL_PROVIDER_REQUIRED`, `EMAIL_PROVIDER_IN_USE`, …):
 `err.has_code(codes::UNKNOWN_FIELD)`.
 
+### Key-pair API keys
+
+A key-pair key has no shared secret: Atlas returns a PKCS#8 private key once and keeps only the public key. Sign a short-lived assertion and present it where you would present a secret.
+
+```rust
+use atlasauth::{sign_api_key_assertion, ApiKeyAssertionOptions};
+use atlasauth::backend::{CreateApiKeyBody, MintApiKeyTokenBody};
+
+let key = client.api_keys().create(&CreateApiKeyBody {
+    subject_type: "user".into(), subject_id: "user_123".into(),
+    credential: Some("key_pair".into()), audience: Some("https://api.example.com".into()),
+    ..Default::default()
+}, None).await?;
+let assertion = sign_api_key_assertion(
+    key.private_key.as_deref().unwrap(), key.key_id.as_deref().unwrap(),
+    "https://api.example.com", &ApiKeyAssertionOptions::default())?;
+client.api_keys().mint_token(&MintApiKeyTokenBody { assertion: Some(assertion), ..Default::default() }).await?;
+```
+
+ES256 (P-256) and EdDSA (Ed25519) keys are supported.
+
+`mirror.verify_assertion(&assertion, &[], None).await?` checks an assertion against the mirrored public key with no network call, with the same refusal codes Atlas answers.
+
 ### API key spend caps
 
 Give an end-user API key caps per unit and period (`"request"`, `"second"`,

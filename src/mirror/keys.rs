@@ -7,6 +7,9 @@ use std::collections::{BTreeSet, HashMap};
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine as _;
+use jsonwebtoken::{Algorithm, DecodingKey};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
@@ -36,6 +39,16 @@ pub struct MirroredApiKey {
     /// The organization a user key is bound to.
     pub organization_id: Option<String>,
     pub revoked_reason: Option<String>,
+    /// `Some(false)`: refused like an unknown key; `None`: enabled.
+    pub enabled: Option<bool>,
+    /// `"secret"` or `"key_pair"`. A key-pair row has no secret hash (`hash` is a placeholder nothing matches).
+    pub credential: String,
+    /// Key pair: the SPKI PEM assertions are verified against.
+    pub public_key_pem: Option<String>,
+    /// Key pair: the `aud` an assertion must carry.
+    pub audience: Option<String>,
+    /// Key pair: the longest assertion lifetime in seconds; `None`: 3600.
+    pub max_token_lifetime_seconds: Option<i64>,
 }
 
 /// The member's standing in the organization a key is bound to.
@@ -59,6 +72,12 @@ pub trait KeyMirrorStore: Send + Sync {
     fn mark_membership_ended(&self, user_id: &str, organization_id: &str, revoked_at: i64) -> Result<bool, StoreError> {
         let _ = (user_id, organization_id, revoked_at);
         Ok(false)
+    }
+    /// Optional: record an assertion `jti` as used until `expires_at_ms`. `Ok(Some(false))` is a replay;
+    /// `Ok(None)` (the default) means the store does not track them and the mirror keeps used ids in process memory.
+    fn claim_assertion_jti(&self, key_id: &str, jti: &str, expires_at_ms: i64) -> Result<Option<bool>, StoreError> {
+        let _ = (key_id, jti, expires_at_ms);
+        Ok(None)
     }
     fn cursor(&self) -> Result<Option<String>, StoreError>;
     fn set_cursor(&self, cursor: &str) -> Result<(), StoreError>;
@@ -174,6 +193,14 @@ pub enum InvalidCode {
     IpNotAllowed,
     ClientIpRequired,
     MembershipUnresolved,
+    // Refusals of a key-pair assertion, named as Atlas verify names them.
+    InvalidAssertion,
+    AssertionExpired,
+    AssertionNotYetValid,
+    WrongAudience,
+    AssertionLifetimeTooLong,
+    AssertionReplayed,
+    ScopeNotGranted,
 }
 
 /// The answer of [`KeyMirror::verify`].
@@ -186,6 +213,10 @@ pub enum MirrorVerification {
         stale: bool,
         /// A bound key: the membership the scopes were narrowed by.
         organization: Option<ApiKeyOrganization>,
+        /// `Some("key_pair")` after [`KeyMirror::verify_assertion`], with the assertion's `jti` and `exp` (epoch seconds).
+        credential: Option<String>,
+        jti: Option<String>,
+        exp: Option<i64>,
     },
     Invalid { code: Option<InvalidCode>, missing_scopes: Vec<String> },
     /// The mirror is not fresh enough to answer. Retry after `sync()`.
@@ -315,7 +346,21 @@ fn to_mirrored(key: &Value, hash: String) -> Result<MirroredApiKey, MirrorError>
         revoked_at: key.get("revoked_at").and_then(Value::as_i64),
         organization_id: str_of(key, "organization_id"),
         revoked_reason: str_of(key, "revoked_reason"),
+        enabled: key.get("enabled").and_then(Value::as_bool),
+        credential: str_of(key, "credential").unwrap_or_else(|| "secret".into()),
+        public_key_pem: str_of(key, "public_key"),
+        audience: str_of(key, "audience"),
+        max_token_lifetime_seconds: key.get("max_token_lifetime_seconds").and_then(Value::as_i64),
     })
+}
+
+/// The secret's sha256; a key-pair key has no secret, so its row carries a placeholder nothing can match.
+fn key_hash(key: &Value) -> Result<String, MirrorError> {
+    match (str_of(key, "secret"), str_of(key, "id")) {
+        (Some(secret), _) => Ok(hash_api_key_secret(&secret)),
+        (None, Some(id)) if str_of(key, "credential").as_deref() == Some("key_pair") => Ok(format!("key_pair:{id}")),
+        _ => Err(MirrorError::Invalid("Atlas returned no secret".into())),
+    }
 }
 
 fn org_of(v: &Value) -> Option<ApiKeyOrganization> {
@@ -329,12 +374,13 @@ pub struct KeyMirror {
     opts: KeyMirrorOptions,
     now: Clock,
     memory_sync_at: Mutex<Option<i64>>,
+    used_jtis: Mutex<HashMap<String, i64>>,
 }
 
 impl KeyMirror {
     /// `client` is the management client (secret key with the `api_keys` scopes).
     pub fn new(store: Arc<dyn KeyMirrorStore>, client: BackendClient, opts: KeyMirrorOptions) -> Self {
-        KeyMirror { store, client, opts, now: system_clock(), memory_sync_at: Mutex::new(None) }
+        KeyMirror { store, client, opts, now: system_clock(), memory_sync_at: Mutex::new(None), used_jtis: Mutex::new(HashMap::new()) }
     }
 
     /// Inject a clock (epoch ms), for tests.
@@ -355,8 +401,7 @@ impl KeyMirror {
     /// Mint at Atlas, then mirror it. Returns the create response, which carries the one-time `secret`.
     pub async fn mint(&self, body: Value, idempotency_key: Option<&str>) -> Result<Value, MirrorError> {
         let created = self.client.request_value_idem(HttpMethod::Post, "/v1/api_keys", &[], Some(body), idempotency_key).await?;
-        let secret = str_of(&created, "secret").ok_or_else(|| MirrorError::Invalid("Atlas returned no secret".into()))?;
-        self.store.put(to_mirrored(&created, hash_api_key_secret(&secret))?)?;
+        self.store.put(to_mirrored(&created, key_hash(&created)?)?)?;
         Ok(created)
     }
 
@@ -365,8 +410,7 @@ impl KeyMirror {
     pub async fn rotate(&self, id: &str, body: Value, idempotency_key: Option<&str>) -> Result<Value, MirrorError> {
         let path = format!("/v1/api_keys/{}/rotate", encode_segment(id));
         let rotated = self.client.request_value_idem(HttpMethod::Post, &path, &[], Some(body), idempotency_key).await?;
-        let secret = str_of(&rotated, "secret").ok_or_else(|| MirrorError::Invalid("Atlas returned no secret".into()))?;
-        self.store.put(to_mirrored(&rotated, hash_api_key_secret(&secret))?)?;
+        self.store.put(to_mirrored(&rotated, key_hash(&rotated)?)?)?;
         if let Some(old) = self.store.get(id)? {
             let prev = rotated.get("previous_key").cloned().unwrap_or(Value::Null);
             if prev.get("revoked").and_then(Value::as_bool) == Some(true) {
@@ -440,17 +484,9 @@ impl KeyMirror {
         if secret.is_empty() {
             return Ok(MirrorVerification::no());
         }
-        let mut served_stale = false;
-        let last = self.last_sync_at()?;
-        match freshness(last, self.now_ms(), self.opts.max_staleness_ms, self.opts.serve_stale_for_ms) {
-            Freshness::Fresh => {}
-            Freshness::Refuse => return Ok(MirrorVerification::Stale { last_sync_at: last }),
-            Freshness::ServedStale { behind_ms } => {
-                served_stale = true;
-                if let Some(h) = &self.opts.on_serve_stale {
-                    h(last, behind_ms);
-                }
-            }
+        let (refusal, served_stale) = self.check_fresh()?;
+        if let Some(r) = refusal {
+            return Ok(r);
         }
         let hash = hash_api_key_secret(secret);
         let mut key = self.store.get_by_hash(&hash)?;
@@ -465,7 +501,7 @@ impl KeyMirror {
             }
         }
         let Some(key) = key else { return Ok(MirrorVerification::no()) };
-        if key.revoked_at.is_some() {
+        if key.revoked_at.is_some() || key.enabled == Some(false) {
             return Ok(MirrorVerification::no());
         }
         if key.expires_at.is_some_and(|e| e <= self.now_ms()) {
@@ -500,7 +536,146 @@ impl KeyMirror {
         if !missing.is_empty() {
             return Ok(MirrorVerification::Invalid { code: Some(InvalidCode::InsufficientScope), missing_scopes: missing });
         }
-        Ok(MirrorVerification::Valid { key, effective_scopes: effective, stale: served_stale, organization })
+        Ok(MirrorVerification::Valid { key, effective_scopes: effective, stale: served_stale, organization, credential: None, jti: None, exp: None })
+    }
+
+    /// A refusal when the mirror is too stale to answer, and whether the answer is served stale.
+    fn check_fresh(&self) -> Result<(Option<MirrorVerification>, bool), MirrorError> {
+        let last = self.last_sync_at()?;
+        Ok(match freshness(last, self.now_ms(), self.opts.max_staleness_ms, self.opts.serve_stale_for_ms) {
+            Freshness::Fresh => (None, false),
+            Freshness::Refuse => (Some(MirrorVerification::Stale { last_sync_at: last }), false),
+            Freshness::ServedStale { behind_ms } => {
+                if let Some(h) = &self.opts.on_serve_stale {
+                    h(last, behind_ms);
+                }
+                (None, true)
+            }
+        })
+    }
+
+    /// Verify a key-pair assertion ([`crate::sign_api_key_assertion`]) locally with the checks Atlas verify makes: the
+    /// signature with the stored public key (`alg` must fit its type), `iss` = `kid`, `aud`, `iat`, `exp` and the
+    /// lifetime cap, `nbf`, `scope` (a subset of the key's, narrows the result), revocation, expiry, the IP allowlist,
+    /// then the single-use `jti`. A refusal carries the server's code; a key the mirror does not hold answers `Invalid`
+    /// with none. The `jti` is claimed through the store's optional `claim_assertion_jti`, else in this process's
+    /// memory, and only after every other check passed.
+    pub async fn verify_assertion(&self, token: &str, required_scopes: &[String], client_ip: Option<&str>) -> Result<MirrorVerification, MirrorError> {
+        let (refusal, served_stale) = self.check_fresh()?;
+        if let Some(r) = refusal {
+            return Ok(r);
+        }
+        let bad = MirrorVerification::code;
+        let parts: Vec<&str> = token.split('.').collect();
+        let decoded: Option<(Value, Value)> = (parts.len() == 3)
+            .then(|| {
+                let h = serde_json::from_slice::<Value>(&URL_SAFE_NO_PAD.decode(parts[0]).ok()?).ok()?;
+                let c = serde_json::from_slice::<Value>(&URL_SAFE_NO_PAD.decode(parts[1]).ok()?).ok()?;
+                (h.is_object() && c.is_object()).then_some((h, c))
+            })
+            .flatten();
+        let Some((header, claims)) = decoded else { return Ok(bad(InvalidCode::InvalidAssertion)) };
+        let Some(kid) = header.get("kid").and_then(Value::as_str).filter(|k| !k.is_empty()) else { return Ok(bad(InvalidCode::InvalidAssertion)) };
+        let Some(key) = self.store.get(kid)? else { return Ok(MirrorVerification::no()) };
+        let Some(pem) = key.public_key_pem.as_deref().filter(|_| key.credential == "key_pair") else { return Ok(bad(InvalidCode::InvalidAssertion)) };
+        let decoding = match header.get("alg").and_then(Value::as_str) {
+            Some("ES256") => DecodingKey::from_ec_pem(pem.as_bytes()).map(|k| (Algorithm::ES256, k)),
+            Some("EdDSA") => DecodingKey::from_ed_pem(pem.as_bytes()).map(|k| (Algorithm::EdDSA, k)),
+            _ => return Ok(bad(InvalidCode::InvalidAssertion)),
+        };
+        let signed = format!("{}.{}", parts[0], parts[1]);
+        let verified = decoding
+            .ok()
+            .is_some_and(|(alg, k)| jsonwebtoken::crypto::verify(parts[2], signed.as_bytes(), &k, alg).unwrap_or(false));
+        if !verified || claims.get("iss").and_then(Value::as_str) != Some(kid) || key.enabled == Some(false) {
+            return Ok(bad(InvalidCode::InvalidAssertion));
+        }
+        let now_ms = self.now_ms();
+        if key.revoked_at.is_some() || key.expires_at.is_some_and(|e| e <= now_ms) {
+            return Ok(MirrorVerification::no());
+        }
+        let now_s = now_ms / 1000;
+        let aud_ok = match claims.get("aud") {
+            Some(Value::String(a)) => Some(a.as_str()) == key.audience.as_deref(),
+            Some(Value::Array(list)) => list.iter().any(|a| a.as_str().is_some() && a.as_str() == key.audience.as_deref()),
+            _ => false,
+        };
+        if !aud_ok {
+            return Ok(bad(InvalidCode::WrongAudience));
+        }
+        let num = |k: &str| claims.get(k).and_then(Value::as_f64).map(|f| f.floor() as i64);
+        let (iat, exp) = match (num("iat"), num("exp")) {
+            (Some(i), Some(e)) => (i, e),
+            _ => return Ok(bad(InvalidCode::InvalidAssertion)),
+        };
+        let nbf = num("nbf");
+        let jti = claims.get("jti");
+        let scope = claims.get("scope");
+        if (claims.get("nbf").is_some() && nbf.is_none())
+            || jti.is_some_and(|j| j.as_str().is_none_or(str::is_empty))
+            || scope.is_some_and(|s| !s.is_string())
+        {
+            return Ok(bad(InvalidCode::InvalidAssertion));
+        }
+        if iat > now_s + 60 || nbf.is_some_and(|n| n > now_s + 60) {
+            return Ok(bad(InvalidCode::AssertionNotYetValid));
+        }
+        if exp <= now_s - 30 {
+            return Ok(bad(InvalidCode::AssertionExpired));
+        }
+        if exp - iat > key.max_token_lifetime_seconds.unwrap_or(3600).min(86400) {
+            return Ok(bad(InvalidCode::AssertionLifetimeTooLong));
+        }
+        if let Some(ips) = key.allowed_ips.as_ref().filter(|i| !i.is_empty()) {
+            match client_ip {
+                None | Some("") => return Ok(bad(InvalidCode::ClientIpRequired)),
+                Some(ip) if !ip_in_allowlist(ip, ips) => return Ok(bad(InvalidCode::IpNotAllowed)),
+                _ => {}
+            }
+        }
+        let mut effective = expand(key.scopes.as_deref().unwrap_or(&[]), &self.opts.scope_implications, &self.opts.allowed_scopes);
+        let mut organization = None;
+        if let (true, Some(org_id)) = (key.subject_type == "user", key.organization_id.as_deref()) {
+            let Some(f) = &self.opts.membership else { return Ok(bad(InvalidCode::MembershipUnresolved)) };
+            let Some(held) = f(&key.subject_id, org_id) else { return Ok(MirrorVerification::no()) };
+            effective = intersect_scopes_with_permissions(&effective, &held.permissions);
+            organization = Some(held);
+        }
+        if let Some(asked) = scope.and_then(Value::as_str).map(|s| s.split_whitespace().map(str::to_string).collect::<Vec<_>>()).filter(|a| !a.is_empty()) {
+            let not_granted: Vec<String> = asked.iter().filter(|x| !effective.contains(x)).cloned().collect();
+            if !not_granted.is_empty() {
+                return Ok(MirrorVerification::Invalid { code: Some(InvalidCode::ScopeNotGranted), missing_scopes: not_granted });
+            }
+            effective.retain(|x| asked.contains(x));
+        }
+        let missing: Vec<String> = required_scopes.iter().filter(|x| !effective.contains(x)).cloned().collect();
+        if !missing.is_empty() {
+            return Ok(MirrorVerification::Invalid { code: Some(InvalidCode::InsufficientScope), missing_scopes: missing });
+        }
+        // Last, so a refused assertion never burns its jti.
+        if let Some(j) = jti.and_then(Value::as_str) {
+            let until = exp * 1000;
+            let first = match self.store.claim_assertion_jti(&key.id, j, until)? {
+                Some(first) => first,
+                None => {
+                    let mut used = self.used_jtis.lock().unwrap();
+                    used.retain(|_, t| *t > now_ms);
+                    used.insert(format!("{}\n{j}", key.id), until).is_none()
+                }
+            };
+            if !first {
+                return Ok(bad(InvalidCode::AssertionReplayed));
+            }
+        }
+        Ok(MirrorVerification::Valid {
+            key,
+            effective_scopes: effective,
+            stale: served_stale,
+            organization,
+            credential: Some("key_pair".into()),
+            jti: jti.and_then(Value::as_str).map(str::to_string),
+            exp: Some(exp),
+        })
     }
 
     /// Consume the revocation feed (`GET /v1/api_keys/revoked`) from the stored cursor, revoking each listed
@@ -572,6 +747,7 @@ impl KeyMirror {
                 scopes: if data.get("scopes").is_some() { strings_of(data, "scopes") } else { held.scopes.clone() },
                 allowed_ips: if data.get("allowed_ips").is_some() { strings_of(data, "allowed_ips") } else { held.allowed_ips.clone() },
                 expires_at: opt_i64("expires_at").unwrap_or(held.expires_at),
+                enabled: data.get("enabled").and_then(Value::as_bool).or(held.enabled),
                 ..held
             };
             self.store.put(updated)?;

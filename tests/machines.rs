@@ -213,6 +213,7 @@ async fn api_key_patch_mint_token_and_revoked() {
             secret: "ak_abc_secret".into(),
             ttl_seconds: Some(300),
             audience: Some(json!("https://resource.example")),
+            ..Default::default()
         })
         .await
         .unwrap();

@@ -38,6 +38,8 @@
 
 mod access_token;
 mod apikey;
+#[cfg(feature = "backend")]
+mod api_key_assertion;
 mod claims;
 mod clock;
 mod dpop;
@@ -124,6 +126,8 @@ pub mod actix;
 #[cfg(feature = "rocket")]
 pub mod rocket;
 
+#[cfg(feature = "backend")]
+pub use api_key_assertion::{sign_api_key_assertion, ApiKeyAssertionOptions};
 pub use apikey::{
     ApiKeyCap, ApiKeyCapUsage, ApiKeyVerification, ApiKeyVerifier, ApiKeyVerifierBuilder, HttpPost,
     HttpResponse,

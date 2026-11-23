@@ -1001,6 +1001,15 @@ pub struct ApiKey {
     /// Each cap with its current-window usage (empty when the key has no caps).
     #[serde(default)]
     pub usage: Vec<super::types::ApiKeyLimitState>,
+    /// `"secret"` or `"key_pair"`.
+    #[serde(default)]
+    pub credential: Option<String>,
+    /// Assertion audience of a key-pair key; `None` for a secret key.
+    #[serde(default)]
+    pub audience: Option<String>,
+    /// The JWT `kid` of a key-pair key (equal to `id`).
+    #[serde(default)]
+    pub key_id: Option<String>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
@@ -1024,6 +1033,17 @@ pub struct ApiKeyWithSecret {
     pub id: String,
     #[serde(default)]
     pub secret: String,
+    /// `"secret"` or `"key_pair"`.
+    #[serde(default)]
+    pub credential: Option<String>,
+    #[serde(default)]
+    pub audience: Option<String>,
+    /// The JWT `kid` of a key-pair key (equal to `id`).
+    #[serde(default)]
+    pub key_id: Option<String>,
+    /// PKCS#8 PEM of an Atlas-generated key pair, revealed once (key-pair keys only).
+    #[serde(default)]
+    pub private_key: Option<String>,
     #[serde(flatten)]
     pub key: Map<String, Value>,
 }
@@ -1048,6 +1068,15 @@ pub struct CreateApiKeyBody {
     /// Per-key spend caps, metered with [`ApiKeys::record_usage`].
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limits: Option<Vec<super::types::ApiKeyLimit>>,
+    /// `"secret"` (default) or `"key_pair"`: a key pair has no shared secret.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credential: Option<String>,
+    /// Assertion audience of a key-pair key (default: the instance id).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audience: Option<String>,
+    /// Your own SPKI PEM (P-256 or Ed25519) for a key-pair key; without it Atlas generates the pair.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub public_key: Option<String>,
     /// Migrate an EXISTING key by its hash instead of minting a fresh secret
     /// (import-spec Blocker 2). Mutually exclusive with a minted secret, and the
     /// server never accepts a plaintext secret here — only the hash. Omitted
@@ -1111,7 +1140,12 @@ pub struct UpdateApiKeyBody {
 /// short-lived, JWKS-signed access JWT. `audience` is a string or array.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct MintApiKeyTokenBody {
+    /// The `ak_` secret; leave empty when sending `assertion`.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub secret: String,
+    /// A signed key-pair assertion ([`crate::sign_api_key_assertion`]), sent instead of `secret`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assertion: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ttl_seconds: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -90,6 +90,17 @@ pub struct ApiKeyVerification {
     pub last_used_at: Option<i64>,
     #[serde(default)]
     pub expires_at: Option<i64>,
+    /// `"key_pair"` when an assertion was verified; `jti` and `exp` are the assertion's.
+    #[serde(default)]
+    pub credential: Option<String>,
+    /// The refusal code on a negative verdict of a live key or an assertion (e.g. `invalid_assertion`,
+    /// `assertion_expired`, `wrong_audience`, `assertion_replayed`); `None` for a plain unknown key.
+    #[serde(default)]
+    pub code: Option<String>,
+    #[serde(default)]
+    pub jti: Option<String>,
+    #[serde(default)]
+    pub exp: Option<i64>,
 }
 
 /// A per-key spend cap as the verify result reports it.
@@ -125,6 +136,8 @@ pub struct ApiKeyCapUsage {
 struct CacheEntry {
     verdict: ApiKeyVerification,
     stored_at: u64,
+    /// Epoch ms the entry must not outlive (an assertion's `exp`).
+    deadline: Option<u64>,
 }
 
 /// Verifies end-user API keys against Atlas with separate positive/negative
@@ -255,20 +268,34 @@ impl ApiKeyVerifier {
     /// no network call. A transport/auth failure is an [`ApiKeyError`], never a
     /// silent `valid = false`.
     pub async fn verify(&self, secret: &str) -> Result<ApiKeyVerification, ApiKeyError> {
+        // The "s:" / "a:" prefixes keep a secret and an assertion in separate namespaces of the same maps.
+        self.verify_cached(format!("s:{secret}"), serde_json::json!({ "secret": secret }), false).await
+    }
+
+    /// Verify a key-pair assertion (`sign_api_key_assertion`) at Atlas, with the same positive / negative
+    /// caches as [`Self::verify`], keyed by the whole assertion so one assertion is never answered with
+    /// another's verdict. A cached entry never outlives the assertion's `exp`. An assertion with a `jti` is
+    /// single-use at Atlas, so its positive verdict is not cached (a cache hit would let it be replayed
+    /// here); one without a `jti` is. A refusal such as `assertion_expired` is cached briefly, except
+    /// `assertion_not_yet_valid`, which can turn valid within a minute.
+    pub async fn verify_assertion(&self, token: &str) -> Result<ApiKeyVerification, ApiKeyError> {
+        self.verify_cached(format!("a:{token}"), serde_json::json!({ "token": token }), true).await
+    }
+
+    async fn verify_cached(&self, key: String, body: serde_json::Value, assertion: bool) -> Result<ApiKeyVerification, ApiKeyError> {
         let now = (self.now)();
 
-        if let Some(v) = self.cached(&self.positive, secret, now, self.positive_ttl_ms) {
+        if let Some(v) = self.cached(&self.positive, &key, now, self.positive_ttl_ms) {
             return Ok(v);
         }
-        if let Some(v) = self.cached(&self.negative, secret, now, self.negative_ttl_ms) {
+        if let Some(v) = self.cached(&self.negative, &key, now, self.negative_ttl_ms) {
             return Ok(v);
         }
 
         let url = format!("{}/v1/api_keys/verify", self.base_url.trim_end_matches('/'));
-        let body = serde_json::json!({ "secret": secret }).to_string();
         let resp = self
             .transport
-            .post_json(&url, &self.secret_key, body)
+            .post_json(&url, &self.secret_key, body.to_string())
             .await?;
 
         if !(200..300).contains(&resp.status) {
@@ -284,12 +311,18 @@ impl ApiKeyVerifier {
         let verdict: ApiKeyVerification =
             serde_json::from_str(&resp.body).map_err(|e| ApiKeyError::Malformed(e.to_string()))?;
 
-        let entry = CacheEntry {
-            verdict: verdict.clone(),
-            stored_at: now,
-        };
-        let cache = if verdict.valid { &self.positive } else { &self.negative };
-        self.insert_bounded(cache, secret, entry);
+        let cacheable = !assertion
+            || if verdict.valid { verdict.jti.is_none() } else { verdict.code.as_deref() != Some("assertion_not_yet_valid") };
+        if cacheable {
+            let deadline = if assertion { verdict.exp.map(|e| (e.max(0) as u64).saturating_mul(1000)) } else { None };
+            let entry = CacheEntry {
+                verdict: verdict.clone(),
+                stored_at: now,
+                deadline,
+            };
+            let cache = if verdict.valid { &self.positive } else { &self.negative };
+            self.insert_bounded(cache, &key, entry);
+        }
 
         Ok(verdict)
     }
@@ -297,8 +330,16 @@ impl ApiKeyVerifier {
     /// Drop one key from BOTH caches, so a just-revoked (or just-fixed) key is
     /// re-verified against Atlas on its next use instead of waiting out a TTL.
     pub fn invalidate(&self, secret: &str) {
-        self.positive.lock().unwrap().remove(secret);
-        self.negative.lock().unwrap().remove(secret);
+        let key = format!("s:{secret}");
+        self.positive.lock().unwrap().remove(&key);
+        self.negative.lock().unwrap().remove(&key);
+    }
+
+    /// Drop one assertion from BOTH caches.
+    pub fn invalidate_assertion(&self, token: &str) {
+        let key = format!("a:{token}");
+        self.positive.lock().unwrap().remove(&key);
+        self.negative.lock().unwrap().remove(&key);
     }
 
     /// Drop every cached verdict.
@@ -336,7 +377,7 @@ impl ApiKeyVerifier {
     ) -> Option<ApiKeyVerification> {
         let mut map = cache.lock().unwrap();
         if let Some(entry) = map.get(secret) {
-            if now.saturating_sub(entry.stored_at) < ttl_ms {
+            if now.saturating_sub(entry.stored_at) < ttl_ms && entry.deadline.is_none_or(|d| now < d) {
                 return Some(entry.verdict.clone());
             }
             // Expired: drop it so the map does not grow unbounded with stale keys.
