@@ -406,6 +406,7 @@ impl BackendClient {
         let url = format!("{}{}{}", self.base(), path, serialize_query(&query_all));
 
         let mut attempt: u32 = 0;
+        let mut reset_retried = false;
         loop {
             let mut req = HttpRequest::new(method, url.clone())
                 .header("authorization", format!("Bearer {}", self.secret_key))
@@ -444,8 +445,9 @@ impl BackendClient {
             let result = self.transport.send_full(req, raw).await;
             match result {
                 Err(transport_err) => {
-                    if attempt < max_retries {
-                        self.backoff(attempt).await;
+                    if max_retries > 0 && !reset_retried && is_reset_retryable(&transport_err, method, idempotency_key.is_some()) {
+                        reset_retried = true;
+                        self.backoff(0).await;
                         attempt += 1;
                         continue;
                     }
@@ -550,6 +552,7 @@ impl BackendClient {
     ) -> Result<Vec<u8>, BackendError> {
         let url = format!("{}{}{}", self.base(), path, serialize_query(query));
         let mut attempt: u32 = 0;
+        let mut reset_retried = false;
         loop {
             let mut req = HttpRequest::new(method, url.clone())
                 .header("authorization", format!("Bearer {}", self.secret_key))
@@ -563,8 +566,9 @@ impl BackendClient {
             }
             match self.transport.send_bytes(req).await {
                 Err(e) => {
-                    if attempt < self.max_retries {
-                        self.backoff(attempt).await;
+                    if self.max_retries > 0 && !reset_retried && is_reset_retryable(&e, method, false) {
+                        reset_retried = true;
+                        self.backoff(0).await;
                         attempt += 1;
                         continue;
                     }
@@ -756,6 +760,22 @@ pub(crate) fn encode_component(s: &str) -> String {
 /// Expose the transport-error constructor to sibling modules without widening
 /// the public API.
 #[allow(dead_code)]
+/// A connection-level failure before any response (a reset, a broken pipe, a refused connect, a closed idle
+/// socket) on a request that is safe to replay: GET, PUT, DELETE, or any request with an idempotency key.
+/// Timeouts never qualify (the request may have been applied).
+pub(crate) fn is_reset_retryable(e: &TransportError, method: HttpMethod, keyed: bool) -> bool {
+    if !(keyed || matches!(method, HttpMethod::Get | HttpMethod::Put | HttpMethod::Delete)) {
+        return false;
+    }
+    let m = e.0.to_ascii_lowercase();
+    if m.contains("timed out") || m.contains("timeout") {
+        return false;
+    }
+    ["connection reset", "broken pipe", "connection refused", "connection closed", "unexpected eof", "incomplete message"]
+        .iter()
+        .any(|k| m.contains(k))
+}
+
 pub(crate) fn transport_error(msg: impl Into<String>) -> TransportError {
     TransportError::new(msg)
 }

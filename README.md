@@ -173,6 +173,9 @@ let done = rp.callback(query, cookie_header).await?;               // done.user.
 - `BackendClientBuilder::resilience(ResilienceConfig)`: `Retry-After` on 429 and 503 is honoured (up to a cap),
   retries back off with jitter, and with `status_aware` a 5xx reads the public status endpoint first (fail fast during
   a declared major outage, slower backoff while degraded).
+- Connection resets: a request that fails with a connection reset before any response (an idle pooled connection the
+  server closed) is retried once, after a short jittered delay, when it is a GET, PUT or DELETE or carries an
+  idempotency key. Timeouts and other writes are never replayed. Keep your reqwest `pool_idle_timeout` below 60 s.
 - `doctor::run`: checks key shapes, clock skew against the API, JWKS reachability, service status, URL schemes and
   that the secret key is accepted; the report never contains a key.
 
