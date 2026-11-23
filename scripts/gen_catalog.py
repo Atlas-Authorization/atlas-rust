@@ -200,6 +200,8 @@ EXISTING = {
     'MessagingProvidersApi': None, 'AtlasIdApps': None, 'AtlasIdPublisherApi': None, 'PlatformApi': None,
     # hand-written in catalog_ext.rs / suite.rs
     'Abac': None, 'AccessPolicies': None, 'Agents': None, 'AppCatalog': None, 'AuthzDecisions': None, 'Connections': None, 'DesktopMfa': None, 'Devices': None, 'Iga': None, 'McpGateways': None, 'PartnerLinks': None, 'Ssf': None, 'Vc': None, 'Workflows': None,
+    # hand-written in catalog_ext.rs / resources.rs, extended with the operations they lack
+    'Analytics': None, 'Grants': None, 'Domains': None,
 }
 
 # prefix -> (Struct, accessor, doc). Longest prefix wins.
@@ -217,6 +219,17 @@ NS = [
     ('/v1/platform/atlas_id_apps', 'AtlasIdApps', None, None),
     ('/v1/platform/atlas_id_publisher', 'AtlasIdPublisherApi', None, None),
     ('/v1/platform/config_changelog', 'PlatformApi', None, None),
+    ('/v1/analytics', 'Analytics', None, None),
+    ('/v1/grants', 'Grants', None, None),
+    ('/v1/domains', 'Domains', None, None),
+    ('/v1/connection_templates', 'ConnectionTemplates', 'connection_templates', 'Connection templates'),
+    ('/v1/message_links', 'MessageLinks', 'message_links', 'Signed message links'),
+    ('/v1/native_apps', 'NativeApps', 'native_apps', 'Native apps (iOS, Android, development)'),
+    ('/v1/oauth_consent_requests', 'OAuthConsentRequests', 'oauth_consent_requests', 'OAuth consent requests'),
+    ('/v1/oauth_device_requests', 'OAuthDeviceRequests', 'oauth_device_requests', 'OAuth device authorization requests'),
+    ('/v1/organization_invitations', 'OrganizationInvitations', 'organization_invitations', 'Organization invitations across the instance'),
+    ('/v1/permission_aliases', 'PermissionAliases', 'permission_aliases', 'Permission aliases'),
+    ('/v1/platform/apps/{id}/provisioning_key', 'ProvisioningKeys', 'provisioning_keys', 'Platform app provisioning keys'),
     ('/v1/logout_notify_endpoints', 'LogoutNotifyEndpoints', 'logout_notify_endpoints', 'Logout fan-out endpoints: services that get the same logout_token as your OIDC apps'),
     ('/v1/actions', 'Actions', 'actions', 'Actions: custom code run on auth triggers'),
     ('/v1/action_gallery', 'ActionGallery', 'action_gallery', 'The community Actions gallery: browse, install and update Action templates'),
@@ -264,6 +277,7 @@ NS = [
     ('/v1/radius_clients', 'RadiusClients', 'radius_clients', 'RADIUS clients'),
     ('/v1/rate_limit_policy', 'RateLimitPolicy', 'rate_limit_policy', 'The rate-limit policy'),
     ('/v1/redirect_urls', 'RedirectUrls', 'redirect_urls', 'Redirect URLs'),
+    ('/v1/revocations', 'Revocations', 'revocations', 'The revocation feed'),
     ('/v1/resource_servers', 'ResourceServers', 'resource_servers', 'Resource servers (APIs)'),
     ('/v1/risk_based_mfa', 'RiskBasedMfa', 'risk_based_mfa', 'Risk-based MFA'),
     ('/v1/risk_events', 'RiskEvents', 'risk_events', 'Risk events'),
@@ -379,6 +393,7 @@ NS = [
     ('/v1/suppressions', 'Suppressions', 'suppressions', 'Message suppressions'),
     ('/v1/web_bot_auth', 'WebBotAuth', 'web_bot_auth', 'Web Bot Auth settings and key directories'),
     ('/v1/webhook_endpoints/{id}/dlq', 'WebhookDlq', 'webhook_dlq', 'Webhook dead-letter queue'),
+    ('/v1/webhook_dlq', 'WebhookDeadLetters', 'webhook_dead_letters', 'Dead letters across every webhook endpoint'),
 ]
 
 # (struct, json field) pairs that stay Option<T> although the spec now marks
@@ -1292,6 +1307,14 @@ BODY_ADDED = {
 for op in ops:
     op['fn'] = op['name'] + '_with' if (op['M'], op['p']) in BODY_ADDED else op['name']
 
+# Arguments a shipped method lacks (the spec added a query or an idempotency header after release):
+# the method keeps its published parameter list and `<fn>_with_idempotency_key` takes everything.
+PINS.setdefault('shipped_without', {})
+for op in ops:
+    op['sw'] = set(PINS['shipped_without'].get(f"{op['st']}.{op['fn']}", []))
+    if op['sw']:
+        USED_PINS.add(f"shipped_without:{op['st']}.{op['fn']}")
+
 # Deprecated operations: `#[deprecated]` on the method (a warning, never an error).
 DEPRECATED_OPS = {
     ('POST', '/v1/sign_in_tokens'): 'use `sessions().create_browser_ticket()` (sunset 2027-04-01)',
@@ -1460,6 +1483,7 @@ use super::types;
 #[allow(unused_imports)]
 use super::{
     Abac, AccessPolicies, Agents, ApiKeys, AppCatalog, AtlasIdApps, AtlasIdPublisherApi, AuthzDecisions, Billing, Connections, DesktopMfa, Devices, Iga, Instance, Invitations, Machines, McpGateways, MessagingProvidersApi, OrgSettingsSchemaApi, Organizations, PartnerLinks, PlatformApi, Sessions, Ssf, Users, Vc, Workflows,
+    Analytics, Domains, Grants,
 };
 ''']
 
@@ -1483,20 +1507,19 @@ for st, sops in by_struct.items():
         meth = METH[op['M']]
         doc = rust_doc(f"`{op['M']} {op['p']}`" + (f" — {op['summary']}" if op['summary'] else ''))
         qdoc = [f"Query parameters: {', '.join('`' + x + '`' for x in op['q'])}."] if op['q'] else []
-        qexpr = '&query.as_pairs()' if op['q'] else '&[]'
-        iexpr = 'idempotency_key' if op['idem'] else 'None'
-
-        def sig(body_ty):
+        def sig(body_ty, drop=()):
             a = ['&self'] + [f'{pname(x, st, i)}: &str' for i, x in enumerate(op['params'])]
             if op['body']:
                 a.append(f'body: {body_ty}')
-            if op['q']:
+            if op['q'] and 'query' not in drop:
                 a.append('query: &Query')
-            if op['idem']:
+            if op['idem'] and 'idempotency_key' not in drop:
                 a.append('idempotency_key: Option<&str>')
             return ', '.join(a)
 
-        def body_lines(bexpr, ret):
+        def body_lines(bexpr, ret, drop=()):
+            qexpr = '&query.as_pairs()' if op['q'] and 'query' not in drop else '&[]'
+            iexpr = 'idempotency_key' if op['idem'] and 'idempotency_key' not in drop else 'None'
             out = []
             if owned:
                 out.append(f'        let path = {pexpr};')
@@ -1528,10 +1551,15 @@ for st, sops in by_struct.items():
         lines.append(f'    /// {" ".join(notes)}')
         if (op['M'], op['p']) in DEPRECATED_OPS:
             lines.append(f'    #[deprecated(note = "{DEPRECATED_OPS[(op["M"], op["p"])]}")]')
-        lines.append(f"    pub async fn {op['fn']}({sig(body_arg)}) -> Result<{resp_t}, BackendError> {{")
+        lines.append(f"    pub async fn {op['fn']}({sig(body_arg, op['sw'])}) -> Result<{resp_t}, BackendError> {{")
         bexpr = 'body_of(body)?' if op['req_ty'] else ('Some(body)' if op['body'] else 'None')
-        lines += body_lines(bexpr, resp_t)
+        lines += body_lines(bexpr, resp_t, op['sw'])
         lines.append('    }')
+        if op['sw']:
+            lines.append(f"    /// `{op['M']} {op['p']}` with every argument the route now takes; see [`{op['fn']}`](Self::{op['fn']}).")
+            lines.append(f"    pub async fn {op['fn']}_with_idempotency_key({sig(body_arg)}) -> Result<{resp_t}, BackendError> {{")
+            lines += body_lines(bexpr, resp_t)
+            lines.append('    }')
         if op['fn'] != op['name'] and op['req_ty']:
             legacy = [a for a in sig(body_arg).split(', ') if not a.startswith('body: ')]
             call = [a.split(':')[0] for a in legacy[1:]]
@@ -1555,7 +1583,8 @@ ACCESSOR = {'Users': 'users', 'Organizations': 'organizations', 'Instance': 'ins
             'OrgSettingsSchemaApi': 'org_settings_schema', 'MessagingProvidersApi': 'messaging_providers',
             'AtlasIdApps': 'platform().atlas_id_apps', 'AtlasIdPublisherApi': 'platform().atlas_id_publisher',
             'PlatformApi': 'platform',
-            'Abac': 'abac', 'AccessPolicies': 'access_policies', 'Agents': 'agents', 'AppCatalog': 'app_catalog', 'AuthzDecisions': 'authz_decisions', 'Connections': 'connections', 'DesktopMfa': 'desktop_mfa', 'Devices': 'devices', 'Iga': 'iga', 'McpGateways': 'mcp_gateways', 'PartnerLinks': 'partner_links', 'Ssf': 'ssf', 'Vc': 'vc', 'Workflows': 'workflows'}
+            'Abac': 'abac', 'AccessPolicies': 'access_policies', 'Agents': 'agents', 'AppCatalog': 'app_catalog', 'AuthzDecisions': 'authz_decisions', 'Connections': 'connections', 'DesktopMfa': 'desktop_mfa', 'Devices': 'devices', 'Iga': 'iga', 'McpGateways': 'mcp_gateways', 'PartnerLinks': 'partner_links', 'Ssf': 'ssf', 'Vc': 'vc', 'Workflows': 'workflows',
+            'Analytics': 'analytics', 'Grants': 'grants', 'Domains': 'domains'}
 t = ['''// @generated by scripts/gen_catalog.py — do not edit.
 //! Every catalog operation sends the documented method and path (and its query, body, and idempotency
 //! key) through the request core.
@@ -1617,7 +1646,7 @@ for op in ops:
         bexp = 'B::K'
     else:
         barg, bexp = [], 'B::None'
-    t.append(f'    c.{acc}().{op["fn"]}({", ".join(pargs + barg + tail)}).await.unwrap();')
+    t.append(f'    c.{acc}().{op["fn"]}{"_with_idempotency_key" if op["sw"] else ""}({", ".join(pargs + barg + tail)}).await.unwrap();')
     t.append(f'    expected.push((HttpMethod::{meth}, "{url}".into(), {bexp}, {idem}));')
     n_calls += 1
 t.append('''
@@ -1704,7 +1733,7 @@ fn unknown_fields_survive_and_typed_fields_decode() {
 open(os.path.join(ROOT, 'tests/catalog_types.rs'), 'w').write('\n'.join(dt) + '\n')
 
 # A pin the spec no longer reaches is stale: fail so it gets removed on purpose.
-_all = {f'{k}:{x}' for k in ('no_idempotency', 'response', 'constructors') for x in PINS[k]} | \
+_all = {f'{k}:{x}' for k in ('no_idempotency', 'response', 'constructors', 'shipped_without') for x in PINS[k]} | \
        {f'field_types:{x}' for x in PINS['field_types']}
 if _all - USED_PINS:
     sys.exit('stale pins in catalog_pins.json: ' + ', '.join(sorted(_all - USED_PINS)))

@@ -24,6 +24,15 @@
    "    }"
   ]
  },
+ "deprecated_fields": {
+  "PermissionsUpdateBody": [
+   {
+    "json": "key",
+    "note": "The API no longer accepts a permission key change; the value is ignored.",
+    "ty": "String"
+   }
+  ]
+ },
  "field_types": {
   "AtlasIdAppPreflight.button_rendered_origins": "Vec<AtlasIdAppPreflightButtonRenderedOriginsItem>",
   "AtlasIdAppPreflight.fallback_origins": "Vec<AtlasIdAppPreflightFallbackOriginsItem>",
@@ -194,13 +203,754 @@
   "POST /v1/fraud/lookup": "FraudLookupResponse",
   "POST /v1/risk_events/{id}/feedback": "RiskEvent"
  },
- "deprecated_fields": {
-  "PermissionsUpdateBody": [
-   {
-    "json": "key",
-    "ty": "String",
-    "note": "The API no longer accepts a permission key change; the value is ignored."
-   }
+ "shipped_without": {
+  "Abac.set_token_mapping": [
+   "idempotency_key"
+  ],
+  "ActionTemplates.delete": [
+   "idempotency_key"
+  ],
+  "ActionTemplates.delete_version": [
+   "idempotency_key"
+  ],
+  "ActionTemplates.update": [
+   "idempotency_key"
+  ],
+  "Actions.delete": [
+   "idempotency_key"
+  ],
+  "Actions.set_bindings": [
+   "idempotency_key"
+  ],
+  "Actions.update": [
+   "idempotency_key"
+  ],
+  "Actions.update_rollout": [
+   "idempotency_key"
+  ],
+  "AdministrativeUnits.delete": [
+   "idempotency_key"
+  ],
+  "AdministrativeUnits.update": [
+   "idempotency_key"
+  ],
+  "Agents.set_lifecycle": [
+   "idempotency_key"
+  ],
+  "AllowlistIdentifiers.delete": [
+   "idempotency_key"
+  ],
+  "AppCatalog.delete_custom_presets": [
+   "idempotency_key"
+  ],
+  "AppCatalog.delete_requests": [
+   "idempotency_key"
+  ],
+  "AppCatalog.update_requests": [
+   "idempotency_key"
+  ],
+  "AppClones.delete": [
+   "idempotency_key"
+  ],
+  "AppRoles.delete": [
+   "idempotency_key"
+  ],
+  "AppRoles.update": [
+   "idempotency_key"
+  ],
+  "AtlasIdApps.delete_adoption_codes": [
+   "idempotency_key"
+  ],
+  "AtlasIdApps.revoke_grant": [
+   "idempotency_key"
+  ],
+  "AtlasIdApps.set_managed_by": [
+   "idempotency_key"
+  ],
+  "AtlasIdPublisherApi.delete": [
+   "idempotency_key"
+  ],
+  "AtlasIdPublisherApi.set": [
+   "idempotency_key"
+  ],
+  "AtlasIdPublisherApi.update": [
+   "idempotency_key"
+  ],
+  "AttackProtection.update": [
+   "idempotency_key"
+  ],
+  "AuditChain.set": [
+   "idempotency_key"
+  ],
+  "AuditRetention.set": [
+   "idempotency_key"
+  ],
+  "AuthenticatorPolicies.delete": [
+   "idempotency_key"
+  ],
+  "AuthenticatorPolicies.update": [
+   "idempotency_key"
+  ],
+  "Authz.delete_what_if": [
+   "idempotency_key"
+  ],
+  "AuthzPdps.delete": [
+   "idempotency_key"
+  ],
+  "BetterAuthImports.delete": [
+   "idempotency_key"
+  ],
+  "BetterAuthImports.delete_jwk": [
+   "idempotency_key"
+  ],
+  "BetterAuthImports.upload_part": [
+   "idempotency_key"
+  ],
+  "Billing.delete_coupons": [
+   "idempotency_key"
+  ],
+  "Billing.delete_provider": [
+   "idempotency_key"
+  ],
+  "Billing.set_provider": [
+   "idempotency_key"
+  ],
+  "Billing.update_coupons": [
+   "idempotency_key"
+  ],
+  "Billing.update_plan": [
+   "idempotency_key"
+  ],
+  "Billing.update_settings": [
+   "idempotency_key"
+  ],
+  "BlocklistIdentifiers.delete": [
+   "idempotency_key"
+  ],
+  "Branding.update": [
+   "idempotency_key"
+  ],
+  "Changes.set_ack": [
+   "idempotency_key"
+  ],
+  "ChatIntegrations.delete": [
+   "idempotency_key"
+  ],
+  "ChatIntegrations.delete_user_links": [
+   "idempotency_key"
+  ],
+  "ChatIntegrations.update": [
+   "idempotency_key"
+  ],
+  "CloudAccess.delete_targets": [
+   "idempotency_key"
+  ],
+  "CloudAccess.update_targets": [
+   "idempotency_key"
+  ],
+  "ConnectionActions.delete": [
+   "idempotency_key"
+  ],
+  "ConnectionActions.upsert": [
+   "idempotency_key"
+  ],
+  "ConnectionProviderTopics.set": [
+   "idempotency_key"
+  ],
+  "ConnectionProviders.delete_policy": [
+   "idempotency_key"
+  ],
+  "ConnectionProviders.set_policy": [
+   "idempotency_key"
+  ],
+  "ConnectionReconnectSettings.set": [
+   "idempotency_key"
+  ],
+  "Connections.delete_access_rules": [
+   "idempotency_key"
+  ],
+  "Connections.delete_triggers": [
+   "idempotency_key"
+  ],
+  "Connections.set_access_rules": [
+   "idempotency_key"
+  ],
+  "Connections.set_relay_limits": [
+   "idempotency_key"
+  ],
+  "Connections.set_token_limits": [
+   "idempotency_key"
+  ],
+  "Connections.update_triggers": [
+   "idempotency_key"
+  ],
+  "Connectors.delete": [
+   "idempotency_key"
+  ],
+  "Connectors.update": [
+   "idempotency_key"
+  ],
+  "CookieConsents.delete_subjects": [
+   "idempotency_key"
+  ],
+  "CustomOAuthProviders.delete": [
+   "idempotency_key"
+  ],
+  "DataSubjectRequests.update_triage": [
+   "idempotency_key"
+  ],
+  "DesktopMfa.delete_passkeys": [
+   "idempotency_key"
+  ],
+  "Dev.delete_emails": [
+   "idempotency_key"
+  ],
+  "DeviceAssurancePolicies.delete": [
+   "idempotency_key"
+  ],
+  "DeviceAssurancePolicies.update": [
+   "idempotency_key"
+  ],
+  "DeviceIntegrations.delete": [
+   "idempotency_key"
+  ],
+  "DeviceIntegrations.update": [
+   "idempotency_key"
+  ],
+  "DeviceSso.delete_registrations": [
+   "idempotency_key"
+  ],
+  "EmailTemplates.delete": [
+   "idempotency_key"
+  ],
+  "EmailTemplates.upsert": [
+   "idempotency_key"
+  ],
+  "ErasureConnectors.delete": [
+   "idempotency_key"
+  ],
+  "ErasureConnectors.update": [
+   "idempotency_key"
+  ],
+  "Fga.delete_materializations": [
+   "idempotency_key"
+  ],
+  "Fga.delete_store": [
+   "idempotency_key"
+  ],
+  "Fga.set_settings": [
+   "idempotency_key"
+  ],
+  "Fga.set_sync": [
+   "idempotency_key"
+  ],
+  "Flows.delete_experiments": [
+   "idempotency_key"
+  ],
+  "Fraud.set_settings": [
+   "idempotency_key"
+  ],
+  "Iga.delete_bundles": [
+   "idempotency_key"
+  ],
+  "Iga.delete_eligibilities": [
+   "idempotency_key"
+  ],
+  "Iga.update_bundles": [
+   "idempotency_key"
+  ],
+  "Instance.cancel_staged_signing_key": [
+   "idempotency_key"
+  ],
+  "Instance.delete_acks": [
+   "idempotency_key"
+  ],
+  "Instance.delete_captcha_secret": [
+   "idempotency_key"
+  ],
+  "Instance.delete_config_snapshots": [
+   "idempotency_key"
+  ],
+  "Instance.delete_data_key_provider": [
+   "idempotency_key"
+  ],
+  "Instance.delete_kerberos_secret": [
+   "idempotency_key"
+  ],
+  "Instance.delete_ldap_bind_password": [
+   "idempotency_key"
+  ],
+  "Instance.delete_policy_source": [
+   "idempotency_key"
+  ],
+  "Instance.delete_proxy_secret": [
+   "idempotency_key"
+  ],
+  "Instance.delete_signing_key_schedule": [
+   "idempotency_key"
+  ],
+  "Instance.delete_write_budget": [
+   "idempotency_key"
+  ],
+  "Instance.remove_signing_key_provider": [
+   "idempotency_key"
+  ],
+  "Instance.set_acks": [
+   "idempotency_key"
+  ],
+  "Instance.set_app_event_types": [
+   "idempotency_key"
+  ],
+  "Instance.set_captcha_secret": [
+   "idempotency_key"
+  ],
+  "Instance.set_data_key_provider": [
+   "idempotency_key"
+  ],
+  "Instance.set_impersonation_policy": [
+   "idempotency_key"
+  ],
+  "Instance.set_kerberos_secret": [
+   "idempotency_key"
+  ],
+  "Instance.set_ldap_bind_password": [
+   "idempotency_key"
+  ],
+  "Instance.set_org_departure_policy": [
+   "idempotency_key"
+  ],
+  "Instance.set_org_role_entitlements": [
+   "idempotency_key"
+  ],
+  "Instance.set_policy_source": [
+   "idempotency_key"
+  ],
+  "Instance.set_scopes": [
+   "query",
+   "idempotency_key"
+  ],
+  "Instance.set_signing_key_provider": [
+   "idempotency_key"
+  ],
+  "Instance.set_signing_key_schedule": [
+   "idempotency_key"
+  ],
+  "Instance.set_user_traits_schema": [
+   "idempotency_key"
+  ],
+  "Instance.set_wallet_rpc_secret": [
+   "idempotency_key"
+  ],
+  "Instance.set_write_budget": [
+   "idempotency_key"
+  ],
+  "Instance.update": [
+   "idempotency_key"
+  ],
+  "Instance.update_policy_settings": [
+   "idempotency_key"
+  ],
+  "Instance.update_security": [
+   "idempotency_key"
+  ],
+  "Instance.update_signing_key_policy": [
+   "idempotency_key"
+  ],
+  "JwtTemplates.delete": [
+   "idempotency_key"
+  ],
+  "JwtTemplates.update": [
+   "idempotency_key"
+  ],
+  "Localizations.delete": [
+   "idempotency_key"
+  ],
+  "Localizations.update": [
+   "idempotency_key"
+  ],
+  "LogStreams.delete": [
+   "idempotency_key"
+  ],
+  "LogStreams.update": [
+   "idempotency_key"
+  ],
+  "LtiPlatforms.delete": [
+   "idempotency_key"
+  ],
+  "LtiPlatforms.update": [
+   "idempotency_key"
+  ],
+  "MachineTrustPolicies.delete": [
+   "idempotency_key"
+  ],
+  "MachineTrustPolicies.update": [
+   "idempotency_key"
+  ],
+  "Machines.delete_grant": [
+   "idempotency_key"
+  ],
+  "Machines.update_grants": [
+   "idempotency_key"
+  ],
+  "ManagedWaf.set": [
+   "idempotency_key"
+  ],
+  "McpGateways.delete_packs": [
+   "idempotency_key"
+  ],
+  "McpGateways.delete_pins": [
+   "idempotency_key"
+  ],
+  "McpGateways.delete_upstreams": [
+   "idempotency_key"
+  ],
+  "McpGateways.update_packs": [
+   "idempotency_key"
+  ],
+  "McpGateways.update_upstreams": [
+   "idempotency_key"
+  ],
+  "McpRegistry.delete": [
+   "idempotency_key"
+  ],
+  "MessageReceivers.delete": [
+   "idempotency_key"
+  ],
+  "MessageReceivers.upsert": [
+   "idempotency_key"
+  ],
+  "Messaging.delete_country_routes": [
+   "idempotency_key"
+  ],
+  "Messaging.delete_suppressions": [
+   "idempotency_key"
+  ],
+  "Messaging.set_country_routes": [
+   "idempotency_key"
+  ],
+  "Messaging.set_settings": [
+   "idempotency_key"
+  ],
+  "MessagingProvidersApi.delete_fallbacks": [
+   "idempotency_key"
+  ],
+  "MessagingProvidersApi.delete_managed_email": [
+   "idempotency_key"
+  ],
+  "MessagingProvidersApi.disable_development_email": [
+   "idempotency_key"
+  ],
+  "MessagingProvidersApi.set_fallbacks": [
+   "idempotency_key"
+  ],
+  "MessagingProvidersApi.set_order": [
+   "idempotency_key"
+  ],
+  "MessagingProvidersApi.set_push": [
+   "idempotency_key"
+  ],
+  "MfaCampaigns.delete": [
+   "idempotency_key"
+  ],
+  "MfaCampaigns.set_users": [
+   "idempotency_key"
+  ],
+  "MfaCampaigns.update": [
+   "idempotency_key"
+  ],
+  "NetworkAcls.delete": [
+   "idempotency_key"
+  ],
+  "NetworkAcls.update": [
+   "idempotency_key"
+  ],
+  "OAuthClients.delete_grant": [
+   "idempotency_key"
+  ],
+  "OAuthClients.delete_token_exchange_profiles": [
+   "idempotency_key"
+  ],
+  "OAuthClients.delete_webhook": [
+   "idempotency_key"
+  ],
+  "OAuthClients.set_organization_access": [
+   "idempotency_key"
+  ],
+  "OAuthClients.set_webhook": [
+   "idempotency_key"
+  ],
+  "OAuthClients.update_token_exchange_profiles": [
+   "idempotency_key"
+  ],
+  "OAuthInitialAccessTokens.revoke": [
+   "idempotency_key"
+  ],
+  "OauthPublishers.delete": [
+   "idempotency_key"
+  ],
+  "OauthPublishers.delete_clients": [
+   "idempotency_key"
+  ],
+  "OauthPublishers.set_clients": [
+   "idempotency_key"
+  ],
+  "OauthPublishers.update": [
+   "idempotency_key"
+  ],
+  "OpenFga.set_assertions": [
+   "idempotency_key"
+  ],
+  "OrgRoleSets.delete": [
+   "idempotency_key"
+  ],
+  "OrgRoleSets.update": [
+   "idempotency_key"
+  ],
+  "OrgTemplates.delete": [
+   "idempotency_key"
+  ],
+  "OrgTemplates.update": [
+   "idempotency_key"
+  ],
+  "OrganizationConnections.delete": [
+   "idempotency_key"
+  ],
+  "Organizations.assign_group_role": [
+   "idempotency_key"
+  ],
+  "Organizations.delete_applications": [
+   "idempotency_key"
+  ],
+  "Organizations.delete_audit_stream": [
+   "idempotency_key"
+  ],
+  "Organizations.delete_machine_memberships": [
+   "idempotency_key"
+  ],
+  "Organizations.delete_reader_domain": [
+   "idempotency_key"
+  ],
+  "Organizations.delete_role": [
+   "idempotency_key"
+  ],
+  "Organizations.delete_team": [
+   "idempotency_key"
+  ],
+  "Organizations.remove_end_user": [
+   "idempotency_key"
+  ],
+  "Organizations.remove_team_member": [
+   "idempotency_key"
+  ],
+  "Organizations.set_applications": [
+   "idempotency_key"
+  ],
+  "Organizations.set_memberships": [
+   "idempotency_key"
+  ],
+  "Organizations.set_parent": [
+   "idempotency_key"
+  ],
+  "Organizations.set_role_policy": [
+   "idempotency_key"
+  ],
+  "Organizations.set_seats": [
+   "idempotency_key"
+  ],
+  "Organizations.unassign_group_role": [
+   "idempotency_key"
+  ],
+  "Organizations.update_end_user": [
+   "idempotency_key"
+  ],
+  "Organizations.update_machine_memberships": [
+   "idempotency_key"
+  ],
+  "Organizations.update_role": [
+   "idempotency_key"
+  ],
+  "Organizations.update_team": [
+   "idempotency_key"
+  ],
+  "PartnerLinks.update": [
+   "idempotency_key"
+  ],
+  "PasskeyCampaigns.delete": [
+   "idempotency_key"
+  ],
+  "Pca.set_attestors": [
+   "idempotency_key"
+  ],
+  "Pca.unfreeze": [
+   "idempotency_key"
+  ],
+  "Permissions.delete": [
+   "idempotency_key"
+  ],
+  "Permissions.update": [
+   "idempotency_key"
+  ],
+  "Policies.delete": [
+   "idempotency_key"
+  ],
+  "Policies.delete_translations": [
+   "idempotency_key"
+  ],
+  "Policies.delete_version": [
+   "idempotency_key"
+  ],
+  "Policies.set_audience": [
+   "idempotency_key"
+  ],
+  "Policies.set_translations": [
+   "idempotency_key"
+  ],
+  "Policies.update": [
+   "idempotency_key"
+  ],
+  "Policies.update_version": [
+   "idempotency_key"
+  ],
+  "RadiusClients.delete": [
+   "idempotency_key"
+  ],
+  "RadiusClients.update": [
+   "idempotency_key"
+  ],
+  "RateLimitOverrides.delete": [
+   "idempotency_key"
+  ],
+  "RateLimitOverrides.upsert": [
+   "idempotency_key"
+  ],
+  "RateLimitPolicies.delete": [
+   "idempotency_key"
+  ],
+  "RateLimitPolicies.update": [
+   "idempotency_key"
+  ],
+  "RateLimitPolicy.update": [
+   "idempotency_key"
+  ],
+  "RedirectUrls.delete": [
+   "idempotency_key"
+  ],
+  "ReferralRewardRules.set": [
+   "idempotency_key"
+  ],
+  "Region.set": [
+   "idempotency_key"
+  ],
+  "ResourceServers.delete": [
+   "idempotency_key"
+  ],
+  "ResourceServers.update": [
+   "idempotency_key"
+  ],
+  "RiskBasedMfa.update": [
+   "idempotency_key"
+  ],
+  "RiskSignals.delete": [
+   "idempotency_key"
+  ],
+  "Roles.delete": [
+   "idempotency_key"
+  ],
+  "Roles.set_permissions": [
+   "idempotency_key"
+  ],
+  "Roles.update": [
+   "idempotency_key"
+  ],
+  "ScimProvisioningTargets.delete": [
+   "idempotency_key"
+  ],
+  "ScimProvisioningTargets.update": [
+   "idempotency_key"
+  ],
+  "ScimResourceTypes.delete": [
+   "idempotency_key"
+  ],
+  "ScimTokens.update": [
+   "idempotency_key"
+  ],
+  "Sessions.delete_binding": [
+   "idempotency_key"
+  ],
+  "Sessions.set_custom_data": [
+   "idempotency_key"
+  ],
+  "Sessions.update_custom_data": [
+   "idempotency_key"
+  ],
+  "SmsTemplates.delete": [
+   "idempotency_key"
+  ],
+  "SmsTemplates.update": [
+   "idempotency_key"
+  ],
+  "SsoConnections.delete_saml_encryption_key": [
+   "idempotency_key"
+  ],
+  "SsoConnections.retire_previous_saml_encryption_key": [
+   "idempotency_key"
+  ],
+  "SsoOnboarding.delete_profile": [
+   "idempotency_key"
+  ],
+  "StepUp.delete_policies": [
+   "idempotency_key"
+  ],
+  "StepUp.update_policies": [
+   "idempotency_key"
+  ],
+  "Suppressions.delete": [
+   "idempotency_key"
+  ],
+  "TelemetryExport.set": [
+   "idempotency_key"
+  ],
+  "Users.clear_directives": [
+   "idempotency_key"
+  ],
+  "Users.delete_approval_devices": [
+   "idempotency_key"
+  ],
+  "Users.delete_cookie_consents": [
+   "idempotency_key"
+  ],
+  "Users.delete_journeys": [
+   "idempotency_key"
+  ],
+  "Users.delete_temporary_access": [
+   "idempotency_key"
+  ],
+  "Users.remove_app_role": [
+   "idempotency_key"
+  ],
+  "Users.update_notification_preferences": [
+   "idempotency_key"
+  ],
+  "Waitlist.delete": [
+   "idempotency_key"
+  ],
+  "WebBotAuth.delete_directories": [
+   "idempotency_key"
+  ],
+  "WebBotAuth.set": [
+   "idempotency_key"
+  ],
+  "Workflows.delete_kv": [
+   "idempotency_key"
+  ],
+  "Workflows.set_kv": [
+   "idempotency_key"
+  ],
+  "WsFedConnections.delete": [
+   "idempotency_key"
+  ],
+  "WsFedConnections.update": [
+   "idempotency_key"
   ]
  }
 }
