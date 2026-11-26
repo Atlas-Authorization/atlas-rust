@@ -1292,6 +1292,16 @@ async fn every_catalog_operation_hits_its_route() {
         .unwrap();
     expected.push((HttpMethod::Post, "/v1/billing/check".into(), B::Obj, false));
     c.billing()
+        .sync(&types::BillingSyncBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/checkout/sync".into(),
+        B::Obj,
+        true,
+    ));
+    c.billing()
         .create_accounts(&types::BillingCreateAccountsBody::default(), Some("idem_1"))
         .await
         .unwrap();
@@ -1547,6 +1557,16 @@ async fn every_catalog_operation_hits_its_route() {
         B::Obj,
         true,
     ));
+    c.billing()
+        .events(&types::BillingEventsBody::default(), Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/stripe/events".into(),
+        B::Obj,
+        true,
+    ));
     c.billing().sync_seats("p0_type", "p1_id").await.unwrap();
     expected.push((
         HttpMethod::Post,
@@ -1614,6 +1634,16 @@ async fn every_catalog_operation_hits_its_route() {
         "/v1/billing/subscriptions/p0_id/restore".into(),
         B::None,
         false,
+    ));
+    c.billing()
+        .create_sync("p0_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/billing/subscriptions/p0_id/sync".into(),
+        B::None,
+        true,
     ));
     c.billing()
         .report_usage(&types::BillingReportUsageBody::default())
@@ -4361,6 +4391,19 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         false,
     ));
+    c.instance()
+        .hosted_method_filters(
+            &types::InstanceHostedMethodFiltersBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/instance/hosted_method_filters".into(),
+        B::Obj,
+        true,
+    ));
     c.instance().impersonation_policy().await.unwrap();
     expected.push((
         HttpMethod::Get,
@@ -6682,6 +6725,34 @@ async fn every_catalog_operation_hits_its_route() {
         B::None,
         true,
     ));
+    c.oauth_clients()
+        .create_rotate_secret(
+            "p0_id",
+            &types::OAuthClientsCreateRotateSecretBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/oauth_clients/p0_id/webhook/rotate_secret".into(),
+        B::Obj,
+        true,
+    ));
+    c.oauth_clients()
+        .test(
+            "p0_id",
+            &types::OAuthClientsTestBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Post,
+        "/v1/oauth_clients/p0_id/webhook/test".into(),
+        B::Obj,
+        true,
+    ));
     c.oauth_consent_requests()
         .set_switch_account(&q, Some("idem_1"))
         .await
@@ -7446,6 +7517,31 @@ async fn every_catalog_operation_hits_its_route() {
         HttpMethod::Post,
         "/v1/organizations/p0_id/membership_imports".into(),
         B::Obj,
+        true,
+    ));
+    c.organizations()
+        .set_by_external_id(
+            "p0_id",
+            "p1_user_external_id",
+            &types::OrganizationsSetByExternalIdBody::default(),
+            Some("idem_1"),
+        )
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Put,
+        "/v1/organizations/p0_id/memberships/by_external_id/p1_user_external_id".into(),
+        B::Obj,
+        true,
+    ));
+    c.organizations()
+        .delete_by_external_id("p0_id", "p1_user_external_id", Some("idem_1"))
+        .await
+        .unwrap();
+    expected.push((
+        HttpMethod::Delete,
+        "/v1/organizations/p0_id/memberships/by_external_id/p1_user_external_id".into(),
+        B::None,
         true,
     ));
     c.organizations()
@@ -12004,4 +12100,4 @@ async fn every_catalog_operation_hits_its_route() {
     }
 }
 
-// 1265 operations, 1225 typed; 1265 calls.
+// 1273 operations, 1233 typed; 1273 calls.
